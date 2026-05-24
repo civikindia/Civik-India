@@ -26,6 +26,15 @@ function isNavigationRequest(request) {
   return request.mode === 'navigate';
 }
 
+function isSensitivePath(pathname) {
+  return pathname.startsWith('/admin')
+    || pathname.startsWith('/officer')
+    || pathname.startsWith('/auth')
+    || pathname.startsWith('/complaint/')
+    || pathname.startsWith('/confirmation/')
+    || pathname === '/track';
+}
+
 function isCacheableAsset(request) {
   return request.destination === 'style'
     || request.destination === 'script'
@@ -75,6 +84,11 @@ self.addEventListener('fetch', (event) => {
 
   const request = event.request;
   const url = new URL(request.url);
+
+  if (url.origin === self.location.origin && isSensitivePath(url.pathname)) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   if (isApiRequest(request)) {
     event.respondWith((async function () {

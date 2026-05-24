@@ -126,6 +126,57 @@ class TestSecurityHeaders:
         assert 'geolocation=(self)' in policy
         assert 'geolocation=()' not in policy
 
+    def test_health_check_does_not_leak_exception_when_debug_off(self, client, monkeypatch):
+        """Production-style health failures should not return raw exception text."""
+        client.application.debug = False
+
+        def boom(*args, **kwargs):
+            raise RuntimeError('sensitive database host detail')
+
+        monkeypatch.setattr(db.session, 'execute', boom)
+        response = client.get('/healthz')
+
+        assert response.status_code == 503
+        payload = response.get_json()
+        assert payload['status'] == 'unhealthy'
+        assert 'error' not in payload
+
+
+class TestProductionConfigSafety:
+    """Production configuration should fail closed before deployment."""
+
+    def _set_minimum_production_env(self, monkeypatch):
+        values = {
+            'FLASK_ENV': 'production',
+            'SECRET_KEY': 'test-production-secret-key',
+            'DATABASE_URL': 'postgresql://user:pass@localhost/db',
+            'EVIDENCE_ENCRYPTION_KEY': 'a' * 64,
+            'AUDIT_HMAC_SECRET': 'test-audit-secret',
+            'DEFAULT_ADMIN_PASSWORD': 'StrongAdminPassword123!',
+            'DEFAULT_OFFICER_PASSWORD': 'StrongOfficerPassword123!',
+            'R2_ACCOUNT_ID': 'test-account',
+            'R2_ACCESS_KEY_ID': 'test-access-key',
+            'R2_SECRET_ACCESS_KEY': 'test-secret-key',
+            'R2_BUCKET_NAME': 'test-bucket',
+            'R2_ENDPOINT_URL': 'https://example.r2.cloudflarestorage.com',
+        }
+        for key, value in values.items():
+            monkeypatch.setenv(key, value)
+
+    def test_production_rejects_non_sql_database_url(self, monkeypatch):
+        self._set_minimum_production_env(monkeypatch)
+        monkeypatch.setenv('DATABASE_URL', 'https://example.neon.tech/neondb/rest/v1')
+
+        with pytest.raises(RuntimeError, match='DATABASE_URL must be a SQL database URL'):
+            create_app('production')
+
+    def test_production_requires_bootstrap_passwords(self, monkeypatch):
+        self._set_minimum_production_env(monkeypatch)
+        monkeypatch.delenv('DEFAULT_ADMIN_PASSWORD')
+
+        with pytest.raises(RuntimeError, match='DEFAULT_ADMIN_PASSWORD'):
+            create_app('production')
+
 
 class TestFileUploadSecurity:
     """Tests for file upload security."""

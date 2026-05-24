@@ -3,6 +3,7 @@ CivikIndia Public Routes
 Citizen-facing routes - no authentication required.
 """
 import csv
+import hashlib
 import io
 import inspect
 import re
@@ -49,6 +50,14 @@ STATUS_BADGE_CLASSES = {
     'Reopened': 'badge-reopened',
     'Closed': 'badge-closed',
 }
+
+
+def _public_reference(tracking_id):
+    """Derive a stable non-trackable reference for public aggregate views."""
+    if not tracking_id:
+        return 'Public record'
+    digest = hashlib.sha256(str(tracking_id).encode('utf-8')).hexdigest()[:8].upper()
+    return f'Ref {digest}'
 
 
 def _get_client_ip():
@@ -1563,7 +1572,7 @@ def get_dashboard_overview():
         recent_serialized = []
         for complaint in recent_complaints:
             recent_serialized.append({
-                'tracking_id': complaint.tracking_id,
+                'public_reference': _public_reference(complaint.tracking_id),
                 'department': complaint.department.name if complaint.department else '',
                 'service': complaint.service.name if complaint.service else '',
                 'status': complaint.status,
@@ -1795,12 +1804,12 @@ def export_monthly_csv():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        'tracking_id', 'department', 'service', 'status', 'priority',
+        'public_reference', 'department', 'service', 'status', 'priority',
         'submitted_at', 'resolved_at', 'reopen_count', 'citizen_rating'
     ])
     for complaint in complaints:
         writer.writerow([
-            complaint.tracking_id,
+            _public_reference(complaint.tracking_id),
             complaint.department.name if complaint.department else '',
             complaint.service.name if complaint.service else '',
             complaint.status,
@@ -1868,7 +1877,7 @@ def get_geo_heatmap_data():
             {
                 'lat': complaint.location_lat,
                 'lng': complaint.location_lng,
-                'tracking_id': complaint.tracking_id,
+                'public_reference': _public_reference(complaint.tracking_id),
                 'status': complaint.status,
                 'priority': complaint.priority,
                 'state': complaint.state,
@@ -2047,9 +2056,14 @@ def health_check():
             'timestamp': utc_now().isoformat()
         }), 200
     except Exception as e:
-        return jsonify({
+        current_app.logger.exception('Health check database probe failed.')
+        payload = {
             'status': 'unhealthy',
             'database': 'disconnected',
-            'error': str(e),
             'timestamp': utc_now().isoformat()
+        }
+        if current_app.debug:
+            payload['error'] = str(e)
+        return jsonify({
+            **payload
         }), 503

@@ -351,7 +351,7 @@
                         <caption class="visually-hidden">Recent public complaint activity from the last 30 days</caption>
                         <thead class="table-light">
                             <tr>
-                                <th scope="col">Tracking ID</th>
+                                <th scope="col">Public Ref</th>
                                 <th scope="col">Department</th>
                                 <th scope="col" class="d-none d-md-table-cell">Service</th>
                                 <th scope="col">Status</th>
@@ -362,7 +362,7 @@
                             {% if recent_complaints %}
                                 {% for complaint in recent_complaints %}
                                 <tr>
-                                    <td data-label="Tracking ID"><code>{{ complaint.tracking_id }}</code></td>
+                                    <td data-label="Public Ref"><code>{{ complaint.tracking_id|public_reference }}</code></td>
                                     <td data-label="Department">{{ complaint.department.name }}</td>
                                     <td data-label="Service" class="d-none d-md-table-cell">{{ complaint.service.name }}</td>
                                     <td data-label="Status"><span class="badge-status {{ complaint.status|status_badge }}">{{ complaint.status }}</span></td>

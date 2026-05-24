@@ -15,6 +15,9 @@ if (-not (Test-Path $python)) {
     exit 1
 }
 
+$env:FLASK_ENV = "development"
+$env:FLASK_DEBUG = "0"
+
 Write-Host "Bootstrapping CivikIndia database..." -ForegroundColor Cyan
 & $python deploy\bootstrap.py
 
@@ -22,9 +25,6 @@ if (-not $SkipSeed) {
     Write-Host "Seeding demo data ($SeedRange)..." -ForegroundColor Cyan
     & $python seed.py --target-range $SeedRange --clear-existing-complaints --seed-audit-logs
 }
-
-$env:FLASK_ENV = "development"
-$env:FLASK_DEBUG = "0"
 
 Write-Host ""
 Write-Host "Starting CivikIndia on http://$HostAddress`:$Port" -ForegroundColor Green

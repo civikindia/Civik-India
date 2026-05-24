@@ -9,6 +9,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from flask import current_app
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
@@ -71,6 +72,25 @@ BASELINE_DATA = [
         ],
     },
 ]
+
+
+def _production_requires_explicit_staff_password():
+    return (
+        os.environ.get("FLASK_ENV", "production") == "production"
+        and not current_app.config.get("TESTING", False)
+        and not current_app.config.get("DEBUG", False)
+    )
+
+
+def _staff_password_from_env(env_name, local_default):
+    password = os.environ.get(env_name)
+    if password:
+        return password
+    if _production_requires_explicit_staff_password():
+        raise RuntimeError(
+            f"{env_name} is required in production before bootstrap can create staff accounts."
+        )
+    return local_default
 
 
 def ensure_lookup_data():
@@ -139,12 +159,12 @@ def ensure_sla_policies():
 def ensure_admin():
     username = os.environ.get("DEFAULT_ADMIN_USERNAME", "admin")
     email = os.environ.get("DEFAULT_ADMIN_EMAIL", "admin@civikindia.gov.in")
-    password = os.environ.get("DEFAULT_ADMIN_PASSWORD", "Admin@1234")
 
     admin = User.query.filter_by(username=username).first()
     if admin is not None:
         return
 
+    password = _staff_password_from_env("DEFAULT_ADMIN_PASSWORD", "Admin@1234")
     admin = User(
         username=username,
         email=email,
@@ -158,13 +178,13 @@ def ensure_admin():
 def ensure_default_officer():
     username = os.environ.get("DEFAULT_OFFICER_USERNAME", "officer_water")
     email = os.environ.get("DEFAULT_OFFICER_EMAIL", "officer_water@civikindia.gov.in")
-    password = os.environ.get("DEFAULT_OFFICER_PASSWORD", "Officer@1234")
     department_name = os.environ.get("DEFAULT_OFFICER_DEPARTMENT", "Water Supply")
 
     officer = User.query.filter_by(username=username).first()
     if officer is not None:
         return
 
+    password = _staff_password_from_env("DEFAULT_OFFICER_PASSWORD", "Officer@1234")
     department = Department.query.filter_by(name=department_name).first()
     officer = User(
         username=username,

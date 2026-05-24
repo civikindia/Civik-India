@@ -8,6 +8,7 @@ import sys
 import argparse
 from datetime import timedelta
 import random
+import secrets
 
 # Add app to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +17,11 @@ from app import create_app, db
 from app.clock import utc_now
 from app.models import Department, Service, User, Complaint, AuditLog, SLAPolicy, EscalationContact
 from app.utils import generate_tracking_id
+
+
+def _demo_password(env_name):
+    """Use an explicit demo password when provided, otherwise create one per seed run."""
+    return os.environ.get(env_name) or secrets.token_urlsafe(18)
 
 
 LOCATION_CATALOG = [
@@ -218,6 +224,8 @@ def seed_services(departments):
 def seed_users(departments):
     """Create admin and officer users."""
     users_created = []
+    admin_password = _demo_password('SEED_ADMIN_PASSWORD')
+    officer_password = _demo_password('SEED_OFFICER_PASSWORD')
     
     # Create admin
     admin = User.query.filter_by(username='admin').first()
@@ -228,9 +236,9 @@ def seed_users(departments):
             role='admin',
             is_active=True
         )
-        admin.set_password('Admin@1234')
+        admin.set_password(admin_password)
         db.session.add(admin)
-        users_created.append(('admin', 'Admin@1234', 'admin'))
+        users_created.append(('admin', admin_password, 'admin'))
         print("  Created user: admin (role: admin)")
     
     # Create officers
@@ -251,9 +259,9 @@ def seed_users(departments):
                 department_id=dept.id if dept else None,
                 is_active=True
             )
-            officer.set_password('Officer@1234')
+            officer.set_password(officer_password)
             db.session.add(officer)
-            users_created.append((username, 'Officer@1234', 'officer'))
+            users_created.append((username, officer_password, 'officer'))
             print(f"  Created user: {username} (role: officer, dept: {dept_name})")
     
     # Create zonal officers and commissioner
@@ -272,9 +280,9 @@ def seed_users(departments):
                 department_id=dept.id if dept else None,
                 is_active=True
             )
-            zo.set_password('Officer@1234')
+            zo.set_password(officer_password)
             db.session.add(zo)
-            users_created.append((username, 'Officer@1234', 'zonal_officer'))
+            users_created.append((username, officer_password, 'zonal_officer'))
             print(f"  Created user: {username} (role: zonal_officer, dept: {dept_name})")
 
     existing_comm = User.query.filter_by(username='commissioner').first()
@@ -285,9 +293,9 @@ def seed_users(departments):
             role='commissioner',
             is_active=True
         )
-        comm.set_password('Officer@1234')
+        comm.set_password(officer_password)
         db.session.add(comm)
-        users_created.append(('commissioner', 'Officer@1234', 'commissioner'))
+        users_created.append(('commissioner', officer_password, 'commissioner'))
         print("  Created user: commissioner (role: commissioner)")
 
     db.session.commit()
@@ -445,7 +453,7 @@ def print_summary(users, complaints):
         print(f"  {complaint.tracking_id} - {complaint.status}")
     
     print("\n" + "="*60)
-    print("  IMPORTANT: Change default passwords immediately!")
+    print("  IMPORTANT: Store demo credentials securely or rotate them immediately.")
     print("="*60)
 
 

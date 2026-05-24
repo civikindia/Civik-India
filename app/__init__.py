@@ -3,6 +3,7 @@ CivikIndia Flask Application Factory
 Creates and configures the Flask application with all extensions.
 """
 import importlib
+import hashlib
 from sqlalchemy import text, inspect
 from urllib.parse import urljoin, urlparse
 from flask import Flask, render_template, redirect, url_for, request, session, current_app, has_app_context
@@ -473,6 +474,14 @@ def register_template_filters(app):
         if value is None:
             return 'N/A'
         return value.strftime(format)
+
+    @app.template_filter('public_reference')
+    def public_reference(value):
+        """Return a non-trackable public reference for aggregate dashboards."""
+        if not value:
+            return 'Public record'
+        digest = hashlib.sha256(str(value).encode('utf-8')).hexdigest()[:8].upper()
+        return f'Ref {digest}'
     
     @app.template_filter('status_badge')
     def status_badge(status):

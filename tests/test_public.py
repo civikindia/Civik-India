@@ -379,6 +379,9 @@ class TestAPIEndpoints:
         assert 'stats' in payload
         assert 'dept_stats' in payload
         assert 'recent_complaints' in payload
+        assert payload['recent_complaints']
+        assert 'tracking_id' not in payload['recent_complaints'][0]
+        assert payload['recent_complaints'][0]['public_reference'].startswith('Ref ')
 
     def test_dashboard_overview_rejects_invalid_month(self, client):
         """Dashboard overview should reject malformed month filters."""
@@ -540,7 +543,9 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
-        record = next(item for item in data if item.get('tracking_id') == 'MIBGEO12345')
+        record = next(item for item in data if item.get('city') == 'Mumbai')
+        assert 'tracking_id' not in record
+        assert record.get('public_reference', '').startswith('Ref ')
         assert record['state'] == 'Maharashtra'
         assert record['district'] == 'Mumbai Suburban'
         assert record['city'] == 'Mumbai'
@@ -564,7 +569,8 @@ class TestAPIEndpoints:
         response = client.get('/api/geo/heatmap?status=all&priority=all&state=all&district=all&city=all')
         assert response.status_code == 200
         data = response.get_json()
-        assert any(item.get('tracking_id') == 'MIBGEOALL01' for item in data)
+        assert any(item.get('city') == 'Mumbai' for item in data)
+        assert all('tracking_id' not in item for item in data)
 
     def test_geo_heatmap_api_department_filter(self, client, sample_data):
         """Geo heatmap API should filter by department_id."""
@@ -601,8 +607,9 @@ class TestAPIEndpoints:
         response = client.get(f'/api/geo/heatmap?department_id={sample_data["department_id"]}')
         assert response.status_code == 200
         data = response.get_json()
-        assert any(item.get('tracking_id') == 'MIBGEODEP01' for item in data)
-        assert not any(item.get('tracking_id') == 'MIBGEODEP02' for item in data)
+        assert any(item.get('department_id') == sample_data['department_id'] for item in data)
+        assert not any(item.get('department_id') == other_dept.id for item in data)
+        assert all('tracking_id' not in item for item in data)
 
     def test_geo_heatmap_api_invalid_filter_characters(self, client):
         """Geo heatmap API should reject invalid characters in state/district/city."""

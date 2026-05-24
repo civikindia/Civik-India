@@ -164,7 +164,8 @@ def forgot_password():
                 db.session.rollback()
                 current_app.logger.exception('Password reset request failed.')
         elif identifier:
-            log_action('PASSWORD_RESET_REQUEST_IGNORED', details={'identifier': identifier[:120]})
+            identifier_hash = hashlib.sha256(identifier.lower().encode('utf-8')).hexdigest()[:12]
+            log_action('PASSWORD_RESET_REQUEST_IGNORED', details={'identifier_hash': identifier_hash})
 
         flash('If a matching active staff account exists, reset instructions have been sent.', 'info')
         return redirect(url_for('auth.login'))

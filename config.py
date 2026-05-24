@@ -264,6 +264,13 @@ class ProductionConfig(Config):
         
         if not uri:
             raise RuntimeError('DATABASE_URL is required in production.')
+        if uri.startswith('sqlite'):
+            raise RuntimeError('SQLite DATABASE_URL is not allowed in production.')
+        if not uri.startswith(('postgresql://', 'mysql://', 'mysql+pymysql://')):
+            raise RuntimeError(
+                'DATABASE_URL must be a SQL database URL such as '
+                'postgresql://... or mysql+pymysql://... in production.'
+            )
         
         app.config['SQLALCHEMY_DATABASE_URI'] = uri
         if uri.startswith('postgresql'):
@@ -285,6 +292,8 @@ class ProductionConfig(Config):
             'DATABASE_URL',
             'EVIDENCE_ENCRYPTION_KEY',
             'AUDIT_HMAC_SECRET',
+            'DEFAULT_ADMIN_PASSWORD',
+            'DEFAULT_OFFICER_PASSWORD',
             'R2_ACCOUNT_ID',
             'R2_ACCESS_KEY_ID',
             'R2_SECRET_ACCESS_KEY',
@@ -299,6 +308,15 @@ class ProductionConfig(Config):
             insecure.append('EVIDENCE_ENCRYPTION_KEY')
         if os.environ.get('AUDIT_HMAC_SECRET') == 'dev-audit-hmac-secret-persistent-key':
             insecure.append('AUDIT_HMAC_SECRET')
+        for name in required:
+            value = os.environ.get(name, '')
+            if value.lower().startswith('replace-'):
+                insecure.append(name)
+        if os.environ.get('DEFAULT_ADMIN_PASSWORD') == 'Admin@1234':
+            insecure.append('DEFAULT_ADMIN_PASSWORD')
+        if os.environ.get('DEFAULT_OFFICER_PASSWORD') == 'Officer@1234':
+            insecure.append('DEFAULT_OFFICER_PASSWORD')
+        insecure = sorted(set(insecure))
 
         if cls.GOOGLE_DRIVE_BACKUP_ENABLED:
             if not cls.GOOGLE_DRIVE_FOLDER_ID:

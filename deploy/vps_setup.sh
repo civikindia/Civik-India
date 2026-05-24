@@ -19,6 +19,10 @@ NC='\033[0m' # No Color
 REPO_URL="${REPO_URL:-https://github.com/yourusername/civikindia.git}"
 DOMAIN="${DOMAIN:-yourdomain.com}"
 DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -base64 32)}"
+DEFAULT_ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-$(openssl rand -base64 24)}"
+DEFAULT_OFFICER_PASSWORD="${DEFAULT_OFFICER_PASSWORD:-$(openssl rand -base64 24)}"
+EVIDENCE_ENCRYPTION_KEY="${EVIDENCE_ENCRYPTION_KEY:-$(openssl rand -hex 32)}"
+AUDIT_HMAC_SECRET="${AUDIT_HMAC_SECRET:-$(openssl rand -hex 32)}"
 APP_DIR="/var/www/civikindia"
 
 # Logging functions
@@ -146,6 +150,10 @@ create_env() {
 # CivikIndia Environment Configuration
 FLASK_ENV=production
 SECRET_KEY=${SECRET_KEY}
+EVIDENCE_ENCRYPTION_KEY=${EVIDENCE_ENCRYPTION_KEY}
+AUDIT_HMAC_SECRET=${AUDIT_HMAC_SECRET}
+DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD}
+DEFAULT_OFFICER_PASSWORD=${DEFAULT_OFFICER_PASSWORD}
 
 # MySQL Configuration
 MYSQL_HOST=localhost
@@ -156,6 +164,12 @@ MYSQL_DB=civikindia
 # File Uploads
 UPLOAD_FOLDER=/var/www/civikindia/uploads
 MAX_CONTENT_LENGTH=16777216
+EVIDENCE_STORAGE_PROVIDER=${EVIDENCE_STORAGE_PROVIDER:-r2}
+R2_ACCOUNT_ID=${R2_ACCOUNT_ID:-}
+R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID:-}
+R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY:-}
+R2_BUCKET_NAME=${R2_BUCKET_NAME:-}
+R2_ENDPOINT_URL=${R2_ENDPOINT_URL:-}
 
 # Redis / Celery
 REDIS_URL=redis://localhost:6379/0
@@ -396,7 +410,7 @@ print_summary() {
     echo ""
     echo -e "${YELLOW}Default Admin Credentials:${NC}"
     echo "  Username: admin"
-    echo "  Password: Admin@1234"
+    echo "  Password: ${DEFAULT_ADMIN_PASSWORD}"
     echo ""
     echo -e "${YELLOW}Important Commands:${NC}"
     echo "  View logs: journalctl -u civikindia -f"

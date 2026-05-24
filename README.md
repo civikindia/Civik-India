@@ -107,14 +107,12 @@ The app supports installation as a Progressive Web App (PWA).
 
 For production installs, use HTTPS and a real domain.
 
-### Default Credentials
+### Staff Bootstrap Credentials
 
-| Role     | Username      | Password     |
-|----------|---------------|--------------|
-| Admin    | admin         | Admin@1234   |
-| Officer  | officer_water | Officer@1234 |
-
-**⚠️ Change these immediately after first login!**
+Local development can use the bootstrap defaults created by `deploy/bootstrap.py`.
+Production deployments must set strong unique `DEFAULT_ADMIN_PASSWORD` and
+`DEFAULT_OFFICER_PASSWORD` environment variables before the first boot.
+Rotate bootstrap passwords after first login if you share a demo environment.
 
 ### Seed Demo Complaints
 
@@ -224,14 +222,17 @@ docker-compose exec web python deploy/bootstrap.py
 2. Create a new Web Service on Render
 3. Connect your GitHub repository
 4. Render will automatically detect `render.yaml` and deploy
-5. Add these optional environment variables for first login:
+5. Add these required environment variables for first login:
    - `DEFAULT_ADMIN_USERNAME` (default: `admin`)
-   - `DEFAULT_ADMIN_PASSWORD` (default: `Admin@1234`)
+   - `DEFAULT_ADMIN_PASSWORD`
    - `DEFAULT_ADMIN_EMAIL` (default: `admin@civikindia.gov.in`)
-6. Recommended required environment variables:
-   - `SECRET_KEY` (auto-generated if you use `generateValue`)
+   - `DEFAULT_OFFICER_USERNAME` (default: `officer_water`)
+   - `DEFAULT_OFFICER_PASSWORD`
+   - `DEFAULT_OFFICER_EMAIL` (default: `officer_water@civikindia.gov.in`)
+6. Required environment variables:
+   - `SECRET_KEY`
    - `FLASK_ENV=production`
-   - `DATABASE_URL` is auto-populated from `civikindia-db` (linked database)
+   - `DATABASE_URL` from Neon or another hosted PostgreSQL database
 7. After deploy, verify:
    - `https://<your-render-app>.onrender.com/health` should return `healthy`
    - `https://<your-render-app>.onrender.com/` should open the portal

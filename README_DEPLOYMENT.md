@@ -22,6 +22,8 @@ MAX_UPLOAD_MB=16
 ALLOWED_UPLOAD_EXTENSIONS=jpg,jpeg,png,webp,pdf,mp4,mov,mp3,wav,txt,doc,docx
 EVIDENCE_ENCRYPTION_KEY=
 AUDIT_HMAC_SECRET=
+DEFAULT_ADMIN_PASSWORD=
+DEFAULT_OFFICER_PASSWORD=
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
@@ -38,12 +40,12 @@ WEB_CONCURRENCY=1
 GUNICORN_TIMEOUT=120
 ```
 
-Use long random values for `SECRET_KEY`, `EVIDENCE_ENCRYPTION_KEY`, `AUDIT_HMAC_SECRET`, and `BACKUP_CRON_TOKEN`. `EVIDENCE_ENCRYPTION_KEY` can be a 64-character hex string or another long random secret.
+Use long random values for `SECRET_KEY`, `EVIDENCE_ENCRYPTION_KEY`, `AUDIT_HMAC_SECRET`, `BACKUP_CRON_TOKEN`, `DEFAULT_ADMIN_PASSWORD`, and `DEFAULT_OFFICER_PASSWORD`. `EVIDENCE_ENCRYPTION_KEY` can be a 64-character hex string or another long random secret.
 
 ## A. Neon PostgreSQL
 
 1. Create a Neon project and database.
-2. Copy the pooled or direct PostgreSQL connection string.
+2. Copy the pooled or direct PostgreSQL connection string, not the Neon REST API endpoint.
 3. Set it as `DATABASE_URL` in Koyeb or Render.
 4. Keep SSL enabled in the Neon connection string.
 5. After the first deployment starts, the app runs `deploy/bootstrap.py` to create tables and baseline departments/officers.

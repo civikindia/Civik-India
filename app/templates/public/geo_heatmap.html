@@ -966,7 +966,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 marker.bindPopup(`
                     <div class="small">
-                        <div><strong>Tracking ID:</strong> ${escapeHtml(point.tracking_id || '-')}</div>
+                        <div><strong>Public Ref:</strong> ${escapeHtml(point.public_reference || 'Public record')}</div>
                         <div><strong>Department:</strong> ${escapeHtml(point.department_name || 'Unassigned')}</div>
                         <div><strong>Status:</strong> ${escapeHtml(point.status)}</div>
                         <div><strong>Priority:</strong> ${escapeHtml(point.priority)}</div>

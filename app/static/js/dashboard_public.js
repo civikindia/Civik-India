@@ -462,7 +462,7 @@
                 const badgeClass = item.status_badge || statusBadgeMap[item.status] || 'badge-secondary';
                 return `
                     <tr>
-                        <td><code>${escapeHtml(item.tracking_id)}</code></td>
+                        <td><code>${escapeHtml(item.public_reference || 'Public record')}</code></td>
                         <td>${escapeHtml(item.department)}</td>
                         <td>${escapeHtml(item.service)}</td>
                         <td><span class="badge-status ${badgeClass}">${escapeHtml(item.status)}</span></td>
