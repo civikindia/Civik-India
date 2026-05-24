@@ -23,15 +23,15 @@ services:
       - key: ALLOWED_UPLOAD_EXTENSIONS
         value: jpg,jpeg,png,webp,pdf,mp4,mov,mp3,wav,txt,doc,docx
       - key: R2_ACCOUNT_ID
-        sync: false
+        value: e3124565e17953d84bf58155a40381de
       - key: R2_ACCESS_KEY_ID
         sync: false
       - key: R2_SECRET_ACCESS_KEY
         sync: false
       - key: R2_BUCKET_NAME
-        sync: false
+        value: civikindia-evidence
       - key: R2_ENDPOINT_URL
-        sync: false
+        value: https://e3124565e17953d84bf58155a40381de.r2.cloudflarestorage.com
       - key: GOOGLE_DRIVE_BACKUP_ENABLED
         value: "false"
       - key: GOOGLE_DRIVE_FOLDER_ID
