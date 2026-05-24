@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CivikIndia Report — {{ complaint.tracking_id }}</title>
+    <style>
+        /* ── Base ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 12px;
+            color: #1a1a2e;
+            background: #fff;
+            padding: 32px 40px;
+        }
+
+        /* ── Letterhead ── */
+        .letterhead {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 3px solid #003366;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+        .letterhead-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #003366;
+            letter-spacing: 0.5px;
+        }
+        .letterhead-sub {
+            font-size: 11px;
+            color: #555;
+            margin-top: 3px;
+        }
+        .letterhead-right {
+            text-align: right;
+            font-size: 10px;
+            color: #555;
+        }
+        .doc-title {
+            text-align: center;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #003366;
+            margin-bottom: 20px;
+            padding: 8px 0;
+            border-top: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* ── Status badge ── */
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #e9ecef;
+            color: #333;
+        }
+        .status-badge.status-closed     { background: #d1e7dd; color: #0a3622; }
+        .status-badge.status-pending    { background: #fff3cd; color: #664d03; }
+        .status-badge.status-rejected   { background: #f8d7da; color: #58151c; }
+        .status-badge.status-review     { background: #cfe2ff; color: #0a367e; }
+        .status-badge.status-delayed    { background: #fde2e4; color: #842029; }
+
+        /* ── Info grid ── */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px 20px;
+            margin-bottom: 20px;
+        }
+        .info-cell label {
+            display: block;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #888;
+            margin-bottom: 2px;
+        }
+        .info-cell strong { font-size: 12px; color: #111; }
+
+        /* ── Section titles ── */
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #003366;
+            border-bottom: 1px solid #c9d6e3;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* ── Description ── */
+        .description-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 12px;
+            white-space: pre-wrap;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* ── Timeline ── */
+        .timeline { margin-bottom: 20px; }
+        .timeline-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px dotted #e0e0e0;
+        }
+        .tl-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #adb5bd;
+            flex-shrink: 0;
+        }
+        .tl-dot.active { background: #198754; }
+        .tl-label { font-weight: 600; font-size: 11px; }
+        .tl-date { font-size: 10px; color: #888; margin-left: auto; }
+
+        /* ── Notes ── */
+        .notes-box {
+            background: #fffde7;
+            border: 1px solid #ffe082;
+            border-radius: 4px;
+            padding: 10px;
+            white-space: pre-wrap;
+            font-size: 11px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* ── Audit table ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 20px;
+        }
+        table thead tr { background: #003366; color: #fff; }
+        table thead th { padding: 6px 8px; text-align: left; font-weight: 600; }
+        table tbody tr:nth-child(even) { background: #f2f5f8; }
+        table tbody td { padding: 5px 8px; border-bottom: 1px solid #e9ecef; color: #333; }
+
+        /* ── Footer ── */
+        .print-footer {
+            margin-top: 24px;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+            font-size: 9px;
+            color: #999;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* ── Print-only rules ── */
+        @media print {
+            body { padding: 16px 20px; }
+            .no-print { display: none !important; }
+            table thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .letterhead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .doc-title { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+
+        /* ── Screen-only bar ── */
+        .screen-toolbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            background: #003366;
+            color: #fff;
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 9999;
+            font-size: 13px;
+        }
+        .screen-toolbar a, .screen-toolbar button {
+            color: #fff;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            padding: 5px 14px;
+            font-size: 12px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .screen-toolbar button { background: #28a745; border-color: #28a745; }
+        @media print { .screen-toolbar { display: none !important; } }
+    </style>
+</head>
+<body>
+
+<!-- Screen-only toolbar -->
+<div class="screen-toolbar no-print">
+    <span>📄 CivikIndia Complaint Report — {{ complaint.tracking_id }}</span>
+    <div style="display:flex;gap:10px;">
+        <a href="{{ url_for('admin.complaint_detail', tracking_id=complaint.tracking_id) }}">← Back</a>
+        <button onclick="window.print()">🖨 Print / Save as PDF</button>
+    </div>
+</div>
+
+<!-- Add spacing on screen to clear fixed toolbar -->
+<div class="no-print" style="height:48px;"></div>
+
+<!-- Letterhead -->
+<div class="letterhead">
+    <div>
+        <div class="letterhead-title">🏛 CivikIndia</div>
+        <div class="letterhead-sub">CivikIndia — Civic Grievance &amp; Accountability Portal</div>
+        <div class="letterhead-sub">Government of India — Citizen Grievance Division</div>
+    </div>
+    <div class="letterhead-right">
+        <div><strong>Report Generated:</strong> {{ utc_now().strftime('%d %b %Y, %H:%M UTC') }}</div>
+        <div><strong>Document Type:</strong> Official Complaint Record</div>
+        <div><strong>Classification:</strong> Confidential / Internal Use</div>
+    </div>
+</div>
+
+<div class="doc-title">Complaint Detail Report</div>
+
+<!-- Metadata grid -->
+<div class="info-grid">
+    <div class="info-cell">
+        <label>Tracking ID</label>
+        <strong>{{ complaint.tracking_id }}</strong>
+    </div>
+    <div class="info-cell">
+        <label>Status</label>
+        {% set status_class = {
+            'Closed': 'status-closed',
+            'Pending': 'status-pending',
+            'Rejected': 'status-rejected',
+            'Awaiting Review': 'status-review',
+            'Delayed': 'status-delayed'
+        }.get(complaint.status, '') %}
+        <span class="status-badge {{ status_class }}">{{ complaint.status }}</span>
+    </div>
+    <div class="info-cell">
+        <label>Priority</label>
+        <strong>{{ complaint.priority }}</strong>
+    </div>
+    <div class="info-cell">
+        <label>Department</label>
+        <strong>{{ complaint.department.name }}</strong>
+    </div>
+    <div class="info-cell">
+        <label>Service Category</label>
+        <strong>{{ complaint.service.name }}</strong>
+    </div>
+    <div class="info-cell">
+        <label>Escalation Level</label>
+        <strong>L{{ complaint.escalation_level }}</strong>
+    </div>
+    <div class="info-cell">
+        <label>Submitted At</label>
+        <strong>{{ complaint.submitted_at | format_datetime }}</strong>
+    </div>
+    <div class="info-cell">
+        <label>Last Updated</label>
+        <strong>{{ complaint.updated_at | format_datetime }}</strong>
+    </div>
+    <div class="info-cell">
+        <label>SLA Due Date</label>
+        <strong>{{ complaint.sla_due_at | format_datetime if complaint.sla_due_at else '—' }}</strong>
+    </div>
+    <div class="info-cell">
+        <label>Assigned Officer</label>
+        <strong>{{ complaint.assigned_officer.username if complaint.assigned_officer else 'Unassigned' }}</strong>
+    </div>
+    <div class="info-cell">
+        <label>Evidence Attached</label>
+        <strong>{{ 'Yes' if complaint.evidence_path else 'No' }}</strong>
+    </div>
+    <div class="info-cell">
+        <label>Citizen Rating</label>
+        <strong>{{ complaint.citizen_rating ~ '/5' if complaint.citizen_rating else '—' }}</strong>
+    </div>
+    {% if complaint.city or complaint.district or complaint.state %}
+    <div class="info-cell">
+        <label>Location</label>
+        <strong>{{ [complaint.city, complaint.district, complaint.state] | select | join(', ') }}</strong>
+    </div>
+    {% endif %}
+    {% if complaint.resolved_at %}
+    <div class="info-cell">
+        <label>Resolved At</label>
+        <strong>{{ complaint.resolved_at | format_datetime }}</strong>
+    </div>
+    {% endif %}
+    <div class="info-cell">
+        <label>Reopen Count</label>
+        <strong>{{ complaint.reopen_count }}</strong>
+    </div>
+</div>
+
+<!-- Description -->
+<div class="section-title">Citizen Description</div>
+<div class="description-box">{{ complaint.description }}</div>
+
+<!-- Status Timeline -->
+<div class="section-title">Status Progress</div>
+{% set progress_map = {'Awaiting Review': 10, 'Rejected': 0, 'Pending': 25, 'Under Review': 50, 'Action Taken': 75, 'Delayed': 60, 'Reopened': 50, 'Closed': 100} %}
+{% set progress = progress_map.get(complaint.status, 0) %}
+{% set timeline_steps = [('Submitted', 25), ('Assigned / Pending', 45), ('Under Review', 70), ('Resolved / Closed', 100)] %}
+<div class="timeline">
+    {% for label, threshold in timeline_steps %}
+    <div class="timeline-step">
+        <span class="tl-dot {{ 'active' if progress >= threshold else '' }}"></span>
+        <span class="tl-label">{{ label }}</span>
+        {% if progress >= threshold %}
+        <span class="tl-date">{{ complaint.updated_at | format_datetime('%d %b %Y') }}</span>
+        {% else %}
+        <span class="tl-date" style="color:#bbb;">Pending</span>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Resolution / Investigation Notes -->
+{% if complaint.resolution_notes %}
+<div class="section-title">Investigation &amp; Resolution Notes</div>
+<div class="notes-box">{{ complaint.resolution_notes }}</div>
+{% endif %}
+
+{% if complaint.rejection_reason %}
+<div class="section-title">Rejection Reason</div>
+<div class="notes-box" style="background:#fce8e8; border-color:#f5a5a5;">{{ complaint.rejection_reason }}</div>
+{% endif %}
+
+{% if complaint.admin_notes %}
+<div class="section-title">Administrator Notes (Internal)</div>
+<div class="notes-box" style="background:#e8f4fd; border-color:#a5c8f5;">{{ complaint.admin_notes }}</div>
+{% endif %}
+
+<!-- Audit Log -->
+{% if audit_logs %}
+<div class="section-title">Audit Trail (Last {{ audit_logs|length }} Entries)</div>
+<table>
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>User</th>
+            <th>Action</th>
+            <th>Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in audit_logs %}
+        <tr>
+            <td>{{ log.timestamp | format_datetime }}</td>
+            <td>{{ log.username }} ({{ log.role }})</td>
+            <td>{{ log.action }}</td>
+            <td>{{ log.details[:120] if log.details else '—' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Footer -->
+<div class="print-footer">
+    <span>CivikIndia — Civic Grievance &amp; Accountability Portal | Confidential Government Document</span>
+    <span>Ref: {{ complaint.tracking_id }} | Printed: {{ utc_now().strftime('%d/%m/%Y') }}</span>
+</div>
+
+<script>
+    // Auto-trigger print dialog after a brief layout-settle delay
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            window.print();
+        }, 600);
+    });
+</script>
+</body>
+</html>

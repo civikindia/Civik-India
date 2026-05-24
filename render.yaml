@@ -1,0 +1,50 @@
+services:
+  - type: web
+    name: civikindia
+    env: docker
+    region: singapore
+    plan: starter
+    healthCheckPath: /healthz
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.11.6
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: EVIDENCE_ENCRYPTION_KEY
+        sync: false
+      - key: AUDIT_HMAC_SECRET
+        sync: false
+      - key: MAX_UPLOAD_MB
+        value: "16"
+      - key: ALLOWED_UPLOAD_EXTENSIONS
+        value: jpg,jpeg,png,webp,pdf,mp4,mov,mp3,wav,txt,doc,docx
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_ENDPOINT_URL
+        sync: false
+      - key: GOOGLE_DRIVE_BACKUP_ENABLED
+        value: "false"
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: BACKUP_CRON_TOKEN
+        sync: false
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: GUNICORN_TIMEOUT
+        value: "120"
+      - key: BOOTSTRAP_DB_RETRIES
+        value: "30"
+      - key: BOOTSTRAP_DB_RETRY_DELAY
+        value: "2"

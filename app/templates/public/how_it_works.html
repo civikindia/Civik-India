@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}How It Works{% endblock %}
+
+{% block content %}
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="static-page-hero page-hero-card mb-4">
+                            <div class="page-hero-icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></div>
+                            <h1 class="h3 fw-bold mb-2">How The Portal Works</h1>
+                            <p class="mb-0">A simple four-step process for submitting and tracking municipal grievances.</p>
+                        </div>
+
+                        <ol class="how-it-timeline">
+                            <li class="how-it-step">
+                                <span class="how-it-step-icon" aria-hidden="true"><i class="bi bi-file-earmark-text"></i></span>
+                                <div class="how-it-step-body">
+                                    <div class="how-it-step-title">1. Submit</div>
+                                    <p class="small text-muted mb-0">Choose department and service, then describe the issue with clear facts. No account is required.</p>
+                                </div>
+                            </li>
+                            <li class="how-it-step">
+                                <span class="how-it-step-icon" aria-hidden="true"><i class="bi bi-search"></i></span>
+                                <div class="how-it-step-body">
+                                    <div class="how-it-step-title">2. Track</div>
+                                    <p class="small text-muted mb-0">Save your tracking ID shown after successful submission and check status updates anytime.</p>
+                                </div>
+                            </li>
+                            <li class="how-it-step">
+                                <span class="how-it-step-icon" aria-hidden="true"><i class="bi bi-clipboard-check"></i></span>
+                                <div class="how-it-step-body">
+                                    <div class="how-it-step-title">3. Review</div>
+                                    <p class="small text-muted mb-0">Authorized officers investigate, assign, and update complaint status through an auditable workflow.</p>
+                                </div>
+                            </li>
+                            <li class="how-it-step">
+                                <span class="how-it-step-icon" aria-hidden="true"><i class="bi bi-check2-circle"></i></span>
+                                <div class="how-it-step-body">
+                                    <div class="how-it-step-title">4. Resolve</div>
+                                    <p class="small text-muted mb-0">Follow progress until corrective action is recorded and the complaint is closed with transparency.</p>
+                                </div>
+                            </li>
+                        </ol>
+
+                        <div class="alert alert-info mb-0">
+                            <strong>Important:</strong> Keep your tracking ID safe. The system cannot recover lost IDs.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

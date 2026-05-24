@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Officers{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-light mobile-data-page">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="gov-breadcrumb mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Manage Officers</li>
+            </ol>
+        </nav>
+        
+        <!-- Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+            <h1 class="h4 fw-bold mb-0"><i class="bi bi-people me-2"></i>Manage Officers</h1>
+            <button class="btn btn-gov-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createOfficerModal">
+                <i class="bi bi-plus-lg me-2"></i>Add Officer
+            </button>
+        </div>
+        
+        <!-- Officers Table -->
+        <div class="mibsp-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="mibsp-table mobile-data-table">
+                        <caption class="visually-hidden">Officer accounts and administrative actions</caption>
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Username</th>
+                                <th scope="col">Role</th>
+                                <th scope="col" class="d-none d-lg-table-cell">Email</th>
+                                <th scope="col" class="d-none d-md-table-cell">Department</th>
+                                <th scope="col">Status</th>
+                                <th scope="col" class="d-none d-lg-table-cell">Last Login</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for officer in officers %}
+                            <tr>
+                                <td data-label="Username"><strong>{{ officer.username }}</strong></td>
+                                <td data-label="Role"><span class="badge-status {{ 'badge-role-admin' if officer.role == 'admin' else 'badge-role-officer' }}">{{ officer.role }}</span></td>
+                                <td data-label="Email" class="d-none d-lg-table-cell">{{ officer.email or '-' }}</td>
+                                <td data-label="Department" class="d-none d-md-table-cell">{{ officer.department.name if officer.department else '-' }}</td>
+                                <td data-label="Status">
+                                    {% if officer.is_active %}
+                                        <span class="badge-status badge-resolved">Active</span>
+                                    {% else %}
+                                        <span class="badge-status badge-delayed">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Last Login" class="d-none d-lg-table-cell">{{ officer.last_login|format_datetime if officer.last_login else 'Never' }}</td>
+                                <td data-label="Actions">
+                                    <div class="btn-group btn-group-sm">
+                                        <form method="POST" action="{{ url_for('admin.toggle_officer', officer_id=officer.id) }}" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-{{ 'warning' if officer.is_active else 'success' }}"
+                                                    aria-label="{{ 'Deactivate' if officer.is_active else 'Activate' }} officer {{ officer.username }}">
+                                                <i class="bi bi-{{ 'x-circle' if officer.is_active else 'check-circle' }}" aria-hidden="true"></i>
+                                            </button>
+                                        </form>
+                                        <button class="btn btn-sm btn-info" data-bs-toggle="modal" 
+                                                data-bs-target="#resetPasswordModal{{ officer.id }}"
+                                                aria-label="Reset password for {{ officer.username }}">
+                                            <i class="bi bi-key" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr class="table-empty-state">
+                                <td colspan="7" class="text-center py-5">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon"><i class="bi bi-people"></i></div>
+                                        <div class="empty-state-title">No officers found</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Officer Modal -->
+<div class="modal fade" id="createOfficerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin.create_officer') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Officer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close add officer dialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="newOfficerUsername">Username</label>
+                        <input type="text" class="form-control" id="newOfficerUsername" name="username" required minlength="3">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="newOfficerEmail">Email (Optional)</label>
+                        <input type="email" class="form-control" id="newOfficerEmail" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="newOfficerRole">Role</label>
+                        <select class="form-select" id="newOfficerRole" name="role" required>
+                            <option value="officer">Ward Officer</option>
+                            <option value="zonal_officer">Zonal Officer</option>
+                            <option value="commissioner">Municipal Commissioner</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="newOfficerPassword">Password</label>
+                        <input type="password" class="form-control" id="newOfficerPassword" name="password" required minlength="8">
+                        <div class="form-text">Minimum 8 characters.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="newOfficerDepartment">Department</label>
+                        <select class="form-select" id="newOfficerDepartment" name="department_id">
+                            <option value="">-- Select Department --</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Officer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modals -->
+{% for officer in officers %}
+<div class="modal fade" id="resetPasswordModal{{ officer.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin.reset_officer_password', officer_id=officer.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reset Password - {{ officer.username }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close reset password dialog for {{ officer.username }}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="resetPassword{{ officer.id }}">New Password</label>
+                        <input type="password" class="form-control" id="resetPassword{{ officer.id }}" name="new_password" required minlength="8">
+                        <div class="form-text">Minimum 8 characters.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Reset Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

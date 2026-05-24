@@ -1,0 +1,28 @@
+[Unit]
+Description=CivikIndia Gunicorn Application Server
+After=network.target mysql.service redis.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/civikindia
+Environment="PATH=/var/www/civikindia/venv/bin"
+EnvironmentFile=/var/www/civikindia/.env
+ExecStart=/var/www/civikindia/venv/bin/gunicorn \
+    --workers 4 \
+    --bind 127.0.0.1:8000 \
+    --timeout 120 \
+    --access-logfile /var/log/civikindia/access.log \
+    --error-logfile /var/log/civikindia/error.log \
+    --capture-output \
+    --enable-stdio-inheritance \
+    wsgi:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

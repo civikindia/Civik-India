@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+
+{% block title %}Complaint {{ complaint.tracking_id }}{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-light">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="gov-breadcrumb mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('officer.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">{{ complaint.tracking_id }}</li>
+            </ol>
+        </nav>
+
+        <!-- ═══ T1-A: QUICK-ACTION BAR ═══ -->
+        {% set next_statuses = complaint.STATUS_FLOW.get(complaint.status, []) %}
+        <div class="quick-action-bar card border-0 shadow-sm mb-4 p-0" id="quickActionBar" aria-label="Quick complaint actions">
+            <div class="card-body py-3 px-4">
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <!-- Status badge -->
+                    <div class="d-flex align-items-center gap-2 me-auto">
+                        <i class="bi bi-file-earmark-text text-primary fs-5"></i>
+                        <div>
+                            <div class="small text-muted lh-1 mb-1">Current Status</div>
+                            <span class="badge-status {{ complaint.status|status_badge }} fw-semibold">{{ complaint.status }}</span>
+                        </div>
+                    </div>
+
+                    {% if next_statuses %}
+                    <!-- Inline status update -->
+                    <form method="POST" action="{{ url_for('officer.update_status', tracking_id=complaint.tracking_id) }}"
+                          class="d-flex flex-wrap align-items-center gap-2" id="quickActionForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <!-- Hidden notes field — revealed by toggle -->
+                        <textarea name="notes" id="quickNotesTxt" class="form-control form-control-sm d-none"
+                                  rows="2" style="min-width:220px;max-width:360px;"
+                                  placeholder="Optional: add a short note..."
+                                  aria-label="Optional note for this status update"></textarea>
+                        <select name="status" id="quickStatusSelect" class="form-select form-select-sm"
+                                style="min-width:160px;" required aria-label="Select new status">
+                            <option value="" disabled selected>Move to...</option>
+                            {% for s in next_statuses %}
+                            <option value="{{ s }}">{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="quickNotesToggle"
+                                title="Add a note" aria-expanded="false" aria-controls="quickNotesTxt">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="submit" class="btn btn-gov-primary btn-sm" id="quickUpdateBtn">
+                            <i class="bi bi-arrow-repeat me-1"></i>Update Status
+                        </button>
+                        {% if complaint.can_transition_to('Closed') %}
+                        <button type="submit" name="status" value="Closed"
+                                class="btn btn-success btn-sm"
+                                onclick="document.getElementById('quickStatusSelect').removeAttribute('required');"
+                                title="Close this complaint immediately">
+                            <i class="bi bi-check-circle me-1"></i>Close
+                        </button>
+                        {% endif %}
+                    </form>
+                    {% else %}
+                    <span class="text-muted small fst-italic">No further status transitions available for this complaint.</span>
+                    {% endif %}
+
+                    <!-- Print shortcut -->
+                    <a href="javascript:window.print()" class="btn btn-outline-secondary btn-sm" title="Print this page">
+                        <i class="bi bi-printer"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- ═══ END QUICK-ACTION BAR ═══ -->
+
+        <div class="row g-4">
+            <!-- Main Complaint Info -->
+            <div class="col-lg-8">
+                <div class="mibsp-card complaint-detail-card mb-4 {{ 'priority-high' if complaint.priority in ['High', 'Urgent'] else '' }}">
+                    <div class="card-header bg-white py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h1 class="h5 mb-1">Complaint Details</h1>
+                                <code class="tracking-id">{{ complaint.tracking_id }}</code>
+                            </div>
+                            <span class="badge-status {{ complaint.status|status_badge }}">
+                                {{ complaint.status }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <h2 class="h6 fw-semibold mb-2 text-uppercase">Citizen Description</h2>
+                            <div class="p-3 bg-light rounded-3">
+                                <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ complaint.description }}</pre>
+                            </div>
+                        </div>
+
+                        <!-- AI-Assisted Triaging Analysis -->
+                        <div class="card border-0 mb-4 shadow-sm" style="border-left: 4px solid #0056b3 !important; background-color: var(--card-bg, #fdfdfd);">
+                            <div class="card-header bg-white border-0 py-3">
+                                <h3 class="h6 mb-0 text-primary fw-bold"><i class="bi bi-cpu-fill me-2"></i>AI-Assisted Triaging Analysis</h3>
+                            </div>
+                            <div class="card-body pt-0">
+                                <div class="row g-3">
+                                    <div class="col-sm-4">
+                                        <small class="text-muted d-block mb-1">Suggested Category</small>
+                                        <strong class="text-dark">{{ complaint.ai_category or _('Not Analyzed') }}</strong>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <small class="text-muted d-block mb-1">Urgency Status</small>
+                                        {% if complaint.ai_urgent %}
+                                            <span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ _('Urgent') }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ _('Standard') }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <small class="text-muted d-block mb-1">Sentiment Tone</small>
+                                        {% if complaint.ai_sentiment == 'negative' %}
+                                            <span class="badge bg-danger text-white"><i class="bi bi-emoji-frown-fill me-1"></i>{{ _('Dissatisfied / Angry') }}</span>
+                                        {% elif complaint.ai_sentiment == 'positive' %}
+                                            <span class="badge bg-success text-white"><i class="bi bi-emoji-smile-fill me-1"></i>{{ _('Optimistic') }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary text-white"><i class="bi bi-emoji-neutral-fill me-1"></i>{{ _('Neutral') }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4" data-reveal>
+                            <h2 class="h6 fw-semibold mb-2">SLA Tracking & Timeline</h2>
+                            {% set sla_pct = complaint.get_sla_progress_percentage() %}
+                            {% set sla_status = complaint.get_sla_status() %}
+                            {% set remaining_text = complaint.get_sla_time_remaining() %}
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small text-muted">Time Elapsed: {{ sla_pct }}%</span>
+                                <span class="badge-status {% if sla_status == 'overdue' %}badge-delayed{% elif sla_status == 'warning' %}badge-warning{% elif sla_status == 'safe' %}badge-resolved{% else %}badge-secondary{% endif %} fw-semibold">
+                                    {{ remaining_text }}
+                                </span>
+                            </div>
+                            
+                            <div class="sla-bar mb-2" style="--sla-progress: {{ sla_pct }}%" title="SLA: {{ remaining_text }}">
+                                <span class="sla-bar-fill {% if sla_status == 'overdue' %}sla-fill-red{% elif sla_status == 'warning' %}sla-fill-orange{% elif sla_status == 'safe' %}sla-fill-green{% else %}sla-fill-inactive{% endif %}"></span>
+                            </div>
+                            
+                            <small class="text-muted">
+                                Priority: <strong>{{ complaint.priority }}</strong> | 
+                                Escalation Level: <strong>L{{ complaint.escalation_level }}</strong>
+                                {% if complaint.sla_due_at %}
+                                    | Due Date: <strong>{{ complaint.sla_due_at|format_datetime }}</strong>
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <!-- Details Grid -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3">
+                                    <small class="text-muted d-block mb-1">Department</small>
+                                    <strong>{{ complaint.department.name }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3">
+                                    <small class="text-muted d-block mb-1">Service</small>
+                                    <strong>{{ complaint.service.name }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3">
+                                    <small class="text-muted d-block mb-1">Submitted</small>
+                                    <strong>{{ complaint.submitted_at|format_datetime }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3">
+                                    <small class="text-muted d-block mb-1">Last Updated</small>
+                                    <strong>{{ complaint.updated_at|format_datetime }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3">
+                                    <small class="text-muted d-block mb-1">Priority</small>
+                                    <strong class="{{ 'text-danger' if complaint.priority in ['High', 'Urgent'] else '' }}">{{ complaint.priority }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3">
+                                    <small class="text-muted d-block mb-1">Escalation Level</small>
+                                    <strong>{{ complaint.escalation_level }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Evidence -->
+                        {% if complaint.evidence_path %}
+                        <div class="mb-4">
+                            <h6 class="fw-semibold mb-2">Evidence</h6>
+                            <span class="badge-status badge-assigned">
+                                <i class="bi bi-paperclip me-1"></i>File attached
+                            </span>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Resolution Notes -->
+                        {% if complaint.resolution_notes %}
+                        <div class="mb-4">
+                            <h6 class="fw-semibold mb-2">Investigation Notes</h6>
+                            <div class="p-3 bg-light rounded-3">
+                                <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ complaint.resolution_notes }}</pre>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Update Status -->
+                {% if complaint.can_transition_to('Under Review') or complaint.can_transition_to('Action Taken') or complaint.can_transition_to('Closed') %}
+                <div class="mibsp-card officer-action-card">
+                    <div class="card-header py-3">
+                        <h2 class="h5 mb-0"><i class="bi bi-pencil-square me-2"></i>Officer Action</h2>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('officer.update_status', tracking_id=complaint.tracking_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            
+                            <div class="mb-3">
+                                <label class="form-label" for="officerStatusSelect">New Status</label>
+                                <select class="form-select" id="officerStatusSelect" name="status" required>
+                                    <option value="">-- Select New Status --</option>
+                                    {% if complaint.can_transition_to('Under Review') %}
+                                    <option value="Under Review">Under Review</option>
+                                    {% endif %}
+                                    {% if complaint.can_transition_to('Action Taken') %}
+                                    <option value="Action Taken">Action Taken</option>
+                                    {% endif %}
+                                    {% if complaint.can_transition_to('Closed') %}
+                                    <option value="Closed">Closed</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label" for="officerStatusNotes">Notes</label>
+                                <textarea class="form-control" id="officerStatusNotes" name="notes" rows="3" placeholder="Add notes about this status change..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-gov-primary w-100">
+                                <i class="bi bi-save me-2"></i>Update Complaint
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Quick Actions -->
+                <div class="mibsp-card mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h2 class="h5 mb-0"><i class="bi bi-lightning-charge me-2 text-warning"></i>Quick Actions</h2>
+                    </div>
+                    <div class="card-body">
+                        <!-- Add Notes -->
+                        <form method="POST" action="{{ url_for('officer.add_notes', tracking_id=complaint.tracking_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3">
+                                <label class="form-label" for="officerInvestigationNotes">Add Investigation Notes</label>
+                                <textarea class="form-control" id="officerInvestigationNotes" name="notes" rows="3" placeholder="Enter your notes..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-gov-secondary w-100">
+                                <i class="bi bi-plus-lg me-2"></i>Add Notes
+                            </button>
+                        </form>
+                        <hr class="my-3">
+                        <button type="button" class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#whatsappDispatchModal" style="background-color: #25D366; border-color: #25D366;">
+                            <i class="bi bi-whatsapp me-2"></i>Dispatch via WhatsApp
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Audit Trail -->
+                <div class="mibsp-card">
+                    <div class="card-header bg-white py-3">
+                        <h2 class="h5 mb-0"><i class="bi bi-clock-history me-2 text-info"></i>History Timeline</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if audit_logs %}
+                        <div class="list-group list-group-flush">
+                            {% for log in audit_logs %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <small class="fw-semibold">{{ log.action }}</small>
+                                    <small class="text-muted">{{ log.timestamp|format_datetime('%d %b %H:%M') }}</small>
+                                </div>
+                                <small class="text-muted">by {{ log.username }}</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted small mb-0">No activity recorded yet.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WhatsApp Dispatch Modal -->
+<div class="modal fade" id="whatsappDispatchModal" tabindex="-1" aria-labelledby="whatsappDispatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header text-white border-0" style="background-color: #075E54;">
+                <h5 class="modal-title" id="whatsappDispatchModalLabel"><i class="bi bi-whatsapp me-2"></i>WhatsApp Dispatch Template</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light p-4">
+                <!-- Phone Mockup -->
+                <div class="card border-0 shadow-sm mx-auto" style="max-width: 320px; border-radius: 20px; overflow: hidden; background-color: #efeae2;">
+                    <!-- Screen Header -->
+                    <div class="p-2 d-flex align-items-center text-white" style="background-color: #075E54; font-size: 13px;">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        <span class="rounded-circle bg-secondary me-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;"><i class="bi bi-person-fill text-white"></i></span>
+                        <div class="flex-grow-1">
+                            <strong class="d-block">Field Agent Dispatch</strong>
+                            <small style="opacity: 0.8;">Online</small>
+                        </div>
+                    </div>
+                    <!-- Chat Area -->
+                    <div class="p-3" style="min-height: 250px;">
+                        <div class="p-3 rounded shadow-sm text-dark position-relative" style="background-color: #dcf8c6; font-size: 12px; max-width: 90%; border-radius: 10px 10px 0 10px !important;">
+                            <pre class="mb-0 text-wrap" id="dispatchText" style="font-family: inherit; font-size: 11px; white-space: pre-wrap;">🚨 *CIVIKINDIA MUNICIPAL DISPATCH* 🚨
+----------------------------------------
+*ID:* {{ complaint.tracking_id }}
+*Dept:* {{ complaint.department.name }}
+*Service:* {{ complaint.service.name }}
+*Priority:* {{ complaint.priority }}
+
+*Location:* {{ complaint.city or 'Unspecified' }}, {{ complaint.district or 'Unspecified' }}
+{% if complaint.location_lat and complaint.location_lng -%}
+*Coordinates:* {{ complaint.location_lat }}, {{ complaint.location_lng }}
+📍 _Map:_ https://www.google.com/maps/search/?api=1&query={{ complaint.location_lat }},{{ complaint.location_lng }}
+{%- endif %}
+
+*Description:*
+{{ complaint.description|truncate(150) }}
+----------------------------------------
+⚠️ _Please investigate and update status within SLA._</pre>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="dispatchStatus" class="alert alert-success text-center mt-3 d-none" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>Message dispatched successfully to Field Agent!
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-top-0 d-flex gap-2 justify-content-center">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="copyDispatchBtn">
+                    <i class="bi bi-clipboard me-1"></i>Copy Template
+                </button>
+                <button type="button" class="btn btn-success btn-sm" id="sendDispatchBtn" style="background-color: #25D366; border-color: #25D366;">
+                    <i class="bi bi-send me-1"></i>Simulate Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const copyBtn = document.getElementById('copyDispatchBtn');
+    const sendBtn = document.getElementById('sendDispatchBtn');
+    const dispatchText = document.getElementById('dispatchText');
+    const statusAlert = document.getElementById('dispatchStatus');
+
+    if (copyBtn && dispatchText) {
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(dispatchText.innerText).then(() => {
+                const origHtml = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+                copyBtn.classList.remove('btn-outline-secondary');
+                copyBtn.classList.add('btn-outline-success');
+                setTimeout(() => {
+                    copyBtn.innerHTML = origHtml;
+                    copyBtn.classList.remove('btn-outline-success');
+                    copyBtn.classList.add('btn-outline-secondary');
+                }, 2000);
+            });
+        });
+    }
+
+    if (sendBtn && statusAlert) {
+        sendBtn.addEventListener('click', function() {
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Sending...';
+            setTimeout(() => {
+                sendBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Sent';
+                statusAlert.classList.remove('d-none');
+            }, 1000);
+        });
+    }
+
+    // Quick-Action Bar: notes toggle
+    const notesToggle = document.getElementById('quickNotesToggle');
+    const notesTxt = document.getElementById('quickNotesTxt');
+    if (notesToggle && notesTxt) {
+        notesToggle.addEventListener('click', function() {
+            const isHidden = notesTxt.classList.contains('d-none');
+            notesTxt.classList.toggle('d-none', !isHidden);
+            notesToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+            notesToggle.classList.toggle('btn-outline-secondary', !isHidden);
+            notesToggle.classList.toggle('btn-secondary', isHidden);
+            if (isHidden) { notesTxt.focus(); }
+        });
+    }
+});
+</script>
+{% endblock %}

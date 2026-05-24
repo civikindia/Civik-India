@@ -1,0 +1,13 @@
+Government of India
+CivikIndia Staff Notification
+
+A complaint requires staff attention.
+
+Tracking ID: {{ complaint.tracking_id }}
+Department: {{ complaint.department.name if complaint.department else 'N/A' }}
+Service: {{ complaint.service.name if complaint.service else 'N/A' }}
+Priority: {{ complaint.priority }}
+Status: {{ complaint.status }}
+Submitted: {{ complaint.submitted_at|format_datetime if complaint.submitted_at else 'N/A' }}
+
+Review: {{ track_url }}

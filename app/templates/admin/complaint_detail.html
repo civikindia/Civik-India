@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+
+{% block title %}Complaint {{ complaint.tracking_id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="gov-breadcrumb mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('admin.complaints') }}">Complaints</a></li>
+      <li class="breadcrumb-item active">{{ complaint.tracking_id }}</li>
+    </ol>
+  </nav>
+
+  <div class="row g-4">
+
+    <!-- LEFT: Complaint Details -->
+    <div class="col-lg-8">
+
+      <!-- Header card -->
+      <div class="mibsp-card complaint-detail-card mb-4 {{ 'priority-high' if complaint.priority in ['High', 'Urgent'] else '' }}">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+          <div>
+            <h5 class="mb-0 fw-bold">
+              <i class="bi bi-file-earmark-text me-2"></i>
+              Complaint <code class="tracking-id">{{ complaint.tracking_id }}</code>
+            </h5>
+            <small class="text-muted">Submitted {{ complaint.submitted_at | format_datetime }}</small>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge-status {{ complaint.status|status_badge }}">{{ complaint.status }}</span>
+            <a href="{{ url_for('admin.print_complaint', tracking_id=complaint.tracking_id) }}"
+               target="_blank" rel="noopener"
+               class="btn btn-outline-secondary btn-sm" title="Open print/PDF report in new tab">
+              <i class="bi bi-printer me-1"></i>Print Report
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-sm-6">
+              <p class="mb-1 text-muted small">Department</p>
+              <p class="fw-semibold">{{ complaint.department.name }}</p>
+            </div>
+            <div class="col-sm-6">
+              <p class="mb-1 text-muted small">Service</p>
+              <p class="fw-semibold">{{ complaint.service.name }}</p>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-6">
+              <p class="mb-1 text-muted small">Assigned To</p>
+              <p class="fw-semibold">
+                {% if complaint.assigned_officer %}
+                  <i class="bi bi-person-check text-success me-1"></i>{{ complaint.assigned_officer.username }}
+                {% else %}
+                  <span class="text-muted">Unassigned</span>
+                {% endif %}
+              </p>
+            </div>
+            <div class="col-sm-6">
+              <p class="mb-1 text-muted small">Last Updated</p>
+              <p class="fw-semibold">{{ complaint.updated_at | format_datetime }}</p>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-6">
+              <p class="mb-1 text-muted small">Priority</p>
+              <p class="fw-semibold {{ 'text-danger' if complaint.priority in ['High', 'Urgent'] else '' }}">{{ complaint.priority }}</p>
+            </div>
+            <div class="col-sm-6">
+              <p class="mb-1 text-muted small">Escalation Level</p>
+              <p class="fw-semibold">{{ complaint.escalation_level }}</p>
+            </div>
+          </div>
+          {% if complaint.sla_due_at %}
+          {% set sla_pct = complaint.get_sla_progress_percentage() %}
+          {% set sla_status = complaint.get_sla_status() %}
+          {% set remaining_text = complaint.get_sla_time_remaining() %}
+          <div class="mb-3">
+            <p class="mb-1 text-muted small">SLA Progress Timeline ({{ remaining_text }})</p>
+            <div class="sla-bar" style="--sla-progress: {{ sla_pct }}%">
+              <span class="sla-bar-fill {% if sla_status == 'overdue' %}sla-fill-red{% elif sla_status == 'warning' %}sla-fill-orange{% elif sla_status == 'safe' %}sla-fill-green{% else %}sla-fill-inactive{% endif %}"></span>
+            </div>
+            <small class="text-muted">{{ sla_pct }}% of SLA time elapsed</small>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-6">
+              <p class="mb-1 text-muted small">SLA Due</p>
+              <p class="fw-semibold">{{ complaint.sla_due_at | format_datetime }}</p>
+            </div>
+            <div class="col-sm-6">
+              <p class="mb-1 text-muted small">Reopen Count</p>
+              <p class="fw-semibold">{{ complaint.reopen_count }}</p>
+            </div>
+          </div>
+          {% endif %}
+          {% if complaint.resolved_at %}
+          <div class="row mb-3">
+            <div class="col-sm-6">
+              <p class="mb-1 text-muted small">Resolved At</p>
+              <p class="fw-semibold text-success">{{ complaint.resolved_at | format_datetime }}</p>
+            </div>
+            <div class="col-sm-6">
+              <p class="mb-1 text-muted small">Resolution Time</p>
+              <p class="fw-semibold">
+                {% set days = ((complaint.resolved_at - complaint.submitted_at).days) %}
+                {{ days }} day{{ 's' if days != 1 else '' }}
+              </p>
+            </div>
+          </div>
+          {% endif %}
+
+          <hr>
+
+          <p class="mb-1 text-muted small">Description</p>
+          <div class="bg-light rounded p-3">
+            <p class="mb-0" style="white-space: pre-wrap;">{{ complaint.description }}</p>
+          </div>
+
+          {% if complaint.evidence_path %}
+          <div class="mt-3">
+            <p class="mb-1 text-muted small">Evidence File</p>
+            <a href="{{ url_for('admin.download_evidence', tracking_id=complaint.tracking_id) }}"
+               class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-paperclip me-1"></i> Download Evidence
+            </a>
+          </div>
+          {% endif %}
+
+          {% if complaint.resolution_notes %}
+          <div class="mt-3">
+            <p class="mb-1 text-muted small">Resolution Notes</p>
+            <div class="bg-light rounded p-3">
+              <p class="mb-0">{{ complaint.resolution_notes }}</p>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if complaint.citizen_rating %}
+          <div class="mt-3">
+            <p class="mb-1 text-muted small">Citizen Feedback</p>
+            <div class="bg-light rounded p-3">
+              <p class="mb-1"><strong>Rating:</strong> {{ complaint.citizen_rating }}/5</p>
+              {% if complaint.citizen_feedback %}
+              <p class="mb-0">{{ complaint.citizen_feedback }}</p>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Audit Timeline -->
+      <div class="mibsp-card">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0 fw-bold">
+            <i class="bi bi-clock-history text-secondary me-2"></i>Complaint Timeline
+          </h6>
+        </div>
+        <div class="card-body p-0">
+          {% if audit_logs %}
+          <div class="table-responsive">
+            <table class="mibsp-table">
+              <caption class="visually-hidden">Audit trail entries for complaint {{ complaint.tracking_id }}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Timestamp</th>
+                  <th scope="col">User</th>
+                  <th scope="col">Action</th>
+                  <th scope="col">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for log in audit_logs %}
+                <tr>
+                  <td class="text-muted small">{{ log.timestamp | format_datetime }}</td>
+                  <td><span class="badge-status badge-role-officer">{{ log.username }}</span></td>
+                  <td>{{ log.action }}</td>
+                  <td class="text-muted small">{{ log.details or '—' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-clock-history display-6 mb-2 d-block"></i>
+            No audit entries yet.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div><!-- /col-lg-8 -->
+
+    <!-- RIGHT: Actions Panel -->
+    <div class="col-lg-4">
+
+      <!-- Assign Officer -->
+      <div class="mibsp-card mb-4">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0 fw-bold">
+            <i class="bi bi-person-check text-primary me-2"></i>Assign Officer
+          </h6>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('admin.assign_complaint', tracking_id=complaint.tracking_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+              <label class="form-label small text-muted" for="assignOfficerSelect">Select Officer</label>
+              <select name="officer_id" id="assignOfficerSelect" class="form-select" required>
+                <option value="">-- Select Officer --</option>
+                {% for officer in officers %}
+                <option value="{{ officer.id }}"
+                  {% if complaint.assigned_to == officer.id %}selected{% endif %}>
+                  {{ officer.username }}
+                  {% if officer.department %}({{ officer.department.name }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="btn btn-gov-primary w-100">
+              <i class="bi bi-save me-1"></i> Assign
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Update Status -->
+      <div class="mibsp-card officer-action-card mb-4">
+        <div class="card-header py-3">
+          <h6 class="mb-0 fw-bold">
+            <i class="bi bi-arrow-repeat me-2"></i>Officer Action
+          </h6>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('admin.update_complaint_status', tracking_id=complaint.tracking_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+              <label class="form-label small text-muted" for="adminStatusSelect">New Status</label>
+              <select name="status" id="adminStatusSelect" class="form-select" required>
+                <option value="" selected disabled>Current: {{ complaint.status }}</option>
+                {% for s in complaint.STATUS_FLOW.get(complaint.status, []) %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-muted" for="adminStatusNotes">Notes (optional)</label>
+              <textarea name="notes" id="adminStatusNotes" class="form-control" rows="3"
+                placeholder="Add investigation notes...">{{ complaint.resolution_notes or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-gov-primary w-100">
+              <i class="bi bi-arrow-repeat me-1"></i> Update Status
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Quick Info -->
+      <div class="mibsp-card">
+        <div class="card-header bg-white py-3">
+          <h6 class="mb-0 fw-bold">
+            <i class="bi bi-info-circle text-info me-2"></i>Quick Info
+          </h6>
+        </div>
+        <div class="card-body">
+          <ul class="list-unstyled mb-0 small">
+            <li class="d-flex justify-content-between py-2 border-bottom">
+              <span class="text-muted">Tracking ID</span>
+              <strong class="font-monospace">{{ complaint.tracking_id }}</strong>
+            </li>
+            <li class="d-flex justify-content-between py-2 border-bottom">
+              <span class="text-muted">Department</span>
+              <strong>{{ complaint.department.name }}</strong>
+            </li>
+            <li class="d-flex justify-content-between py-2 border-bottom">
+              <span class="text-muted">Evidence</span>
+              <strong>{% if complaint.evidence_path %}Yes{% else %}No{% endif %}</strong>
+            </li>
+            <li class="d-flex justify-content-between py-2 border-bottom">
+              <span class="text-muted">Priority</span>
+              <strong class="{{ 'text-danger' if complaint.priority in ['High', 'Urgent'] else '' }}">{{ complaint.priority }}</strong>
+            </li>
+            <li class="d-flex justify-content-between py-2 border-bottom">
+              <span class="text-muted">Reopen Count</span>
+              <strong>{{ complaint.reopen_count }}</strong>
+            </li>
+            <li class="d-flex justify-content-between py-2">
+              <span class="text-muted">Days Open</span>
+              <strong>
+                {% if complaint.resolved_at %}
+                  {{ (complaint.resolved_at - complaint.submitted_at).days }} days
+                {% else %}
+                  {{ (now() - complaint.submitted_at).days if now is defined else 'Active' }}
+                {% endif %}
+              </strong>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div><!-- /col-lg-4 -->
+  </div><!-- /row -->
+</div>
+{% endblock %}

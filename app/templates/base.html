@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="{{ current_locale or 'en' }}">
+<head>
+    <script>
+        (function() {
+            try {
+                const scale = localStorage.getItem('civikindia-font-scale');
+                if (scale) {
+                    document.documentElement.setAttribute('data-font-scale', scale);
+                }
+                const theme = localStorage.getItem('civikindia-theme');
+                if (theme === 'contrast') {
+                    document.documentElement.setAttribute('data-theme', 'contrast');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ _('CivikIndia — Report civic issues anonymously. Track complaints. Demand government accountability.') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#006B3C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="{{ _('CivikIndia') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/svg+xml" sizes="16x16 32x32 any" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.svg') }}">
+
+    <title>{% block title %}{{ _('CivikIndia') }}{% endblock %} | CivikIndia | {{ _('Civic Grievance & Accountability Portal') }}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
+    <link rel="preload" href="{{ url_for('static', filename='vendor/bootstrap-icons/fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mibsp-tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}" media="print">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="site-shell d-flex flex-column min-vh-100" data-page="{{ request.endpoint or '' }}">
+    <a href="#main-content" class="skip-link">{{ _('Skip to main content') }}</a>
+
+    {% include 'partials/_navbar.html' %}
+    {% include 'partials/_flash.html' %}
+
+    <main id="main-content" class="flex-grow-1 page-content" tabindex="-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer gov-footer mt-auto" aria-labelledby="site-footer-heading">
+        <div class="gov-footer-top">
+            <div class="container">
+                <div class="row g-4 align-items-start">
+                    <div class="col-lg-5">
+                        <div class="footer-brand d-flex align-items-start gap-3">
+                            <span class="footer-shield" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
+                            <div>
+                                <h2 id="site-footer-heading" class="h5 mb-2">CivikIndia</h2>
+                                <p class="mb-0">{{ _("India's civic grievance platform — report anonymously, track transparently, demand accountability.") }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 col-lg-2"><div class="footer-helpline"><span>{{ _('Anti-Corruption') }}</span><strong>1064</strong></div></div>
+                    <div class="col-sm-4 col-lg-2"><div class="footer-helpline"><span>{{ _('Vigilance') }}</span><strong>1800-11-0180</strong></div></div>
+                    <div class="col-sm-4 col-lg-3"><div class="footer-helpline"><span>{{ _('Emergency') }}</span><strong>112</strong></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="gov-footer-links">
+            <div class="container">
+                <div class="row g-4">
+                    <div class="col-sm-6 col-lg-3">
+                        <h3>{{ _('Quick Links') }}</h3>
+                        <ul>
+                            <li><a href="{{ url_for('public.index') }}">{{ _('Home') }}</a></li>
+                            <li><a href="{{ url_for('public.submit_complaint') }}">{{ _('Submit Complaint') }}</a></li>
+                            <li><a href="{{ url_for('public.track_complaint') }}">{{ _('Track Complaint') }}</a></li>
+                            <li><a href="{{ url_for('public.public_dashboard') }}">{{ _('Public Dashboard') }}</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <h3>{{ _('Policy Pages') }}</h3>
+                        <ul>
+                            <li><a href="{{ url_for('public.website_policies') }}">{{ _('Website Policies') }}</a></li>
+                            <li><a href="{{ url_for('public.privacy') }}">{{ _('Privacy Policy') }}</a></li>
+                            <li><a href="{{ url_for('public.terms') }}">{{ _('Terms of Use') }}</a></li>
+                            <li><a href="{{ url_for('public.disclaimer') }}">{{ _('Disclaimer') }}</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <h3>{{ _('Accessibility') }}</h3>
+                        <ul>
+                            <li><a href="{{ url_for('public.accessibility_statement') }}">{{ _('Accessibility Statement') }}</a></li>
+                            <li><a href="{{ url_for('public.screen_reader_access') }}">{{ _('Screen Reader Access') }}</a></li>
+                            <li><a href="{{ url_for('public.sitemap') }}">{{ _('Sitemap') }}</a></li>
+                            <li><a href="{{ url_for('public.help_page') }}">{{ _('Help') }}</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <h3>{{ _('Contact') }}</h3>
+                        <ul>
+                            <li><a href="{{ url_for('public.contact') }}">{{ _('Contact Us') }}</a></li>
+                            <li><a href="{{ url_for('auth.login') }}">{{ _('Staff Login') }}</a></li>
+                            <li><a href="mailto:support@civikindia.gov.in">support@civikindia.gov.in</a></li>
+                            <li>{{ _('Office Hours') }}: 10:00-17:00</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="gov-footer-bottom">
+            <div class="container d-flex flex-column flex-md-row justify-content-between gap-2">
+                <span>&copy; 2026 {{ _('CivikIndia') }}. {{ _('Built for the people of India.') }}</span>
+                <span>{{ _('Last Updated') }}: {{ site_last_updated }} | {{ _('Visitor Counter') }}: {{ '{:,}'.format(visitor_counter) }} | NIC | MeitY</span>
+            </div>
+        </div>
+    </footer>
+
+    {% if not session.user_id %}
+        {% include 'partials/_chatbot.html' %}
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('{{ url_for("static", filename="js/sw.js") }}').catch(function() {});
+        });
+    }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

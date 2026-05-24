@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('Track Complaint') }}{% endblock %}
+
+{% block content %}
+<div class="py-5 track-page">
+    <div class="container">
+        <nav aria-label="breadcrumb" class="gov-breadcrumb mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}">{{ _('Home') }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ _('Track Complaint') }}</li>
+            </ol>
+        </nav>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                <div class="mibsp-card track-card">
+                    <div class="track-card-header">
+                        <h1><i class="bi bi-search"></i>{{ _('Track Your Complaint') }}</h1>
+                        <p>{{ _('Enter your tracking ID to check status, SLA progress, and public action history.') }}</p>
+                    </div>
+                    <div class="p-4 p-md-5">
+                        <form method="POST" action="{{ url_for('public.track_complaint') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-4">
+                                <label for="tracking_id" class="form-label fw-semibold">{{ _('Tracking ID') }}</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text"><i class="bi bi-file-earmark-text"></i></span>
+                                    <input type="text" class="form-control" id="tracking_id" name="tracking_id" placeholder="CIVIK/2026/05/XXXXXXXX" value="{{ tracking_id or '' }}" required maxlength="64" style="text-transform: uppercase;">
+                                </div>
+                                <div class="form-text">{{ _('Format') }}: CIVIK/YYYY/MM/XXXXXXXX</div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-gov-primary btn-lg"><i class="bi bi-search me-2"></i>{{ _('Track Complaint') }}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {% if tracking_id and not complaint %}
+                <div class="mibsp-card mt-4">
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="bi bi-file-earmark-x"></i></div>
+                        <div class="empty-state-title">{{ _('No complaint found') }}</div>
+                        <p class="empty-state-message">{{ _('Check that the tracking ID matches the format exactly, including slashes.') }}</p>
+                        <a href="{{ url_for('public.submit_complaint') }}" class="btn btn-gov-secondary">{{ _('Submit a new complaint') }}</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="mibsp-card mt-4">
+                    <div class="p-4 d-flex align-items-start gap-3">
+                        <i class="bi bi-question-circle text-primary fs-4"></i>
+                        <div>
+                            <h2 class="h6 mb-2">{{ _('Lost your CivikIndia tracking ID?') }}</h2>
+                            <p class="text-muted small mb-0">{{ _("Tracking IDs cannot be recovered because CivikIndia does not collect personal identifiers. If you've lost your tracking ID, submit a new anonymous complaint.") }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if complaint %}
+        {% set progress_map = {'Awaiting Review': 10, 'Rejected': 0, 'Pending': 25, 'Under Review': 50, 'Action Taken': 75, 'Delayed': 60, 'Reopened': 50, 'Closed': 100} %}
+        {% set progress = progress_map.get(complaint.status, 0) %}
+        <div class="row justify-content-center mt-5" id="complaint-result">
+            <div class="col-lg-9">
+                <article class="mibsp-card complaint-status-card status-{{ complaint.status|status_badge }}">
+                     <div class="p-4 p-md-5">
+                        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+                            <div>
+                                <p class="text-uppercase small text-muted fw-semibold mb-1">{{ _('Complaint Details') }}</p>
+                                <h2 class="h4 mb-1"><code class="tracking-id">{{ complaint.tracking_id }}</code></h2>
+                                <p class="text-muted mb-0">{{ _('Submitted') }}: {{ complaint.submitted_at|format_datetime }}</p>
+                            </div>
+                            <span class="badge-status {{ complaint.status|status_badge }}"><i class="bi bi-check-circle"></i>{{ complaint.status }}</span>
+                        </div>
+
+                        {% if complaint.status == 'Awaiting Review' %}
+                        <div class="alert alert-info review-alert mb-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi bi-hourglass-split fs-4"></i>
+                                <div>
+                                    <h4 class="alert-heading h6 mb-1">{{ _('Under Administrative Review') }}</h4>
+                                    <p class="mb-0 small">{{ _('An administrator is currently validating your submission for accuracy and department routing. It will be dispatched shortly.') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% elif complaint.status == 'Rejected' %}
+                        <div class="alert alert-danger reject-alert mb-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi bi-x-circle fs-4"></i>
+                                <div>
+                                    <h4 class="alert-heading h6 mb-1">{{ _('Complaint Rejected') }}</h4>
+                                    <p class="mb-1 small">{{ _('Your submission could not be approved for dispatch.') }}</p>
+                                    {% if complaint.rejection_reason %}
+                                    <hr class="my-2 border-danger-subtle">
+                                    <p class="mb-0 small"><strong>{{ _('Rejection Reason') }}:</strong> {{ complaint.rejection_reason }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="status-timeline mb-4" aria-label="{{ _('Complaint status timeline') }}">
+                            {% set status_steps = [('Submitted', 25), ('Assigned', 45), ('In Progress', 70), ('Resolved', 100)] %}
+                            {% for label, threshold in status_steps %}
+                            <div class="status-node {% if progress >= threshold %}is-complete{% endif %}">
+                                <span></span>
+                                <strong>{{ _(label) }}</strong>
+                                <small>{% if progress >= threshold %}{{ complaint.updated_at|format_datetime('%d %b') }}{% else %}{{ _('Pending') }}{% endif %}</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="sla-bar mb-2" style="--sla-progress: {{ progress }}%"><span class="sla-bar-fill"></span></div>
+                        <p class="small text-muted mb-4">{{ progress }}% {{ _('workflow progress based on current status') }}</p>
+
+                        <div class="submission-summary mb-4">
+                            <h3>{{ _('Your Submission') }}</h3>
+                            <p>{{ complaint.description[:260] }}{% if complaint.description|length > 260 %}...{% endif %}</p>
+                        </div>
+
+                        <div class="detail-grid">
+                            <div><span>{{ _('Department') }}</span><strong>{{ complaint.department.name }}</strong></div>
+                            <div><span>{{ _('Service') }}</span><strong>{{ complaint.service.name }}</strong></div>
+                            <div><span>{{ _('Priority') }}</span><strong>{{ complaint.priority }}</strong></div>
+                            <div><span>{{ _('Escalation Level') }}</span><strong>L{{ complaint.escalation_level }}</strong></div>
+                            <div><span>{{ _('Last Updated') }}</span><strong>{{ complaint.updated_at|format_datetime }}</strong></div>
+                            {% if complaint.sla_due_at %}<div><span>{{ _('SLA Due Date') }}</span><strong>{{ complaint.sla_due_at|format_datetime }}</strong></div>{% endif %}
+                        </div>
+
+                        {% if complaint.resolution_notes %}
+                        <div class="mt-4">
+                            <h3 class="h6">{{ _('Updates & Notes') }}</h3>
+                            <div class="submission-summary"><pre class="mb-0">{{ complaint.resolution_notes }}</pre></div>
+                        </div>
+                        {% endif %}
+
+                        {% if complaint.status == 'Closed' %}
+                        <div class="mt-5 pt-4 border-top">
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <div class="card h-100 border-0 shadow-sm" style="background-color: var(--card-bg, #fdfdfd); border-radius: 8px;">
+                                        <div class="card-body p-4 d-flex flex-column">
+                                            <h3 class="h6 mb-3 text-primary"><i class="bi bi-star-fill text-warning me-2"></i>{{ _('Rate Resolution & Feedback') }}</h3>
+                                            {% if complaint.citizen_rating %}
+                                                <div class="mb-2">
+                                                    {% for i in range(1, 6) %}
+                                                        <i class="bi {% if i <= complaint.citizen_rating %}bi-star-fill text-warning{% else %}bi-star text-muted{% endif %} fs-4"></i>
+                                                    {% endfor %}
+                                                </div>
+                                                {% if complaint.citizen_feedback %}
+                                                    <p class="text-muted small mt-2 mb-0" style="font-style: italic;">"{{ complaint.citizen_feedback }}"</p>
+                                                {% endif %}
+                                            {% else %}
+                                                <form method="POST" action="{{ url_for('public.submit_feedback', tracking_id=complaint.tracking_id) }}" class="flex-grow-1 d-flex flex-column justify-content-between">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <div class="mb-3">
+                                                        <label class="form-label small text-muted d-block mb-2">{{ _('Your Rating') }}</label>
+                                                        <div class="d-flex gap-2">
+                                                            {% for i in range(1, 6) %}
+                                                                <input type="radio" name="rating" value="{{ i }}" id="rate-{{ i }}" class="btn-check" required>
+                                                                <label for="rate-{{ i }}" class="btn btn-outline-warning btn-sm px-3"><i class="bi bi-star-fill me-1"></i>{{ i }}</label>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="feedback" class="form-label small text-muted">{{ _('Comments') }}</label>
+                                                        <textarea class="form-control" id="feedback" name="feedback" rows="3" placeholder="{{ _('Let us know how we did...') }}" maxlength="1000"></textarea>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-gov-primary btn-sm w-100 mt-auto"><i class="bi bi-send me-1"></i>{{ _('Submit Feedback') }}</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-4">
+                                    <div class="card h-100 border-0 shadow-sm" style="background-color: var(--card-bg, #fdfdfd); border-radius: 8px;">
+                                        <div class="card-body p-4 d-flex flex-column">
+                                            <h3 class="h6 mb-3 text-danger"><i class="bi bi-arrow-counterclockwise me-2"></i>{{ _('Reopen Complaint') }}</h3>
+                                            <p class="text-muted small mb-3">{{ _('If you are not satisfied with the action taken, you can reopen this complaint for higher authority review.') }}</p>
+                                            <form method="POST" action="{{ url_for('public.reopen_complaint', tracking_id=complaint.tracking_id) }}" class="flex-grow-1 d-flex flex-column justify-content-between">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <div class="mb-3">
+                                                    <label for="reopen_reason" class="form-label small text-muted">{{ _('Reason for Reopening') }}</label>
+                                                    <textarea class="form-control" id="reopen_reason" name="reopen_reason" rows="3" placeholder="{{ _('Describe why the issue is still unresolved (min 10, max 1000 characters)...') }}" required minlength="10" maxlength="1000"></textarea>
+                                                </div>
+                                                <button type="submit" class="btn btn-danger btn-sm w-100 mt-auto"><i class="bi bi-arrow-counterclockwise me-1"></i>{{ _('Reopen Complaint') }}</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <button class="btn btn-gov-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>{{ _('Print') }}</button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if complaint %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const resultContainer = document.getElementById('complaint-result');
+    if (resultContainer) {
+        setTimeout(function() {
+            resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 250);
+    }
+});
+</script>
+{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const trackingInput = document.getElementById('tracking_id');
+    if (trackingInput) {
+        trackingInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,993 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('Submit Complaint') }}{% endblock %}
+
+{% block content %}
+<div class="submit-page-shell py-5">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="gov-breadcrumb mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}">{{ _('Home') }}</a></li>
+                <li class="breadcrumb-item active">{{ _('Submit Complaint') }}</li>
+            </ol>
+        </nav>
+
+        <div class="submit-hero-card p-4 p-lg-5 mb-4" data-reveal>
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-8">
+                    <span class="submit-hero-kicker mb-2">
+                        <i class="bi bi-incognito me-2"></i>{{ _('Anonymous Reporting') }}
+                    </span>
+                    <h1 class="fw-bold mb-3">{{ _('Submit Your Complaint') }}</h1>
+                    <span class="visually-hidden">{{ _('Submit Complaint Securely') }}</span>
+                    <p class="text-muted mb-0">
+                        {{ _('Provide clear facts, location context, and supporting evidence. The system does not require login and does not store your identity.') }}
+                    </p>
+                </div>
+                <div class="col-lg-4">
+                    <div class="submit-hero-stats">
+                        <div class="submit-hero-stat">
+                            <i class="bi bi-lock"></i>
+                            <span>{{ _('No login needed') }}</span>
+                        </div>
+                        <div class="submit-hero-stat">
+                            <i class="bi bi-clock"></i>
+                            <span>{{ _('2-3 minutes to submit') }}</span>
+                        </div>
+                        <div class="submit-hero-stat">
+                            <i class="bi bi-link-45deg"></i>
+                            <span>{{ _('Track via MIB ID') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 align-items-start">
+            <div class="col-lg-8">
+                <div class="card submit-form-card shadow-sm border-0" data-reveal>
+                    <div class="submit-anonymous-strip">{{ _('Anonymous Reporting') }}</div>
+                    <div class="card-header py-4 submit-form-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-file-text me-2"></i>{{ _('Submit Anonymous Complaint') }}</h2>
+                        <p class="mb-0 mt-2 opacity-75">{{ _('Your identity will not be recorded. All fields are required unless marked optional.') }}</p>
+                    </div>
+                    <div class="card-body p-4 p-md-5">
+                        <form method="POST" action="{{ url_for('public.submit_complaint') }}" enctype="multipart/form-data" id="complaintForm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                            <nav class="submit-step-indicator mb-4" aria-label="Complaint form steps">
+                                <ol class="submit-step-list mb-0">
+                                    <li class="submit-step is-active" data-step="1"><span>1</span> Service</li>
+                                    <li class="submit-step" data-step="2"><span>2</span> Details</li>
+                                    <li class="submit-step" data-step="3"><span>3</span> Evidence</li>
+                                </ol>
+                            </nav>
+
+                            <section class="submit-block mb-4" data-reveal data-submit-step="1">
+                                <div class="submit-block-head mb-3">
+                                    <h6 class="mb-1 fw-bold form-section-header">{{ _('What Happened?') }}</h6>
+                                    <p class="small text-muted mb-0">{{ _('Choose the department and service where the incident occurred.') }}</p>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="department_id" class="form-label fw-semibold">
+                                            <i class="bi bi-building me-2 text-primary"></i>{{ _('Select Department') }}
+                                        </label>
+                                        <select class="form-select form-select-lg" id="department_id" name="department_id" required>
+                                            <option value="">-- {{ _('Choose Department') }} --</option>
+                                            {% for dept in departments %}
+                                            <option value="{{ dept.id }}" {% if form_data and form_data.department_id|int == dept.id %}selected{% endif %}>
+                                                {{ dept.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="form-text">{{ _('Select the department related to your complaint.') }}</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="service_id" class="form-label fw-semibold">
+                                            <i class="bi bi-clipboard-check me-2 text-primary"></i>{{ _('Select Service') }}
+                                        </label>
+                                        <select
+                                            class="form-select form-select-lg"
+                                            id="service_id"
+                                            name="service_id"
+                                            data-selected-service="{% if form_data and form_data.service_id %}{{ form_data.service_id }}{% endif %}"
+                                            required
+                                            disabled
+                                        >
+                                            <option value="">-- {{ _('First Select Department') }} --</option>
+                                        </select>
+                                        <div class="form-text">{{ _('Services load automatically after department selection.') }}</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="aiClassifyBtn">
+                                            <i class="bi bi-stars me-1"></i>{{ _('Auto Classify Department/Service') }}
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success btn-sm d-none" id="aiApplySuggestionBtn">
+                                            <i class="bi bi-check me-1"></i>{{ _('Apply Suggestion') }}
+                                        </button>
+                                    </div>
+                                    <div id="aiClassifyResult" class="alert alert-info py-2 px-3 small mt-2 d-none"></div>
+                                </div>
+                            </section>
+
+                            <section class="submit-block mb-4" data-reveal data-submit-step="2">
+                                <div class="submit-block-head mb-3">
+                                    <h6 class="mb-1 fw-bold form-section-header">{{ _('Tell Us More') }}</h6>
+                                    <p class="small text-muted mb-0">{{ _('Write a clear factual summary including dates, place, and service impact.') }}</p>
+                                </div>
+                                <label for="description" class="form-label fw-semibold">
+                                    <i class="bi bi-text-left me-2 text-primary"></i>{{ _('Complaint Description') }}
+                                </label>
+                                <textarea
+                                    class="form-control"
+                                    id="description"
+                                    name="description"
+                                    rows="6"
+                                    required
+                                    maxlength="5000"
+                                    placeholder="{{ _('Describe your complaint in detail. Include dates, locations, and any relevant information...') }}"
+                                >{% if form_data %}{{ form_data.description }}{% endif %}</textarea>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <div class="form-text" id="descriptionWordStatus">{{ _('Minimum 25 characters required.') }}</div>
+                                    <div class="form-text"><span id="wordCount">0</span> words / <span id="charCount">0</span> characters</div>
+                                </div>
+                                <div class="progress mt-2 submit-progress-track" style="height: 8px;">
+                                    <div class="progress-bar" id="descProgressBar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                
+                                <div class="row g-3 mt-3">
+                                    <div class="col-md-6">
+                                        <label for="complaint_category" class="form-label fw-semibold">{{ _('Complaint Category') }}</label>
+                                        <select class="form-select" id="complaint_category" name="complaint_category">
+                                            <option value="">-- Optional Category --</option>
+                                            <option value="Corruption/Bribery" {% if form_data and form_data.complaint_category == 'Corruption/Bribery' %}selected{% endif %}>Corruption/Bribery</option>
+                                            <option value="Service Delay" {% if form_data and form_data.complaint_category == 'Service Delay' %}selected{% endif %}>Service Delay</option>
+                                            <option value="Infrastructure Issue" {% if form_data and form_data.complaint_category == 'Infrastructure Issue' %}selected{% endif %}>Infrastructure Issue</option>
+                                            <option value="Staff Misbehavior" {% if form_data and form_data.complaint_category == 'Staff Misbehavior' %}selected{% endif %}>Staff Misbehavior</option>
+                                            <option value="Other" {% if form_data and form_data.complaint_category == 'Other' %}selected{% endif %}>Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="incident_date" class="form-label fw-semibold">{{ _('Incident Date (Optional)') }}</label>
+                                        <input type="date" class="form-control" id="incident_date" name="incident_date" value="{% if form_data %}{{ form_data.incident_date }}{% endif %}" max="{{ utc_now().strftime('%Y-%m-%d') }}">
+                                    </div>
+                                </div>
+                                <div class="row g-3 mt-1">
+                                    <div class="col-md-6">
+                                        <label for="ward_locality" class="form-label fw-semibold">{{ _('Ward/Locality') }}</label>
+                                        <input type="text" class="form-control" id="ward_locality" name="ward_locality" placeholder="e.g. Ward 5 / MG Road" value="{% if form_data %}{{ form_data.ward_locality }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="officer_name_alleged" class="form-label fw-semibold">{{ _('Officer Name (If Known)') }}</label>
+                                        <input type="text" class="form-control" id="officer_name_alleged" name="officer_name_alleged" placeholder="Optional" value="{% if form_data %}{{ form_data.officer_name_alleged }}{% endif %}">
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="submit-block mb-4" data-reveal>
+                                <div class="card border-0 submit-ai-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-robot text-primary me-2"></i>{{ _('AI Draft Assistant') }}
+                                            </h6>
+                                            <span class="badge-status badge-assigned">{{ _('Optional') }}</span>
+                                        </div>
+                                        <p class="small text-muted mb-3">
+                                            {{ _('Ask AI to improve your complaint draft. Do not include your name, phone, or address.') }}
+                                        </p>
+                                        <div class="mb-2">
+                                            <label for="aiPrompt" class="form-label small fw-semibold">{{ _('What help do you need?') }}</label>
+                                            <textarea id="aiPrompt" class="form-control" rows="2" maxlength="1000"
+                                                placeholder="{{ _('Example: Rewrite my complaint to be clearer and include missing details.') }}"></textarea>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2 mb-3">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="aiAskBtn">
+                                                <i class="bi bi-magic me-1"></i>{{ _('Ask AI') }}
+                                            </button>
+                                            <button type="button" class="btn btn-outline-success btn-sm" id="useAiDraftBtn" disabled>
+                                                <i class="bi bi-arrow-down me-1"></i>{{ _('Use Response In Description') }}
+                                            </button>
+                                        </div>
+                                        <div id="aiError" class="alert alert-warning py-2 px-3 d-none small mb-2"></div>
+                                        <div id="aiResponseWrap" class="d-none" aria-live="polite" aria-atomic="true">
+                                            <label class="form-label small fw-semibold mb-1">{{ _('AI Response') }}</label>
+                                            <pre id="aiResponse" class="p-3 bg-white border rounded small mb-0 submit-ai-response"></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="submit-block mb-4" data-reveal data-submit-step="3">
+                                <div class="submit-block-head mb-3">
+                                    <h6 class="mb-1 fw-bold form-section-header">{{ _('Evidence & Location') }}</h6>
+                                    <p class="small text-muted mb-0">{{ _('Attach a relevant evidence file and optional location details to speed up review.') }}</p>
+                                </div>
+                                <label for="evidence" class="form-label fw-semibold">
+                                    <i class="bi bi-paperclip me-2 text-primary"></i>{{ _('Evidence') }}
+                                </label>
+                                <input
+                                    type="file"
+                                    class="form-control"
+                                    id="evidence"
+                                    name="evidence"
+                                    accept=".pdf,.png,.jpg,.jpeg"
+                                    required
+                                >
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    {{ _('Allowed: PDF, PNG, JPG (Max 16MB)') }}
+                                </div>
+
+                                <hr class="my-4">
+
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-geo-alt me-2 text-primary"></i>{{ _('Location Pin (Optional)') }}
+                                </label>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-4">
+                                        <label for="state" class="visually-hidden">{{ _('State') }}</label>
+                                        <input type="text" class="form-control" id="state" name="state"
+                                            value="{% if form_data %}{{ form_data.state }}{% endif %}"
+                                            placeholder="{{ _('State (e.g., Maharashtra)') }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="district" class="visually-hidden">{{ _('District') }}</label>
+                                        <input type="text" class="form-control" id="district" name="district"
+                                            value="{% if form_data %}{{ form_data.district }}{% endif %}"
+                                            placeholder="{{ _('District (e.g., Mumbai Suburban)') }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="city" class="visually-hidden">{{ _('City') }}</label>
+                                        <input type="text" class="form-control" id="city" name="city"
+                                            value="{% if form_data %}{{ form_data.city }}{% endif %}"
+                                            placeholder="{{ _('City (e.g., Mumbai)') }}">
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-5">
+                                        <label for="location_lat" class="visually-hidden">{{ _('Latitude') }}</label>
+                                        <input type="number" step="any" class="form-control" id="location_lat" name="location_lat"
+                                            value="{% if form_data %}{{ form_data.location_lat }}{% endif %}"
+                                            placeholder="{{ _('Latitude') }}">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label for="location_lng" class="visually-hidden">{{ _('Longitude') }}</label>
+                                        <input type="number" step="any" class="form-control" id="location_lng" name="location_lng"
+                                            value="{% if form_data %}{{ form_data.location_lng }}{% endif %}"
+                                            placeholder="{{ _('Longitude') }}">
+                                    </div>
+                                    <div class="col-md-2 d-grid">
+                                        <button type="button" class="btn btn-outline-secondary" id="locateBtn" aria-label="Detect current location">
+                                            <i class="bi bi-crosshair"></i><span class="d-none d-lg-inline ms-1">{{ _('Locate') }}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="form-text">{{ _('You can optionally attach approximate coordinates for faster field action.') }}</div>
+                                <div id="locationStatus" class="alert alert-permanent py-2 px-3 small mt-2 d-none" role="status" aria-live="polite"></div>
+                            </section>
+
+                            <section class="submit-block mb-4" data-reveal>
+                                <div class="submit-block-head mb-3">
+                                    <h6 class="mb-1 fw-bold">{{ _('Optional Contact & Follow-up') }}</h6>
+                                    <p class="small text-muted mb-0">{{ _('Provide voluntary information if you wish to be contacted or provide additional evidence.') }}</p>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="contact_preference" class="form-label fw-semibold">{{ _('Contact Preference') }}</label>
+                                        <select class="form-select" id="contact_preference" name="contact_preference">
+                                            <option value="">Do not contact me (Anonymous)</option>
+                                            <option value="email" {% if form_data and form_data.contact_preference == 'email' %}selected{% endif %}>Via Email</option>
+                                            <option value="phone" {% if form_data and form_data.contact_preference == 'phone' %}selected{% endif %}>Via Phone</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="voluntary_id" class="form-label fw-semibold">{{ _('Contact Detail (Optional)') }}</label>
+                                        <input type="text" class="form-control" id="voluntary_id" name="voluntary_id" placeholder="Email or Phone number" value="{% if form_data %}{{ form_data.voluntary_id }}{% endif %}">
+                                        <div class="form-text text-muted small"><i class="bi bi-lock me-1"></i>Encrypted in our database.</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 form-check">
+                                    <input class="form-check-input" type="checkbox" id="witness_available" name="witness_available" value="yes" {% if form_data and form_data.witness_available %}checked{% endif %}>
+                                    <label class="form-check-label" for="witness_available">
+                                        {{ _('Witness is available to testify if required.') }}
+                                    </label>
+                                </div>
+                            </section>
+
+                            <div class="alert alert-info d-flex mb-4 submit-privacy-notice" data-reveal>
+                                <i class="bi bi-info-circle me-3 mt-1"></i>
+                                <div>
+                                    <strong>{{ _('Privacy Notice:') }}</strong>
+                                    <p class="mb-0">{{ _('Your complaint is completely anonymous. We do not collect or store any personal information including your IP address, name, phone number, or email.') }}</p>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{{ url_for('public.index') }}" class="btn btn-outline-secondary btn-lg">
+                                    {{ _('Cancel') }}
+                                </a>
+                                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                    <i class="bi bi-send me-2"></i>{{ _('Submit Complaint') }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="submit-side-card submit-side-sticky mb-3" data-reveal>
+                    <h6 class="fw-bold mb-3">{{ _('Submission Progress') }}</h6>
+                    <div class="submit-side-item">
+                        <span class="text-muted small">{{ _('Department') }}</span>
+                        <strong id="summaryDepartment">{{ _('Not selected') }}</strong>
+                    </div>
+                    <div class="submit-side-item">
+                        <span class="text-muted small">{{ _('Service') }}</span>
+                        <strong id="summaryService">{{ _('Not selected') }}</strong>
+                    </div>
+                    <div class="submit-side-item">
+                        <span class="text-muted small">{{ _('Description Words') }}</span>
+                        <strong id="summaryLength">{{ _('0 characters') }}</strong>
+                    </div>
+                    <div class="submit-side-item">
+                        <span class="text-muted small">{{ _('Location') }}</span>
+                        <strong id="summaryLocation">{{ _('Not provided') }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mt-3 mb-2">
+                        <span class="small fw-semibold">{{ _('Completion') }}</span>
+                        <span class="small fw-bold" id="summaryCompletion">0%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" id="summaryProgressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="submit-side-card" data-reveal>
+                    <h6 class="fw-bold mb-3">{{ _('Before You Submit') }}</h6>
+                    <ul class="submit-checklist mb-0">
+                        <li>{{ _('Describe what happened in clear factual language.') }}</li>
+                        <li>{{ _('Include approximate date/time and exact location.') }}</li>
+                        <li>{{ _('Mention service impact and expected action.') }}</li>
+                        <li>{{ _('Attach a relevant evidence file.') }}</li>
+                        <li>{{ _('Avoid personal identifiers in text and files.') }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentSelect = document.getElementById('department_id');
+    const serviceSelect = document.getElementById('service_id');
+    const description = document.getElementById('description');
+    const charCount = document.getElementById('charCount');
+    const wordCount = document.getElementById('wordCount');
+    const form = document.getElementById('complaintForm');
+    const aiPrompt = document.getElementById('aiPrompt');
+    const aiAskBtn = document.getElementById('aiAskBtn');
+    const aiResponseWrap = document.getElementById('aiResponseWrap');
+    const aiResponse = document.getElementById('aiResponse');
+    const aiError = document.getElementById('aiError');
+    const useAiDraftBtn = document.getElementById('useAiDraftBtn');
+    const aiClassifyBtn = document.getElementById('aiClassifyBtn');
+    const aiApplySuggestionBtn = document.getElementById('aiApplySuggestionBtn');
+    const aiClassifyResult = document.getElementById('aiClassifyResult');
+    const locateBtn = document.getElementById('locateBtn');
+    const locationLat = document.getElementById('location_lat');
+    const locationLng = document.getElementById('location_lng');
+    const locationStatus = document.getElementById('locationStatus');
+    const descriptionWordStatus = document.getElementById('descriptionWordStatus');
+    const descProgressBar = document.getElementById('descProgressBar');
+    const summaryDepartment = document.getElementById('summaryDepartment');
+    const summaryService = document.getElementById('summaryService');
+    const summaryLength = document.getElementById('summaryLength');
+    const summaryCompletion = document.getElementById('summaryCompletion');
+    const summaryProgressBar = document.getElementById('summaryProgressBar');
+    const summaryLocation = document.getElementById('summaryLocation');
+    const stateInput = document.getElementById('state');
+    const districtInput = document.getElementById('district');
+    const cityInput = document.getElementById('city');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const minDescriptionCharacters = 25;
+    const locationFallbacks = {
+        'mumbai': {lat: 19.076090, lng: 72.877426, city: 'Mumbai', district: 'Mumbai Suburban', state: 'Maharashtra'},
+        'mumbai suburban': {lat: 19.153000, lng: 72.856000, city: 'Mumbai', district: 'Mumbai Suburban', state: 'Maharashtra'},
+        'thane': {lat: 19.218331, lng: 72.978088, city: 'Thane', district: 'Thane', state: 'Maharashtra'},
+        'navi mumbai': {lat: 19.033049, lng: 73.029663, city: 'Navi Mumbai', district: 'Thane', state: 'Maharashtra'},
+        'pune': {lat: 18.520430, lng: 73.856744, city: 'Pune', district: 'Pune', state: 'Maharashtra'},
+        'nagpur': {lat: 21.145800, lng: 79.088155, city: 'Nagpur', district: 'Nagpur', state: 'Maharashtra'},
+        'delhi': {lat: 28.613939, lng: 77.209023, city: 'New Delhi', district: 'New Delhi', state: 'Delhi'},
+        'new delhi': {lat: 28.613939, lng: 77.209023, city: 'New Delhi', district: 'New Delhi', state: 'Delhi'},
+        'bengaluru': {lat: 12.971599, lng: 77.594566, city: 'Bengaluru', district: 'Bengaluru Urban', state: 'Karnataka'},
+        'bangalore': {lat: 12.971599, lng: 77.594566, city: 'Bengaluru', district: 'Bengaluru Urban', state: 'Karnataka'},
+        'chennai': {lat: 13.082680, lng: 80.270718, city: 'Chennai', district: 'Chennai', state: 'Tamil Nadu'},
+        'kolkata': {lat: 22.572646, lng: 88.363895, city: 'Kolkata', district: 'Kolkata', state: 'West Bengal'},
+        'hyderabad': {lat: 17.385044, lng: 78.486671, city: 'Hyderabad', district: 'Hyderabad', state: 'Telangana'},
+        'ahmedabad': {lat: 23.022505, lng: 72.571362, city: 'Ahmedabad', district: 'Ahmedabad', state: 'Gujarat'},
+        'jaipur': {lat: 26.912434, lng: 75.787271, city: 'Jaipur', district: 'Jaipur', state: 'Rajasthan'},
+        'lucknow': {lat: 26.846694, lng: 80.946166, city: 'Lucknow', district: 'Lucknow', state: 'Uttar Pradesh'},
+        'patna': {lat: 25.594095, lng: 85.137566, city: 'Patna', district: 'Patna', state: 'Bihar'},
+        'bhubaneswar': {lat: 20.296059, lng: 85.824539, city: 'Bhubaneswar', district: 'Khordha', state: 'Odisha'},
+        'guwahati': {lat: 26.144517, lng: 91.736237, city: 'Guwahati', district: 'Kamrup Metropolitan', state: 'Assam'},
+        'maharashtra': {lat: 19.751480, lng: 75.713888, city: 'Mumbai', district: 'Mumbai Suburban', state: 'Maharashtra'}
+    };
+    let latestClassification = null;
+
+    function initSubmitStepIndicator() {
+        const sections = Array.from(document.querySelectorAll('[data-submit-step]'));
+        const steps = Array.from(document.querySelectorAll('.submit-step[data-step]'));
+        if (!sections.length || !steps.length) {
+            return;
+        }
+
+        function setActiveStep(step) {
+            steps.forEach(function(item) {
+                const isActive = item.getAttribute('data-step') === String(step);
+                item.classList.toggle('is-active', isActive);
+                if (isActive) {
+                    item.setAttribute('aria-current', 'step');
+                } else {
+                    item.removeAttribute('aria-current');
+                }
+            });
+        }
+
+        sections.forEach(function(section) {
+            section.addEventListener('focusin', function() {
+                setActiveStep(section.getAttribute('data-submit-step'));
+            });
+        });
+
+        if (!('IntersectionObserver' in window)) {
+            setActiveStep(sections[0].getAttribute('data-submit-step'));
+            return;
+        }
+
+        const observer = new IntersectionObserver(function(entries) {
+            const visible = entries
+                .filter(function(entry) { return entry.isIntersecting; })
+                .sort(function(a, b) { return b.intersectionRatio - a.intersectionRatio; })[0];
+            if (visible) {
+                setActiveStep(visible.target.getAttribute('data-submit-step'));
+            }
+        }, {
+            root: null,
+            rootMargin: '-20% 0px -55% 0px',
+            threshold: [0.2, 0.45, 0.7]
+        });
+
+        sections.forEach(function(section) {
+            observer.observe(section);
+        });
+    }
+
+    initSubmitStepIndicator();
+
+    function countWords(value) {
+        return (value.trim().match(/\S+/g) || []).length;
+    }
+
+    function showLocationStatus(message, type = 'info') {
+        if (!locationStatus) {
+            return;
+        }
+        locationStatus.textContent = message;
+        locationStatus.classList.remove('d-none', 'alert-info', 'alert-success', 'alert-warning', 'alert-danger');
+        locationStatus.classList.add(`alert-${type}`);
+    }
+
+    function normalizeLocationKey(value) {
+        return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
+    function findApproximateLocation() {
+        const candidates = [
+            cityInput?.value,
+            districtInput?.value,
+            stateInput?.value,
+            'mumbai'
+        ].map(normalizeLocationKey).filter(Boolean);
+
+        for (const key of candidates) {
+            if (locationFallbacks[key]) {
+                return locationFallbacks[key];
+            }
+        }
+        return locationFallbacks.mumbai;
+    }
+
+    function applyLocationCoordinates(location, message, type = 'success') {
+        if (!location || !locationLat || !locationLng) {
+            return false;
+        }
+        locationLat.value = Number(location.lat).toFixed(6);
+        locationLng.value = Number(location.lng).toFixed(6);
+        if (stateInput && !stateInput.value && location.state) {
+            stateInput.value = location.state;
+        }
+        if (districtInput && !districtInput.value && location.district) {
+            districtInput.value = location.district;
+        }
+        if (cityInput && !cityInput.value && location.city) {
+            cityInput.value = location.city;
+        }
+        updateSubmissionSummary();
+        showLocationStatus(message, type);
+        return true;
+    }
+
+    function applyApproximateLocation(reason) {
+        const fallback = findApproximateLocation();
+        const label = [fallback.city, fallback.district, fallback.state].filter(Boolean).join(', ');
+        return applyLocationCoordinates(
+            fallback,
+            `${reason} Approximate coordinates for ${label} were filled. You can edit them before submitting.`,
+            'warning'
+        );
+    }
+
+    function resetLocateButton(html) {
+        locateBtn.disabled = false;
+        locateBtn.innerHTML = html;
+        locateBtn.classList.remove('btn-outline-success');
+        locateBtn.classList.add('btn-outline-secondary');
+    }
+
+    function updateDescriptionProgress() {
+        const chars = description.value.trim().length;
+        const words = countWords(description.value);
+        const pct = Math.min(Math.round((chars / minDescriptionCharacters) * 100), 100);
+        if (descProgressBar) {
+            descProgressBar.style.width = `${pct}%`;
+            if (chars < minDescriptionCharacters) {
+                descProgressBar.classList.remove('bg-success');
+                descProgressBar.classList.add('bg-warning');
+                if (descriptionWordStatus) {
+                    descriptionWordStatus.textContent = chars >= 18
+                        ? `${chars} characters - close to minimum 25 required`
+                        : `${chars} characters - minimum 25 required`;
+                    descriptionWordStatus.className = `form-text ${chars >= 18 ? 'text-warning' : 'text-danger'} fw-semibold`;
+                }
+            } else {
+                descProgressBar.classList.remove('bg-warning');
+                descProgressBar.classList.add('bg-success');
+                if (descriptionWordStatus) {
+                    descriptionWordStatus.textContent = `${chars} characters - minimum 25 required OK`;
+                    descriptionWordStatus.className = 'form-text text-success fw-semibold';
+                }
+            }
+        }
+    }
+
+    function updateSubmissionSummary() {
+        if (summaryDepartment) {
+            summaryDepartment.textContent = departmentSelect.options[departmentSelect.selectedIndex]?.text || 'Not selected';
+            if (!departmentSelect.value) {
+                summaryDepartment.textContent = 'Not selected';
+            }
+        }
+
+        if (summaryService) {
+            summaryService.textContent = serviceSelect.options[serviceSelect.selectedIndex]?.text || 'Not selected';
+            if (!serviceSelect.value) {
+                summaryService.textContent = 'Not selected';
+            }
+        }
+
+        if (summaryLength) {
+            summaryLength.textContent = `${description.value.trim().length} characters`;
+        }
+
+        if (summaryLocation) {
+            const parts = [cityInput?.value, districtInput?.value, stateInput?.value].filter(Boolean);
+            if (locationLat?.value && locationLng?.value) {
+                summaryLocation.textContent = parts.length ? `${parts.join(', ')} (geo-tagged)` : 'Geo-tagged';
+            } else if (parts.length) {
+                summaryLocation.textContent = parts.join(', ');
+            } else {
+                summaryLocation.textContent = 'Not provided';
+            }
+        }
+
+        let completed = 0;
+        const total = 3;
+
+        if (departmentSelect.value) {
+            completed += 1;
+        }
+        if (serviceSelect.value) {
+            completed += 1;
+        }
+        if (description.value.trim().length >= minDescriptionCharacters) {
+            completed += 1;
+        }
+
+        const completionPct = Math.round((completed / total) * 100);
+        if (summaryCompletion) {
+            summaryCompletion.textContent = `${completionPct}%`;
+        }
+        if (summaryProgressBar) {
+            summaryProgressBar.style.width = `${completionPct}%`;
+        }
+    }
+
+    description.addEventListener('input', function() {
+        charCount.textContent = this.value.length;
+        if (wordCount) {
+            wordCount.textContent = countWords(this.value);
+        }
+        updateDescriptionProgress();
+        updateSubmissionSummary();
+    });
+
+    charCount.textContent = description.value.length;
+    if (wordCount) {
+        wordCount.textContent = countWords(description.value);
+    }
+    updateDescriptionProgress();
+    updateSubmissionSummary();
+
+    function showAiError(message) {
+        aiError.textContent = message;
+        aiError.classList.remove('d-none');
+    }
+
+    function hideAiError() {
+        aiError.classList.add('d-none');
+        aiError.textContent = '';
+    }
+
+    function showClassificationMessage(message, isError = false) {
+        if (!aiClassifyResult) {
+            return;
+        }
+        aiClassifyResult.classList.remove('d-none', 'alert-danger', 'alert-info', 'alert-success');
+        aiClassifyResult.classList.add(isError ? 'alert-danger' : 'alert-info');
+        aiClassifyResult.textContent = message;
+    }
+
+    function hideClassificationMessage() {
+        if (!aiClassifyResult) {
+            return;
+        }
+        aiClassifyResult.classList.add('d-none');
+        aiClassifyResult.textContent = '';
+        aiClassifyResult.classList.remove('alert-danger', 'alert-info', 'alert-success');
+    }
+
+    function applyClassificationSuggestion() {
+        if (!latestClassification || !latestClassification.department_id || !latestClassification.service_id) {
+            showClassificationMessage('No valid AI suggestion is available to apply.', true);
+            return;
+        }
+
+        departmentSelect.value = String(latestClassification.department_id);
+        loadServicesForDepartment(latestClassification.department_id, latestClassification.service_id);
+        updateSubmissionSummary();
+
+        aiClassifyResult.classList.remove('alert-info', 'alert-danger');
+        aiClassifyResult.classList.add('alert-success');
+        aiClassifyResult.textContent = 'AI suggestion applied to Department and Service.';
+        if (aiApplySuggestionBtn) {
+            aiApplySuggestionBtn.classList.add('d-none');
+        }
+    }
+
+    async function runClassification() {
+        hideClassificationMessage();
+        latestClassification = null;
+        if (aiApplySuggestionBtn) {
+            aiApplySuggestionBtn.classList.add('d-none');
+        }
+
+        const text = description.value.trim();
+        if (text.length < 20) {
+            showClassificationMessage('Write at least 20 characters in description before auto classification.', true);
+            description.focus();
+            return;
+        }
+
+        aiClassifyBtn.disabled = true;
+        aiClassifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Classifying...';
+        try {
+            const response = await fetch('/api/ai/classify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ description: text })
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                showClassificationMessage(payload.error || 'Unable to classify complaint right now.', true);
+                return;
+            }
+
+            latestClassification = payload;
+            const suggestedDept = payload.department_name || 'Not confident';
+            const suggestedService = payload.service_name || 'Not confident';
+            const confidence = Number(payload.confidence || 0);
+            const urgency = payload.urgent ? 'High priority' : 'Normal priority';
+            showClassificationMessage(
+                `Suggestion: ${suggestedDept} -> ${suggestedService} | ` +
+                `Confidence: ${confidence}% | ${urgency} | Sentiment: ${payload.sentiment || 'neutral'}`
+            );
+
+            if (payload.department_id && payload.service_id && aiApplySuggestionBtn) {
+                aiApplySuggestionBtn.classList.remove('d-none');
+            }
+        } catch (error) {
+            console.error('Classification error:', error);
+            showClassificationMessage('Unable to connect to auto-classification service.', true);
+        } finally {
+            aiClassifyBtn.disabled = false;
+            aiClassifyBtn.innerHTML = '<i class="bi bi-stars me-1"></i>Auto Classify Department/Service';
+        }
+    }
+
+    aiAskBtn.addEventListener('click', async function() {
+        hideAiError();
+        const promptText = aiPrompt.value.trim();
+        if (promptText.length < 5) {
+            showAiError('Please enter a specific question for AI assistance.');
+            aiPrompt.focus();
+            return;
+        }
+
+        aiAskBtn.disabled = true;
+        aiAskBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Thinking...';
+
+        try {
+            const response = await fetch('/api/ai/assist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    message: promptText,
+                    description: description.value,
+                    department_id: Number(departmentSelect.value) || null,
+                    service_id: Number(serviceSelect.value) || null
+                })
+            });
+
+            const payload = await response.json();
+            if (!response.ok) {
+                showAiError(payload.error || 'AI assistant is unavailable right now.');
+                return;
+            }
+
+            aiResponse.textContent = payload.reply || '';
+            aiResponseWrap.classList.remove('d-none');
+            aiResponseWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            useAiDraftBtn.disabled = !(payload.reply || '').trim();
+        } catch (error) {
+            console.error('AI assistant error:', error);
+            showAiError('Unable to connect to AI assistant. Please try again.');
+        } finally {
+            aiAskBtn.disabled = false;
+            aiAskBtn.innerHTML = '<i class="bi bi-magic me-1"></i>Ask AI';
+        }
+    });
+
+    useAiDraftBtn.addEventListener('click', function() {
+        const aiText = aiResponse.textContent.trim();
+        if (!aiText) {
+            return;
+        }
+        description.value = aiText.substring(0, 5000);
+        description.dispatchEvent(new Event('input'));
+        description.focus();
+    });
+
+    if (aiClassifyBtn) {
+        aiClassifyBtn.addEventListener('click', runClassification);
+    }
+    if (aiApplySuggestionBtn) {
+        aiApplySuggestionBtn.addEventListener('click', applyClassificationSuggestion);
+    }
+
+    function loadServicesForDepartment(deptId, selectedServiceId = null) {
+        if (!deptId) {
+            serviceSelect.innerHTML = '<option value="">-- First Select Department --</option>';
+            serviceSelect.disabled = true;
+            updateSubmissionSummary();
+            return;
+        }
+
+        fetch(`/api/services/${deptId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Service lookup failed');
+                }
+                return response.json();
+            })
+            .then(services => {
+                serviceSelect.innerHTML = '<option value="">-- Select Service --</option>';
+                services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = service.name;
+                    if (selectedServiceId && String(selectedServiceId) === String(service.id)) {
+                        option.selected = true;
+                    }
+                    serviceSelect.appendChild(option);
+                });
+                serviceSelect.disabled = false;
+                updateSubmissionSummary();
+            })
+            .catch(error => {
+                console.error('Error loading services:', error);
+                serviceSelect.innerHTML = '<option value="">-- Error loading services --</option>';
+                updateSubmissionSummary();
+            });
+    }
+
+    departmentSelect.addEventListener('change', function() {
+        loadServicesForDepartment(this.value);
+        updateSubmissionSummary();
+    });
+
+    serviceSelect.addEventListener('change', updateSubmissionSummary);
+    [stateInput, districtInput, cityInput, locationLat, locationLng].forEach(function(el) {
+        if (el) {
+            el.addEventListener('input', updateSubmissionSummary);
+            el.addEventListener('change', updateSubmissionSummary);
+        }
+    });
+
+    if (departmentSelect.value) {
+        const existingServiceId = serviceSelect.dataset.selectedService || null;
+        loadServicesForDepartment(departmentSelect.value, existingServiceId);
+    }
+
+    form.addEventListener('submit', function(e) {
+        const desc = description.value.trim();
+        const chars = desc.length;
+
+        if (chars < minDescriptionCharacters) {
+            e.preventDefault();
+            alert(`Description must be at least ${minDescriptionCharacters} characters.`);
+            description.focus();
+            return false;
+        }
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Submitting...';
+    });
+
+    document.getElementById('evidence').addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const maxSize = 16 * 1024 * 1024; // 16MB
+            if (file.size > maxSize) {
+                alert('File size must be less than 16MB.');
+                this.value = '';
+            }
+        }
+    });
+
+    // One-click geolocation capture with local civic fallback for blocked permissions.
+    if (locateBtn) {
+        locateBtn.addEventListener('click', function() {
+            const originalHtml = locateBtn.innerHTML;
+            locateBtn.disabled = true;
+            locateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
+            showLocationStatus('Capturing coordinates...', 'info');
+            let locateFinished = false;
+
+            function finishLocate(successHtml) {
+                locateBtn.innerHTML = successHtml || '<i class="bi bi-check text-success"></i>';
+                locateBtn.classList.remove('btn-outline-secondary');
+                locateBtn.classList.add('btn-outline-success');
+                setTimeout(function() {
+                    resetLocateButton(originalHtml);
+                }, 3000);
+            }
+
+            if (!navigator.geolocation) {
+                locateFinished = true;
+                applyApproximateLocation('Browser GPS is not available.');
+                finishLocate('<i class="bi bi-check text-success"></i>');
+                return;
+            }
+
+            const permissionFallbackTimer = setTimeout(function() {
+                if (locateFinished) {
+                    return;
+                }
+                locateFinished = true;
+                applyApproximateLocation('Precise browser location is still waiting for permission.');
+                finishLocate('<i class="bi bi-check text-success"></i>');
+            }, 4000);
+
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    if (locateFinished) {
+                        return;
+                    }
+                    locateFinished = true;
+                    clearTimeout(permissionFallbackTimer);
+                    applyLocationCoordinates(
+                        {lat: pos.coords.latitude, lng: pos.coords.longitude},
+                        'Precise browser coordinates captured. You can adjust them manually if needed.',
+                        'success'
+                    );
+                    finishLocate('<i class="bi bi-check text-success"></i>');
+                },
+                function(err) {
+                    if (locateFinished) {
+                        return;
+                    }
+                    locateFinished = true;
+                    clearTimeout(permissionFallbackTimer);
+                    if (err.code === err.PERMISSION_DENIED) {
+                        applyApproximateLocation('Browser location permission is blocked.');
+                    } else if (err.code === err.TIMEOUT) {
+                        applyApproximateLocation('Precise GPS timed out.');
+                    } else {
+                        applyApproximateLocation('Precise GPS could not be detected.');
+                    }
+                    finishLocate('<i class="bi bi-check text-success"></i>');
+                },
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+            );
+        });
+    }
+
+});
+</script>
+{% if recaptcha_site_key %}
+<script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('complaintForm');
+    if (!form) return;
+
+    form.addEventListener('submit', function(e) {
+        // Prevent default submit, get reCAPTCHA token first
+        e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Verifying...';
+
+        grecaptcha.ready(function() {
+            grecaptcha.execute('{{ recaptcha_site_key }}', {action: 'submit_complaint'}).then(function(token) {
+                // Inject token into form
+                let input = form.querySelector('input[name="g-recaptcha-response"]');
+                if (!input) {
+                    input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'g-recaptcha-response';
+                    form.appendChild(input);
+                }
+                input.value = token;
+
+                // Now submit
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Submitting...';
+                form.submit();
+            }).catch(function(err) {
+                console.error('reCAPTCHA error:', err);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-send me-2"></i>Submit Complaint';
+                alert('Anti-spam verification failed. Please try again.');
+            });
+        });
+    }, {capture: true});
+});
+</script>
+{% endif %}
+{% endblock %}

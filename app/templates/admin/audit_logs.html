@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit Logs{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-light">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="gov-breadcrumb mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Audit Logs</li>
+            </ol>
+        </nav>
+        
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 dashboard-page-header">
+            <div>
+                <h1><i class="bi bi-clock-history"></i>Audit Logs</h1>
+                <p class="text-muted mb-0">Immutable record of all system actions</p>
+            </div>
+            <span class="badge-status badge-resolved"><i class="bi bi-check-circle"></i>Hash-Chained</span>
+        </div>
+
+        <div class="mibsp-card mb-4">
+            <div class="table-card-header"><h2>Actions</h2></div>
+            <div class="p-4 d-flex flex-wrap gap-2 align-items-center">
+                <form method="POST" action="{{ url_for('admin.rebuild_audit_chain') }}" class="m-0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-audit-warning"
+                            data-bs-toggle="tooltip"
+                            data-confirm="Rebuild audit log chain now? This should only be used after manual data correction or migration recovery."
+                            title="Rebuilds the hash chain - use only after manual data correction"
+                            aria-label="Rebuild audit log hash chain">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Rebuild Chain
+                    </button>
+                </form>
+                <button class="btn btn-sm btn-gov-secondary" id="verifyChainBtn" data-bs-toggle="tooltip" title="Verifies all hashes are intact - safe to run anytime">
+                    <i class="bi bi-shield-check me-1"></i>Verify Chain
+                </button>
+                <a href="{{ url_for('admin.export_audit_logs_json') }}" class="btn btn-sm btn-gov-secondary">
+                    <i class="bi bi-filetype-json me-1"></i>Export JSON
+                </a>
+                <a href="{{ url_for('admin.export_audit_logs_csv') }}" class="btn btn-sm btn-gov-secondary">
+                    <i class="bi bi-filetype-csv me-1"></i>Export CSV
+                </a>
+            </div>
+        </div>
+
+        <div id="verifyChainResult" class="mb-4 d-none">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08);">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="verify-icon-container me-3 d-flex align-items-center justify-content-center rounded-circle" id="verifyResultIconContainer" style="width: 48px; height: 48px; background-color: #e8f0fe;">
+                            <i class="bi bi-shield-shaded text-primary fs-4" id="verifyResultIcon"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h3 class="h6 mb-1 fw-bold" id="verifyResultTitle">Chain Integrity Analysis</h3>
+                            <p class="text-muted small mb-0" id="verifyResultMeta">Ready to run cryptographic audit...</p>
+                        </div>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="progress" style="height: 6px; border-radius: 3px; background-color: #e9ecef;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%; transition: width 0.8s ease-in-out;" id="verifyProgressBar"></div>
+                    </div>
+                    <div id="verifyResultDetails" class="small text-secondary mt-3 d-none"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filter-toolbar mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label" for="auditActionFilter">Action Type</label>
+                        <select class="form-select" id="auditActionFilter" name="action">
+                            <option value="">All Actions</option>
+                            {% for action_type in actions %}
+                            <option value="{{ action_type }}" {% if filters.action == action_type %}selected{% endif %}>
+                                {{ action_type }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="auditUsernameFilter">Username</label>
+                        <input type="text" class="form-control" id="auditUsernameFilter" name="username" 
+                               placeholder="Search username..."
+                               value="{{ filters.username or '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="auditDateFromFilter">From Date</label>
+                        <input type="date" class="form-control" id="auditDateFromFilter" name="date_from" 
+                               value="{{ filters.date_from or '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="auditDateToFilter">To Date</label>
+                        <input type="date" class="form-control" id="auditDateToFilter" name="date_to" 
+                               value="{{ filters.date_to or '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <span class="form-label d-block" aria-hidden="true">&nbsp;</span>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-gov-primary">
+                                <i class="bi bi-search me-2"></i>Filter
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Logs Table -->
+        <div class="mibsp-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="mibsp-table">
+                        <caption class="visually-hidden">Audit log entries with hash-chain integrity metadata</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Timestamp</th>
+                                <th scope="col">User</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Action</th>
+                                <th scope="col">Details</th>
+                                <th scope="col">IP Address</th>
+                                <th scope="col">Prev Hash</th>
+                                <th scope="col">Row Hash</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td>{{ log.timestamp|format_datetime('%d %b %Y, %H:%M:%S') }}</td>
+                                <td><strong>{{ log.username }}</strong></td>
+                                <td>
+                                    <span class="badge-status {{ 'badge-role-admin' if log.role == 'admin' else 'badge-role-officer' }}">
+                                        {{ log.role }}
+                                    </span>
+                                </td>
+                                <td><code>{{ log.action }}</code></td>
+                                <td>
+                                    {% if log.details %}
+                                        <small class="text-muted">{{ log.details[:100] }}{% if log.details|length > 100 %}...{% endif %}</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td><small class="text-muted">{{ log.ip_address or '-' }}</small></td>
+                                <td><code class="small">{{ (log.previous_hash or '-')[:12] }}</code></td>
+                                <td><code class="small">{{ (log.row_hash or '-')[:12] }}</code></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center py-5">
+                                    <i class="bi bi-clipboard-data display-5 text-muted mb-3"></i>
+                                    <p class="text-muted mb-0">No audit logs found.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Pagination -->
+            {% if pagination.pages > 1 %}
+            <div class="card-footer bg-white">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin.audit_logs', page=pagination.prev_num, **filters) }}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in pagination.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num == pagination.page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('admin.audit_logs', page=page_num, **filters) }}">{{ page_num }}</a>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin.audit_logs', page=pagination.next_num, **filters) }}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Integrity Notice -->
+        <div class="alert alert-info d-flex mt-4">
+            <i class="bi bi-shield-check me-3 mt-1"></i>
+            <div>
+                <strong>Audit Log Integrity</strong>
+                <p class="mb-0 small">
+                    Each log entry contains a HMAC-SHA256 hash chained to the previous entry. 
+                    This creates a tamper-evident record. Any modification would break the chain 
+                    and be immediately detectable.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('verifyChainBtn');
+    const output = document.getElementById('verifyChainResult');
+    const progressBar = document.getElementById('verifyProgressBar');
+    const iconContainer = document.getElementById('verifyResultIconContainer');
+    const icon = document.getElementById('verifyResultIcon');
+    const title = document.getElementById('verifyResultTitle');
+    const meta = document.getElementById('verifyResultMeta');
+    const details = document.getElementById('verifyResultDetails');
+
+    if (!btn || !output) {
+        return;
+    }
+
+    btn.addEventListener('click', async function() {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Verifying...';
+        
+        // Show result box with checking state
+        output.classList.remove('d-none');
+        progressBar.style.width = '0%';
+        progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated bg-primary';
+        
+        iconContainer.style.backgroundColor = '#e8f0fe';
+        icon.className = 'bi bi-shield-shaded text-primary fs-4';
+        title.textContent = 'Chain Integrity Analysis';
+        meta.textContent = 'Verifying cryptographic link signatures...';
+        details.classList.add('d-none');
+        details.textContent = '';
+
+        // Animate progress bar to 100% over 800ms
+        setTimeout(() => {
+            progressBar.style.width = '100%';
+        }, 50);
+
+        try {
+            const response = await fetch('{{ url_for("admin.verify_audit_logs") }}');
+            const payload = await response.json();
+            
+            // Wait for progress animation to complete
+            await new Promise(resolve => setTimeout(resolve, 850));
+
+            if (response.ok && payload.valid) {
+                // Success State
+                progressBar.className = 'progress-bar bg-success';
+                iconContainer.style.backgroundColor = '#d1e7dd';
+                icon.className = 'bi bi-shield-check text-success fs-4';
+                title.textContent = 'Chain Verified Successfully';
+                meta.textContent = 'Immutable record audit passed.';
+                details.innerHTML = `<strong>Status:</strong> Validated <strong>${payload.checked}</strong> sequential log blocks. All row hashes and link signatures match. No unauthorized modifications detected.`;
+                details.classList.remove('d-none');
+            } else {
+                // Compromised State
+                progressBar.className = 'progress-bar bg-danger';
+                iconContainer.style.backgroundColor = '#f8d7da';
+                icon.className = 'bi bi-shield-x text-danger fs-4';
+                title.textContent = 'CRITICAL: Integrity Mismatch Detected!';
+                meta.textContent = 'Tampering detected in ledger.';
+                details.innerHTML = `<strong>Error:</strong> ${payload.message || 'Row hash mismatch.'} at log entry <strong>#${payload.broken_log_id || 'unknown'}</strong>. Link signature broken.`;
+                details.classList.remove('d-none');
+            }
+        } catch (err) {
+            await new Promise(resolve => setTimeout(resolve, 850));
+            progressBar.className = 'progress-bar bg-warning';
+            iconContainer.style.backgroundColor = '#fff3cd';
+            icon.className = 'bi bi-exclamation-triangle text-warning fs-4';
+            title.textContent = 'Verification Failed';
+            meta.textContent = 'Unable to verify chain right now.';
+            details.textContent = 'The system encountered an error connecting to the verification server.';
+            details.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-shield-check me-1"></i>Verify Chain';
+        }
+    });
+});
+</script>
+{% endblock %}

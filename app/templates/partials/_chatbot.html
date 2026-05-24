@@ -1,0 +1,52 @@
+<div class="chatbot-container" id="globalChatbot" aria-label="CivikIndia Assistant" role="complementary">
+    <!-- Floating Trigger Button -->
+    <button type="button" class="chatbot-trigger" id="chatbotTriggerBtn" aria-label="Open support chat" title="Open CivikIndia Assistant">
+        <i class="bi bi-chat-dots-fill"></i>
+        <span class="chatbot-badge d-none" id="chatbotUnreadBadge">1</span>
+    </button>
+
+    <!-- Floating Chat Window -->
+    <div class="chatbot-window d-none" id="chatbotWindow" aria-hidden="true">
+        <!-- Chat Header -->
+        <div class="chatbot-header">
+            <div class="chatbot-header-info">
+                <span class="chatbot-header-shield"><i class="bi bi-shield-fill-check"></i></span>
+                <div>
+                    <h3 class="chatbot-title">CivikIndia Assistant</h3>
+                    <span class="chatbot-status"><span class="status-dot"></span>Online | AI Guide</span>
+                </div>
+            </div>
+            <button type="button" class="chatbot-close-btn" id="chatbotCloseBtn" aria-label="Close chat" title="Close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <!-- Chat Body / Messages Thread -->
+        <div class="chatbot-body" id="chatbotThread" aria-live="polite">
+            <div class="chatbot-welcome-message">
+                <p>Welcome to the <strong>CivikIndia — Civic Grievance & Accountability Portal</strong> Assistant.</p>
+                <p>I can guide you through the secure anonymous grievance reporting process. Do not share personal identifiers.</p>
+            </div>
+        </div>
+
+        <!-- Quick Suggestions -->
+        <div class="chatbot-suggestions" id="chatbotSuggestions">
+            <button type="button" class="btn-suggestion" data-prompt="How do I file a complaint anonymously?">Submit Guide</button>
+            <button type="button" class="btn-suggestion" data-prompt="How can I track my complaint?">Track Status</button>
+            <button type="button" class="btn-suggestion" data-prompt="What counts as valid evidence?">Evidence Help</button>
+        </div>
+
+        <!-- Chat Input Form -->
+        <form class="chatbot-input-form" id="chatbotForm" autocomplete="off">
+            <div class="input-group">
+                <input type="text" id="chatbotInput" class="form-control" placeholder="Ask a question..." aria-label="Ask a question" required maxlength="1000" minlength="5">
+                <button type="submit" class="btn-send" id="chatbotSendBtn" aria-label="Send message">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </div>
+            <div class="chatbot-error d-none" id="chatbotError"></div>
+        </form>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>

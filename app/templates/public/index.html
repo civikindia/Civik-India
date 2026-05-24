@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('Home') }}{% endblock %}
+
+{% block content %}
+{% set total = stats.total or 0 %}
+{% set closed = stats.closed or 0 %}
+{% set pending = stats.pending or 0 %}
+{% set active_departments = departments|length %}
+{% set resolution_rate = ((closed / total * 100) if total > 0 else 0)|round(1) %}
+
+<section class="home-hero-v2">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7" data-reveal>
+                <span class="hero-kicker"><i class="bi bi-shield-check"></i>{{ _('Government of India Initiative') }}</span>
+                <h1>
+                    <span>{{ _('Report Corruption.') }}</span>
+                    <span class="hero-accent">{{ _('Demand Accountability.') }}</span>
+                </h1>
+                <p class="hero-subtitle">{{ _('Submit anonymously. No login. No personal information. Track with a unique ID.') }}</p>
+                <div class="hero-trust-pills" aria-label="{{ _('Trust signals') }}">
+                    <span data-reveal data-reveal-delay="100"><i class="bi bi-lock"></i>{{ _('No Login Required') }}</span>
+                    <span data-reveal data-reveal-delay="200"><i class="bi bi-incognito"></i>{{ _('Anonymous by Design') }}</span>
+                    <span data-reveal data-reveal-delay="300"><i class="bi bi-phone"></i>{{ _('Mobile Friendly') }}</span>
+                </div>
+                <div class="hero-actions">
+                    <a href="{{ url_for('public.submit_complaint') }}" class="hero-primary">{{ _('Submit Complaint') }} <i class="bi bi-arrow-right"></i></a>
+                    <a href="{{ url_for('public.track_complaint') }}" class="hero-secondary">{{ _('Track Complaint') }}</a>
+                </div>
+                <div class="hero-stats-grid" id="homeStatsGrid">
+                    <div><strong id="homeStatTotal" class="counter-value" data-count="{{ total }}">{{ total }}</strong><span>{{ _('Total Complaints') }}</span></div>
+                    <div><strong id="homeStatResolved" class="counter-value" data-count="{{ closed }}">{{ closed }}</strong><span>{{ _('Resolved') }}</span></div>
+                    <div><strong class="counter-value" data-count="{{ active_departments }}">{{ active_departments }}</strong><span>{{ _('Active Depts') }}</span></div>
+                    <div><strong class="counter-value" data-count="100">100%</strong><span>{{ _('Anonymous') }}</span></div>
+                </div>
+            </div>
+            <div class="col-lg-5" data-reveal>
+                <div class="hero-service-card">
+                    <div class="d-flex justify-content-between align-items-start mb-4">
+                        <div>
+                            <p class="text-uppercase small fw-semibold mb-1">{{ _('Live Portal Snapshot') }}</p>
+                            <h2 class="h4 mb-0">{{ _('Public grievance transparency') }}</h2>
+                        </div>
+                        <span class="badge-status badge-resolved"><i class="bi bi-broadcast"></i>{{ _('Live') }}</span>
+                    </div>
+                    <div class="mini-metrics">
+                        <div><span>{{ _('Pending') }}</span><strong>{{ pending }}</strong></div>
+                        <div><span>{{ _('Resolution Rate') }}</span><strong>{{ resolution_rate }}%</strong></div>
+                        <div><span>{{ _('Departments') }}</span><strong>{{ active_departments }}</strong></div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="sla-bar" style="--sla-progress: {{ resolution_rate }}%"><span class="sla-bar-fill"></span></div>
+                        <p class="small text-muted mt-2 mb-0">{{ _('Resolution performance is visible to every citizen.') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="home-section">
+    <div class="container">
+        <div class="section-heading text-center" data-reveal>
+            <span>{{ _('How It Works') }}</span>
+            <h2>{{ _('Three simple steps') }}</h2>
+        </div>
+        <div class="how-steps">
+            <article data-reveal>
+                <div class="step-number">1</div>
+                <i class="bi bi-file-text"></i>
+                <h3>{{ _('Submit') }}</h3>
+                <p>{{ _('Describe the incident, department, service, and supporting evidence without creating an account.') }}</p>
+            </article>
+            <article data-reveal>
+                <div class="step-number">2</div>
+                <i class="bi bi-search"></i>
+                <h3>{{ _('Track') }}</h3>
+                <p>{{ _('Save the unique tracking ID and check every status update through the public tracker.') }}</p>
+            </article>
+            <article data-reveal>
+                <div class="step-number">3</div>
+                <i class="bi bi-check-circle"></i>
+                <h3>{{ _('Resolved') }}</h3>
+                <p>{{ _('Officers update progress, SLA status, and final action through an auditable workflow.') }}</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="home-section report-types">
+    <div class="container">
+        <div class="section-heading text-center" data-reveal>
+            <span>{{ _('What You Can Report') }}</span>
+            <h2>{{ _('Municipal service integrity issues') }}</h2>
+        </div>
+        <div class="report-grid">
+            {% set reports = [
+                ('cash-coin', 'Bribery', 'bribery', 'Demand or request for illegal payment.'),
+                ('hourglass-split', 'Service Delay', 'service_delay', 'Unreasonable delay or repeated follow-up.'),
+                ('slash-circle', 'Denial of Service', 'denial', 'Refusal to provide an eligible public service.'),
+                ('person-x', 'Misconduct', 'misconduct', 'Rude, coercive, or abusive staff conduct.'),
+                ('scale', 'Discrimination', 'discrimination', 'Unfair treatment or biased service delivery.'),
+                ('clipboard-check', 'Other Issues', 'other', 'Any other municipal integrity concern.')
+            ] %}
+            {% for icon, title, key, desc in reports %}
+            <a class="report-card" href="{{ url_for('public.submit_complaint') }}?category={{ key }}" data-reveal>
+                <i class="bi bi-{{ icon }}"></i>
+                <h3>{{ _(title) }}</h3>
+                <p>{{ _(desc) }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="accountability-strip">
+    <div class="container">
+        <div class="accountability-grid">
+            <div><strong class="counter-value" data-count="{{ total }}">{{ total }}</strong><span>{{ _('Complaints Filed') }}</span></div>
+            <div><strong class="counter-value" data-count="{{ resolution_rate }}">{{ resolution_rate }}%</strong><span>{{ _('Resolution Rate') }}</span></div>
+            <div><strong class="counter-value" data-count="{{ active_departments }}">{{ active_departments }}</strong><span>{{ _('Departments') }}</span></div>
+            <div><strong class="counter-value" data-count="0">0</strong><span>{{ _('Days Since Launch') }}</span></div>
+        </div>
+    </div>
+</section>
+
+<section class="home-section">
+    <div class="container">
+        <div class="home-ai-card p-4 p-lg-5" data-reveal>
+            <div class="row g-4 align-items-start">
+                <div class="col-lg-4">
+                    <span class="home-ai-kicker">{{ _('AI Guidance') }}</span>
+                    <h2 class="fw-bold mb-3 mt-2">{{ _('Need Help Using The Portal?') }}</h2>
+                    <p class="text-muted mb-0">{{ _('Ask how to submit complaints, track updates, and use transparency tools. Do not share personal identifiers.') }}</p>
+                </div>
+                <div class="col-lg-8">
+                    <div id="homeAiChat" class="home-ai-chat">
+                        <div id="homeAiThread" class="home-ai-thread" aria-live="polite"></div>
+                        <div class="home-ai-prompts d-flex flex-wrap gap-2 mb-3">
+                            <button type="button" class="btn btn-gov-secondary btn-sm" data-ai-prompt="How do I submit a strong anonymous complaint?">{{ _('How To Submit') }}</button>
+                            <button type="button" class="btn btn-gov-secondary btn-sm" data-ai-prompt="How can I track my complaint status?">{{ _('Track Complaint') }}</button>
+                            <button type="button" class="btn btn-gov-secondary btn-sm" data-ai-prompt="What details should I include as evidence?">{{ _('Evidence Tips') }}</button>
+                        </div>
+                        <form id="homeAiForm" class="home-ai-form" autocomplete="off">
+                            <label for="homeAiInput" class="form-label small fw-semibold mb-2">{{ _('Ask the assistant') }}</label>
+                            <div class="input-group">
+                                <input type="text" id="homeAiInput" class="form-control" maxlength="1000" minlength="5" placeholder="{{ _('Example: What should I include before submitting?') }}" required>
+                                <button type="submit" class="btn btn-gov-primary" id="homeAiSend"><i class="bi bi-send me-1"></i>{{ _('Send') }}</button>
+                            </div>
+                            <div id="homeAiError" class="small text-danger mt-2 d-none"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}RTI Compliance Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb" class="gov-breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">RTI Compliance Report</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 fw-bold mb-1"><i class="bi bi-scale me-2"></i>RTI Compliance Report</h1>
+                    <p class="text-muted mb-0">Complaints older than 30 days still pending resolution (as of {{ cutoff_date }})</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="rti-notice mb-4">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>{{ total_overdue }} complaints exceed 30-day RTI threshold.</strong>
+        <span>Under Section 4(1)(b) of the RTI Act, 2005, complaints pending beyond 30 days must be proactively disclosed.</span>
+    </div>
+
+    {% if report_data %}
+    <div class="mibsp-card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Pending Complaints (>30 days)</h5>
+            <a href="{{ url_for('admin.export_complaints_csv') }}" class="btn btn-sm btn-gov-primary">
+                <i class="bi bi-download me-1"></i>Export All CSV
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="mibsp-table" id="rti-table">
+                    <caption class="visually-hidden">RTI compliance report — overdue complaints</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Tracking ID</th>
+                            <th scope="col">Department</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Priority</th>
+                            <th scope="col">Age (Days)</th>
+                            <th scope="col">SLA Status</th>
+                            <th scope="col">Escalation</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report_data %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.complaint_detail', tracking_id=item.complaint.tracking_id) }}" class="text-decoration-none fw-semibold">
+                                    {{ item.complaint.tracking_id }}
+                                </a>
+                            </td>
+                            <td>{{ item.complaint.department.name if item.complaint.department else 'N/A' }}</td>
+                            <td>
+                                <span class="badge-status {{ item.complaint.status|status_badge }}">
+                                    {{ item.complaint.status }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if item.complaint.priority == 'High' %}
+                                    <span class="badge-status badge-priority-high">High</span>
+                                {% elif item.complaint.priority == 'Normal' %}
+                                    <span class="badge-status badge-priority-normal">Normal</span>
+                                {% else %}
+                                    <span class="badge-status badge-priority-low">{{ item.complaint.priority }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.age_days > 90 %}
+                                    <span class="text-danger fw-bold">{{ item.age_days }} days</span>
+                                {% elif item.age_days > 60 %}
+                                    <span class="text-warning fw-bold">{{ item.age_days }} days</span>
+                                {% else %}
+                                    {{ item.age_days }} days
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.sla_status == 'Breached' %}
+                                    <span class="badge-status badge-delayed"><i class="bi bi-x-circle me-1"></i>Breached</span>
+                                {% else %}
+                                    <span class="badge-status badge-resolved"><i class="bi bi-check-circle me-1"></i>Within SLA</span>
+                                {% endif %}
+                            </td>
+                            <td>L{{ item.complaint.escalation_level }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.complaint_detail', tracking_id=item.complaint.tracking_id) }}" class="btn-icon">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-check-circle-fill display-1 text-success mb-3"></i>
+            <h4>All Clear!</h4>
+            <p class="text-muted mb-0">No complaints older than 30 days are pending. RTI compliance is met.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- RTI Disclosure Notice -->
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-body">
+            <h6 class="fw-bold"><i class="bi bi-info-circle me-2 text-info"></i>RTI Act 2005 — Proactive Disclosure</h6>
+            <p class="text-muted small mb-0">
+                Under Section 4(1)(b) of the Right to Information Act, 2005, public authorities are required to proactively
+                disclose information about the disposal of complaints and grievances. This report lists all unresolved complaints
+                that have been pending for more than 30 days and may be subject to RTI requests. Ensure timely resolution
+                to maintain compliance.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

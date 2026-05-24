@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Login{% endblock %}
+
+{% block content %}
+<section class="staff-login-page">
+    <div class="login-left-panel">
+        <div class="login-panel-content">
+            <span class="portal-shield large" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
+            <h1>CivikIndia — Civic Grievance &amp; Accountability Portal</h1>
+            <p>Secure operational access for officers and administrators handling public grievance workflows.</p>
+            <ul>
+                <li><i class="bi bi-check-circle"></i>Review, assign, and resolve complaints</li>
+                <li><i class="bi bi-check-circle"></i>Monitor SLA deadlines and escalations</li>
+                <li><i class="bi bi-check-circle"></i>Maintain transparent audit records</li>
+            </ul>
+            <div class="login-helplines">Helplines: 1064 | 1800-11-0180 | 112</div>
+        </div>
+    </div>
+    <div class="login-right-panel">
+        <div class="login-form-wrap">
+            <h2>CivikIndia Staff Portal</h2>
+            <p class="text-muted mb-4">Officers and Administrators</p>
+            <form method="POST" action="{{ url_for('auth.login') }}" class="login-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="next" value="{{ next or request.args.get('next', '') }}">
+                <div class="mb-3">
+                    <label for="username" class="form-label fw-semibold">Username</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" autocomplete="username" required autofocus>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="form-label fw-semibold">Password</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password"><i class="bi bi-eye"></i></button>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mb-3">
+                    <a href="{{ url_for('auth.forgot_password') }}" class="small">Forgot password?</a>
+                </div>
+                <button type="submit" class="btn btn-gov-primary btn-lg w-100">Login <i class="bi bi-arrow-right ms-2"></i></button>
+            </form>
+            <div class="citizen-login-link">
+                <span>For citizen complaints:</span>
+                <a href="{{ url_for('public.submit_complaint') }}">Submit Anonymously <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggle = document.getElementById('togglePassword');
+    const password = document.getElementById('password');
+    if (toggle && password) {
+        toggle.addEventListener('click', function() {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.setAttribute('aria-label', type === 'password' ? 'Show password' : 'Hide password');
+            this.innerHTML = type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+        });
+    }
+
+    const hasError = document.querySelector('.alert-danger');
+    if (hasError) {
+        const submitBtn = document.querySelector('.login-form button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.classList.add('shake-login');
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,418 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-light mobile-data-page admin-dashboard-v2 dashboard-shell">
+    <div class="container">
+        <div class="dashboard-page-header mb-4">
+            <div>
+                <h1><i class="bi bi-gear"></i>Admin Dashboard</h1>
+                <p>Welcome, {{ session.username }} | {{ utc_now()|format_datetime('%d %b %Y, %I:%M %p') }}</p>
+            </div>
+            <div class="dashboard-header-actions">
+                <a href="{{ url_for('admin.export_complaints_pdf') }}" class="btn btn-gov-secondary btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i>Export PDF</a>
+                <a href="{{ url_for('admin.export_complaints_csv') }}" class="btn btn-gov-secondary btn-sm"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export CSV</a>
+                <span class="badge-status badge-role-admin"><i class="bi bi-person-shield"></i>Administrator</span>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-md-2-5 col-lg">
+                <div class="kpi-card review-inbox-kpi bg-primary text-white">
+                    <div class="kpi-label text-white-50">Review Inbox</div>
+                    <div class="kpi-value counter-value" data-count="{{ stats.awaiting_review }}">{{ stats.awaiting_review }}</div>
+                    <div class="kpi-sub"><a href="{{ url_for('admin.review_inbox') }}" class="text-white text-decoration-none">Go to Inbox &rarr;</a></div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3"><div class="kpi-card total"><div class="kpi-label">Total Complaints</div><div class="kpi-value counter-value" data-count="{{ stats.total }}">{{ stats.total }}</div><div class="kpi-sub">All submissions</div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card pending"><div class="kpi-label">Pending</div><div class="kpi-value counter-value" data-count="{{ stats.pending }}">{{ stats.pending }}</div><div class="kpi-sub">Awaiting review</div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card resolved"><div class="kpi-label">Resolved</div><div class="kpi-value counter-value" data-count="{{ stats.closed }}">{{ stats.closed }}</div><div class="kpi-sub">{{ stats.resolution_rate }}% rate</div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card officers"><div class="kpi-label">Officers</div><div class="kpi-value counter-value" data-count="{{ total_officers }}">{{ total_officers }}</div><div class="kpi-sub">{{ total_departments }} departments</div></div></div>
+        </div>
+
+        <div class="stat-chips-row">
+            <span class="stat-chip bg-danger-subtle text-danger"><i class="bi bi-x-circle"></i>Rejected: {{ stats.rejected }}</span>
+            <span class="stat-chip danger"><i class="bi bi-exclamation-triangle"></i>Delayed: {{ stats.delayed }}</span>
+            <span class="stat-chip neutral"><i class="bi bi-arrow-repeat"></i>Reopened: {{ stats.reopened }}</span>
+            <span class="stat-chip success"><i class="bi bi-speedometer2"></i>SLA: {{ stats.sla_compliance }}% compliant</span>
+        </div>
+
+        {% if stats.total == 0 and stats.pending == 0 and stats.closed == 0 %}
+        <div class="admin-zero-stats-callout" role="status">
+            <h2><i class="bi bi-database me-2" aria-hidden="true"></i>No complaint data yet</h2>
+            <p class="mb-2 small text-muted mb-md-3">KPI cards and charts stay at zero until complaints exist in the database. For a local demo, populate sample data using the README &ldquo;Seed Demo Complaints&rdquo; section, then refresh this page.</p>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <p class="mb-0 small"><strong>Example:</strong> <code id="adminSeedCommand">python seed.py --target-range medium --clear-existing-complaints --seed-audit-logs</code></p>
+                <button type="button" class="btn btn-gov-secondary btn-sm" id="copySeedCommandBtn">
+                    <i class="bi bi-copy me-1" aria-hidden="true"></i>Copy Seed Command
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-4" data-reveal><div class="mibsp-card chart-panel"><h2><i class="bi bi-graph-up"></i>Monthly Trends</h2><div class="chart-canvas-wrap" style="position: relative; min-height: 200px;"><canvas id="monthlyChart" height="200"></canvas></div></div></div>
+            <div class="col-lg-4" data-reveal><div class="mibsp-card chart-panel"><h2><i class="bi bi-pie-chart"></i>Status Breakdown</h2><div class="chart-canvas-wrap" style="position: relative; min-height: 200px;"><canvas id="statusChart" height="200"></canvas></div></div></div>
+            <div class="col-lg-4" data-reveal><div class="mibsp-card chart-panel"><h2><i class="bi bi-funnel"></i>Conversion Funnel</h2><div class="chart-canvas-wrap" style="position: relative; min-height: 200px;"><canvas id="funnelChart" height="200"></canvas></div></div></div>
+        </div>
+
+        <div class="row g-4 mb-4" data-reveal>
+            <div class="col-lg-6"><div class="mibsp-card chart-panel"><h2><i class="bi bi-bar-chart-steps"></i>Department Distribution</h2><div class="chart-canvas-wrap" style="position: relative; min-height: 220px;"><canvas id="deptChart" height="220"></canvas></div></div></div>
+            <div class="col-lg-6"><div class="mibsp-card chart-panel"><h2><i class="bi bi-clock-history"></i>SLA Compliance & Resolution Trends</h2><div class="chart-canvas-wrap" style="position: relative; min-height: 220px;"><canvas id="slaTrendChart" height="220"></canvas></div></div></div>
+        </div>
+
+        <div class="quick-actions-grid mb-4" data-reveal>
+            <a href="{{ url_for('admin.rti_compliance_report') }}"><i class="bi bi-scale"></i><strong>RTI Report</strong><span>Overdue complaints</span></a>
+            <a href="{{ url_for('admin.audit_logs') }}"><i class="bi bi-shield-check"></i><strong>Audit Chain</strong><span>Verify & export</span></a>
+            <a href="{{ url_for('admin.officers') }}"><i class="bi bi-people"></i><strong>Officers</strong><span>Create & manage</span></a>
+            <a href="{{ url_for('admin.departments') }}"><i class="bi bi-building"></i><strong>Departments</strong><span>Structure & SLA</span></a>
+            <a href="{{ url_for('admin.escalation_contacts') }}"><i class="bi bi-diagram-3"></i><strong>Escalation Matrix</strong><span>SLA contacts</span></a>
+        </div>
+
+        <div class="mibsp-card mb-4" data-reveal>
+            <div class="table-card-header"><h2><i class="bi bi-building"></i>Department Performance</h2></div>
+            <div class="table-responsive">
+                <table class="mibsp-table mobile-data-table">
+                    <caption class="visually-hidden">Department performance metrics including resolution rates and citizen rating</caption>
+                    <thead>
+                        <tr><th scope="col">Department</th><th scope="col">Total</th><th scope="col">Closed</th><th scope="col">Delayed</th><th scope="col">Resolution Rate</th><th scope="col">Score</th><th scope="col">Citizen Rating</th><th scope="col">Avg. Resolution</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for dept in dept_performance %}
+                        <tr>
+                            <td data-label="Department"><strong>{{ dept.name }}</strong></td>
+                            <td data-label="Total">{{ dept.total }}</td>
+                            <td data-label="Closed">{{ dept.closed }}</td>
+                            <td data-label="Delayed"><span class="badge-status badge-delayed">{{ dept.delayed }}</span></td>
+                            <td data-label="Resolution Rate"><div class="sla-bar" style="--sla-progress: {{ dept.resolution_rate }}%"><span class="sla-bar-fill"></span></div><span class="small">{{ dept.resolution_rate }}%</span></td>
+                            <td data-label="Score"><strong>{{ dept.performance_score }}</strong></td>
+                            <td data-label="Citizen Rating">{{ dept.avg_rating ~ '/5' if dept.avg_rating else '-' }}</td>
+                            <td data-label="Avg. Resolution">{{ dept.avg_resolution_hours ~ ' hrs' if dept.avg_resolution_hours else '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6" data-reveal>
+                <div class="mibsp-card">
+                    <div class="table-card-header"><h2>Recent Complaints</h2><a href="{{ url_for('admin.complaints') }}" class="btn btn-gov-secondary btn-sm">View All</a></div>
+                    <div class="list-group list-group-flush mobile-compact-list">
+                        {% for complaint in recent_complaints %}
+                        <a href="{{ url_for('admin.complaint_detail', tracking_id=complaint.tracking_id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-3">
+                            <span>
+                                <div class="d-flex align-items-center gap-2">
+                                    {% set sla_status = complaint.get_sla_status() %}
+                                    {% if sla_status == 'overdue' %}
+                                        <span class="sla-indicator-ring sla-ring-red" title="SLA Breached" aria-label="SLA Breached"></span>
+                                    {% elif sla_status == 'warning' %}
+                                        <span class="sla-indicator-ring sla-ring-orange" title="SLA Nearing Breach: {{ complaint.get_sla_time_remaining() }}" aria-label="SLA Nearing Breach"></span>
+                                    {% elif sla_status == 'safe' %}
+                                        <span class="sla-indicator-ring sla-ring-green" title="Within SLA: {{ complaint.get_sla_time_remaining() }}" aria-label="Within SLA"></span>
+                                    {% endif %}
+                                    <code class="tracking-id">{{ complaint.tracking_id }}</code>
+                                </div>
+                                <small class="d-block text-muted mt-1">
+                                    {{ complaint.department.name }}
+                                    {% if complaint.status in complaint.ACTIVE_STATUSES %}
+                                        · {{ complaint.get_sla_time_remaining() }}
+                                    {% endif %}
+                                </small>
+                            </span>
+                            <span class="badge-status {{ complaint.status|status_badge }}">{{ complaint.status }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6" data-reveal>
+                <div class="mibsp-card">
+                    <div class="table-card-header"><h2>Recent Activity</h2><a href="{{ url_for('admin.audit_logs') }}" class="btn btn-gov-secondary btn-sm">View All</a></div>
+                    <div class="list-group list-group-flush mobile-compact-list">
+                        {% for log in recent_logs %}
+                        <div class="list-group-item d-flex justify-content-between gap-3">
+                            <span><strong class="small">{{ log.action }}</strong><small class="d-block text-muted">by {{ log.username }} ({{ log.role }})</small></span>
+                            <small class="text-muted">{{ log.timestamp|format_datetime('%d %b %H:%M') }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/chart.js/chart.umd.min.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const copySeedCommandBtn = document.getElementById('copySeedCommandBtn');
+    const adminSeedCommand = document.getElementById('adminSeedCommand');
+    if (copySeedCommandBtn && adminSeedCommand) {
+        copySeedCommandBtn.addEventListener('click', function () {
+            navigator.clipboard.writeText(adminSeedCommand.textContent.trim()).then(() => {
+                const original = copySeedCommandBtn.innerHTML;
+                copySeedCommandBtn.innerHTML = '<i class="bi bi-check me-1" aria-hidden="true"></i>Copied';
+                setTimeout(() => {
+                    copySeedCommandBtn.innerHTML = original;
+                }, 1600);
+            }).catch(() => {});
+        });
+    }
+
+    const css = getComputedStyle(document.documentElement);
+    const colors = {
+        green: css.getPropertyValue('--gov-green').trim(),
+        navy: css.getPropertyValue('--gov-navy').trim(),
+        saffron: css.getPropertyValue('--gov-saffron').trim(),
+        pending: css.getPropertyValue('--status-pending').trim(),
+        resolved: css.getPropertyValue('--status-resolved').trim(),
+        delayed: css.getPropertyValue('--status-delayed').trim(),
+        normal: css.getPropertyValue('--status-normal').trim()
+    };
+    const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } };
+
+    function sumSeries(data) {
+        if (!data || !Array.isArray(data.data)) {
+            return 0;
+        }
+        return data.data.reduce(function (acc, v) { return acc + (Number(v) || 0); }, 0);
+    }
+
+    function monthlyEmpty(data) {
+        return !data || !Array.isArray(data.labels) || !data.labels.length || sumSeries(data) === 0;
+    }
+
+    function statusEmpty(data) {
+        return !data || !Array.isArray(data.labels) || !data.labels.length || sumSeries(data) === 0;
+    }
+
+    function showChartMessage(canvasId, message) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || !canvas.parentElement) {
+            return;
+        }
+        const wrap = canvas.parentElement;
+        canvas.classList.add('d-none');
+        let hint = wrap.querySelector('.chart-empty-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.className = 'chart-empty-hint';
+            hint.setAttribute('role', 'status');
+            wrap.appendChild(hint);
+        }
+        hint.textContent = message;
+    }
+
+    function ensureCanvasVisible(canvasId) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || !canvas.parentElement) {
+            return;
+        }
+        canvas.classList.remove('d-none');
+        const hint = canvas.parentElement.querySelector('.chart-empty-hint');
+        if (hint) {
+            hint.remove();
+        }
+    }
+
+    fetch('/api/chart/monthly').then(r => r.json()).then(data => {
+        if (monthlyEmpty(data)) {
+            showChartMessage('monthlyChart', 'No monthly complaint data to chart yet.');
+            return;
+        }
+        ensureCanvasVisible('monthlyChart');
+        new Chart(document.getElementById('monthlyChart'), { type: 'line', data: { labels: data.labels, datasets: [{ label: 'Complaints', data: data.data, borderColor: colors.green, backgroundColor: 'rgba(0,107,60,0.12)', fill: true, tension: 0.4 }] }, options: { ...commonOptions, scales: { y: { beginAtZero: true } } } });
+    });
+    fetch('/api/chart/status').then(r => r.json()).then(data => {
+        if (statusEmpty(data)) {
+            showChartMessage('statusChart', 'No status breakdown to chart yet.');
+            return;
+        }
+        ensureCanvasVisible('statusChart');
+        new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: data.labels, datasets: [{ data: data.data, backgroundColor: [colors.pending, colors.normal, colors.green, colors.delayed, colors.saffron, colors.resolved] }] }, options: commonOptions });
+    });
+    const funnelTotal = {{ stats.total|int }};
+    if (!funnelTotal) {
+        showChartMessage('funnelChart', 'No funnel data until complaints are recorded.');
+    } else {
+        ensureCanvasVisible('funnelChart');
+        new Chart(document.getElementById('funnelChart'), { type: 'bar', data: { labels: ['Total', 'Pending', 'Action Taken', 'Resolved'], datasets: [{ label: 'Complaints', data: [{{ stats.total }}, {{ stats.pending }}, {{ stats.action_taken }}, {{ stats.closed }}], backgroundColor: [colors.navy, colors.pending, colors.normal, colors.resolved] }] }, options: { ...commonOptions, indexAxis: 'y' } });
+    }
+
+    // Department Distribution horizontal bar chart
+    fetch('/api/chart/dept').then(r => r.json()).then(data => {
+        if (!data || !data.data || sumSeries(data) === 0) {
+            showChartMessage('deptChart', 'No department-wise complaint data to chart yet.');
+            return;
+        }
+        ensureCanvasVisible('deptChart');
+        new Chart(document.getElementById('deptChart'), {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Complaints',
+                    data: data.data,
+                    backgroundColor: colors.navy
+                }]
+            },
+            options: {
+                ...commonOptions,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+    // Dual-axis SLA Compliance & Resolution Trends Chart
+    Promise.all([
+        fetch('/api/chart/sla-compliance').then(r => r.json()),
+        fetch('/api/chart/resolution-time').then(r => r.json())
+    ]).then(([slaData, resData]) => {
+        const hasSla = slaData && slaData.data && slaData.data.length && sumSeries(slaData) > 0;
+        const hasRes = resData && resData.data && resData.data.length && sumSeries(resData) > 0;
+        if (!hasSla && !hasRes) {
+            showChartMessage('slaTrendChart', 'No SLA compliance or resolution trend data to chart yet.');
+            return;
+        }
+        ensureCanvasVisible('slaTrendChart');
+        new Chart(document.getElementById('slaTrendChart'), {
+            type: 'line',
+            data: {
+                labels: (slaData.labels && slaData.labels.length) ? slaData.labels : resData.labels,
+                datasets: [
+                    {
+                        label: 'SLA Compliance (%)',
+                        data: slaData.data,
+                        borderColor: colors.green,
+                        backgroundColor: 'transparent',
+                        yAxisID: 'ySla',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Avg. Resolution (Hours)',
+                        data: resData.data,
+                        borderColor: colors.saffron,
+                        backgroundColor: 'transparent',
+                        yAxisID: 'yRes',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    ySla: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'SLA Compliance (%)' },
+                        min: 0,
+                        max: 100
+                    },
+                    yRes: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'Avg. Resolution (Hours)' },
+                        min: 0,
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    }).catch(err => {
+        console.error('Failed to load SLA trend charts:', err);
+        showChartMessage('slaTrendChart', 'Failed to load chart data.');
+    });
+
+    // ── T1-D: Live KPI refresh every 60 seconds ──────────────────────────────
+    const kpiMap = {
+        'awaiting_review': '.review-inbox-kpi .kpi-value',
+        'total':           '.kpi-card.total .kpi-value',
+        'pending':         '.kpi-card.pending .kpi-value',
+        'closed':          '.kpi-card.resolved .kpi-value',
+    };
+    const chipMap = {
+        'delayed':         '[data-kpi="delayed"]',
+        'reopened':        '[data-kpi="reopened"]',
+        'sla_compliance':  '[data-kpi="sla"]',
+    };
+
+    // Add data attributes to chips so we can find them reliably
+    (function tagChips() {
+        const chips = document.querySelectorAll('.stat-chip');
+        chips.forEach(chip => {
+            const text = chip.textContent;
+            if (text.includes('Delayed'))    chip.dataset.kpi = 'delayed';
+            if (text.includes('Reopened'))   chip.dataset.kpi = 'reopened';
+            if (text.includes('SLA'))        chip.dataset.kpi = 'sla';
+        });
+    })();
+
+    // Timestamp indicator
+    let lastRefresh = Date.now();
+    let refreshIndicator = document.getElementById('kpiRefreshIndicator');
+    if (!refreshIndicator) {
+        const headerDiv = document.querySelector('.dashboard-page-header p');
+        if (headerDiv) {
+            refreshIndicator = document.createElement('small');
+            refreshIndicator.id = 'kpiRefreshIndicator';
+            refreshIndicator.className = 'text-muted ms-2';
+            refreshIndicator.setAttribute('aria-live', 'polite');
+            headerDiv.appendChild(refreshIndicator);
+        }
+    }
+
+    function updateRefreshLabel() {
+        if (!refreshIndicator) return;
+        const secs = Math.round((Date.now() - lastRefresh) / 1000);
+        refreshIndicator.textContent = secs < 5 ? ' · KPIs just updated' : ` · KPIs updated ${secs}s ago`;
+    }
+
+    function refreshAdminKPIs() {
+        fetch('/api/admin/kpi-stats')
+            .then(r => { if (!r.ok) throw new Error('KPI fetch failed'); return r.json(); })
+            .then(data => {
+                Object.entries(kpiMap).forEach(([key, selector]) => {
+                    const el = document.querySelector(selector);
+                    if (el && data[key] !== undefined) el.textContent = data[key];
+                });
+                // Update chips
+                const delayedChip = document.querySelector('[data-kpi="delayed"]');
+                if (delayedChip) delayedChip.innerHTML = delayedChip.innerHTML.replace(/Delayed:\s*\d+/, `Delayed: ${data.delayed}`);
+                const reopenedChip = document.querySelector('[data-kpi="reopened"]');
+                if (reopenedChip) reopenedChip.innerHTML = reopenedChip.innerHTML.replace(/Reopened:\s*\d+/, `Reopened: ${data.reopened}`);
+                const slaChip = document.querySelector('[data-kpi="sla"]');
+                if (slaChip) slaChip.innerHTML = slaChip.innerHTML.replace(/SLA:\s*[\d.]+%/, `SLA: ${data.sla_compliance}%`);
+                // Inbox badge in resolved KPI sub-text
+                const inboxSub = document.querySelector('.review-inbox-kpi .kpi-sub a');
+                // nothing to change there — just refresh value
+
+                lastRefresh = Date.now();
+                updateRefreshLabel();
+            })
+            .catch(() => {}); // silently ignore network errors
+    }
+
+    // Initial label update every second + fetch every 60s
+    setInterval(updateRefreshLabel, 5000);
+    setInterval(refreshAdminKPIs, 60000);
+});
+</script>
+{% endblock %}
+

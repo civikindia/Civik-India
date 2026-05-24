@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<body style="font-family: Arial, sans-serif; color: #1f2933; line-height: 1.5; margin: 0; padding: 0;">
+  <div style="border-top: 6px solid #ff9933; border-bottom: 6px solid #138808; padding: 20px;">
+    <p style="margin: 0; font-size: 13px; color: #52616b;">Government of India | CivikIndia Officer Account</p>
+    <h1 style="margin: 4px 0 12px; font-size: 20px;">Staff Account Created</h1>
+    <p>Your CivikIndia staff account has been created.</p>
+    <p><strong>Username:</strong> {{ user.username }}</p>
+    <p><strong>Role:</strong> {{ user.role }}</p>
+    <p><strong>Temporary password:</strong> {{ temporary_password or 'Set by administrator' }}</p>
+    <p><a href="{{ login_url }}" style="color: #0f5e3d;">Open staff login</a></p>
+    <p style="font-size: 13px; color: #52616b;">Please change your password after first login and enroll 2FA where required.</p>
+  </div>
+</body>
+</html>

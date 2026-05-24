@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page.title }}{% endblock %}
+
+{% block content %}
+{% set _fa = page.icon or '' %}
+{% if _fa == 'fa-headset' %}{% set hero_bi = 'bi-headset' %}
+{% elif _fa == 'fa-user-shield' %}{% set hero_bi = 'bi-shield-lock' %}
+{% elif _fa == 'fa-scale-balanced' %}{% set hero_bi = 'bi-file-earmark-ruled' %}
+{% elif _fa == 'fa-circle-info' %}{% set hero_bi = 'bi-info-circle' %}
+{% elif _fa == 'fa-universal-access' %}{% set hero_bi = 'bi-universal-access' %}
+{% elif _fa == 'fa-assistive-listening-systems' %}{% set hero_bi = 'bi-ear' %}
+{% elif _fa == 'fa-file-contract' %}{% set hero_bi = 'bi-file-earmark-text' %}
+{% elif _fa == 'fa-life-ring' %}{% set hero_bi = 'bi-life-preserver' %}
+{% else %}{% set hero_bi = 'bi-info-circle' %}
+{% endif %}
+<section class="py-5 bg-light">
+    <div class="container">
+        <nav aria-label="{{ _('breadcrumb') }}" class="gov-breadcrumb mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}">{{ _('Home') }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ page.title }}</li>
+            </ol>
+        </nav>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <article class="mibsp-card">
+                    <div class="static-page-hero page-hero-card">
+                        <div class="page-hero-icon" aria-hidden="true"><i class="bi {{ hero_bi }}"></i></div>
+                        <h1 class="h3 fw-bold mb-2">{{ page.title }}</h1>
+                        <p class="mb-0">{{ page.summary }}</p>
+                    </div>
+                    <div class="card-body p-4 p-md-5">
+                        <div class="static-page-content">
+                        {% for section in page.sections %}
+                        <section class="mb-4" aria-labelledby="section-{{ loop.index }}">
+                            <h2 id="section-{{ loop.index }}" class="h5 fw-semibold mb-3">{{ section.heading }}</h2>
+                            <ul class="text-muted mb-0">
+                                {% for item in section['items'] %}
+                                <li class="mb-2">{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+                        {% endfor %}
+                        </div>
+
+                        {% if request.endpoint in ['public.privacy', 'public.terms', 'public.website_policies', 'public.disclaimer'] %}
+                        <nav class="mb-4 small" aria-label="Related policies">
+                            <span class="text-muted me-2">Related:</span>
+                            <a href="{{ url_for('public.privacy') }}">Privacy Policy</a>
+                            <span class="text-muted mx-1">·</span>
+                            <a href="{{ url_for('public.terms') }}">Terms of Use</a>
+                            <span class="text-muted mx-1">·</span>
+                            <a href="{{ url_for('public.website_policies') }}">Website Policies</a>
+                            <span class="text-muted mx-1">·</span>
+                            <a href="{{ url_for('public.disclaimer') }}">Disclaimer</a>
+                        </nav>
+                        {% endif %}
+
+                        <div class="stat-chip neutral mb-0">
+                            <strong>{{ _('Last Updated') }}:</strong> {{ site_last_updated }}
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

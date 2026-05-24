@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+
+{% block title %}Public Dashboard{% endblock %}
+
+{% block content %}
+{% set total = stats.total or 0 %}
+{% set pending = stats.pending or 0 %}
+{% set under_review = stats.under_review or 0 %}
+{% set action_taken = stats.action_taken or 0 %}
+{% set delayed = stats.delayed or 0 %}
+{% set reopened = stats.reopened or 0 %}
+{% set closed = stats.closed or 0 %}
+{% set high_priority = stats.high_priority or 0 %}
+{% set in_progress = under_review + action_taken + delayed + reopened %}
+{% set sla_compliance = stats.sla_compliance or 0 %}
+{% set backlog_rate = (((pending + in_progress) / total * 100) if total > 0 else 0)|round(1) %}
+{% set top_services = top_services or [] %}
+{% set active_departments = (dept_stats | selectattr('total', 'gt', 0) | list | length) %}
+{% set ranked_departments = dept_stats | sort(attribute='score', reverse=true) %}
+
+<section class="py-5 dashboard-shell mobile-data-page">
+    <div class="container">
+        <nav aria-label="breadcrumb" class="gov-breadcrumb mb-4" data-reveal>
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}">Home</a></li>
+                <li class="breadcrumb-item active">Public Dashboard</li>
+            </ol>
+        </nav>
+
+        <div class="dashboard-hero p-4 p-md-5 mb-4" data-reveal>
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-8">
+                    <div class="dashboard-pill mb-3">
+                        <i class="bi bi-graph-up-arrow me-2" aria-hidden="true"></i>Public Transparency Dashboard
+                    </div>
+                    <h2 class="fw-bold mb-3">Live Municipal Accountability Analytics</h2>
+                    <p class="text-muted mb-3">Explore complaint volume, SLA performance, and department outcomes through near real-time public data.</p>
+                    <div class="dashboard-pills d-flex flex-wrap gap-2">
+                        <span class="dashboard-mini-pill"><i class="bi bi-building me-1" aria-hidden="true"></i>{{ dept_stats|length }} departments listed</span>
+                        <span class="dashboard-mini-pill" id="activeDepartmentsPill"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ active_departments }} active departments</span>
+                        <span class="dashboard-mini-pill"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>Anonymous tracking enabled</span>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="dashboard-actions p-3 p-md-4">
+                        <span class="dashboard-live"><i class="bi bi-circle-fill text-success me-2" style="font-size:0.55rem" aria-hidden="true"></i>Live data feed</span>
+                        <label for="exportMonth" class="form-label small fw-semibold mt-3 mb-1">Export month</label>
+                        <input type="month" id="exportMonth" class="form-control form-control-sm mb-2">
+                        <a href="{{ url_for('public.export_monthly_csv') }}" id="exportCsvBtn" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                            <i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>Export Monthly CSV
+                        </a>
+                        <a href="{{ url_for('public.geo_heatmap') }}" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-geo-alt me-1" aria-hidden="true"></i>Open Geo Heatmap
+                        </a>
+                        <p class="dashboard-updated small mb-0 mt-3" id="dashboardUpdatedAt">Loading data…</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card dashboard-filter-card mb-4" data-reveal>
+            <div class="card-header bg-white d-md-none py-2 border-0">
+                <button class="btn btn-outline-primary btn-sm w-100" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#dashboardFiltersPanel" aria-expanded="false" aria-controls="dashboardFiltersPanel">
+                    <i class="bi bi-funnel me-1" aria-hidden="true"></i>Filters
+                </button>
+            </div>
+            <div id="dashboardFiltersPanel" class="collapse d-md-block">
+            <div class="card-body p-3 p-md-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label for="dashboardDeptFilter" class="form-label small fw-semibold mb-1">Department</label>
+                        <select id="dashboardDeptFilter" class="form-select form-select-sm">
+                            <option value="">All Departments</option>
+                            {% for dept in dept_stats|sort(attribute='name') %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label for="dashboardStatusFilter" class="form-label small fw-semibold mb-1">Status</label>
+                        <select id="dashboardStatusFilter" class="form-select form-select-sm">
+                            <option value="">All Statuses</option>
+                            {% for status in status_options %}
+                            <option value="{{ status }}">{{ status }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-2">
+                        <label for="dashboardFromMonth" class="form-label small fw-semibold mb-1">From Month</label>
+                        <input type="month" id="dashboardFromMonth" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-2">
+                        <label for="dashboardToMonth" class="form-label small fw-semibold mb-1">To Month</label>
+                        <input type="month" id="dashboardToMonth" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-2 d-flex flex-wrap gap-2 justify-content-lg-end align-items-stretch dashboard-filter-actions">
+                        <button type="button" class="btn btn-primary btn-sm" id="dashboardApplyBtn">
+                            <i class="bi bi-funnel me-1" aria-hidden="true"></i>Apply
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="dashboardResetBtn">
+                            <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>Reset
+                        </button>
+                    </div>
+                </div>
+                <div id="dashboardFilterError" class="small text-danger mt-2 d-none"></div>
+            </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-sm-6 col-xl-2" data-reveal>
+                <div class="metric-card metric-card-left h-100">
+                    <div class="metric-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></div>
+                    <p class="metric-label mb-1">Total</p>
+                    <h4 id="metricTotal" class="metric-value mb-1 counter-value" data-count="{{ total }}" data-decimals="0">{{ total }}</h4>
+                    <small class="text-muted">Complaints recorded</small>
+                </div>
+            </div>
+            <div class="col-6 col-sm-6 col-xl-2" data-reveal>
+                <div class="metric-card metric-card-left h-100">
+                    <div class="metric-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div>
+                    <p class="metric-label mb-1">Pending</p>
+                    <h4 id="metricPending" class="metric-value mb-1 counter-value" data-count="{{ pending }}" data-decimals="0">{{ pending }}</h4>
+                    <small class="text-muted">Waiting initial review</small>
+                </div>
+            </div>
+            <div class="col-6 col-sm-6 col-xl-2" data-reveal>
+                <div class="metric-card metric-card-left h-100">
+                    <div class="metric-icon bg-info bg-opacity-10 text-info"><i class="bi bi-list-check" aria-hidden="true"></i></div>
+                    <p class="metric-label mb-1">In Progress</p>
+                    <h4 id="metricInProgress" class="metric-value mb-1 counter-value" data-count="{{ in_progress }}" data-decimals="0">{{ in_progress }}</h4>
+                    <small class="text-muted">Active workflow items</small>
+                </div>
+            </div>
+            <div class="col-6 col-sm-6 col-xl-2" data-reveal>
+                <div class="metric-card metric-card-left h-100">
+                    <div class="metric-icon bg-success bg-opacity-10 text-success"><i class="bi bi-check-circle" aria-hidden="true"></i></div>
+                    <p class="metric-label mb-1">Resolved</p>
+                    <h4 id="metricResolved" class="metric-value mb-1 counter-value" data-count="{{ closed }}" data-decimals="0">{{ closed }}</h4>
+                    <small class="text-muted">Closed complaints</small>
+                </div>
+            </div>
+            <div class="col-6 col-sm-6 col-xl-2" data-reveal>
+                <div class="metric-card metric-card-left h-100">
+                    <div class="metric-icon bg-danger bg-opacity-10 text-danger"><i class="bi bi-lightning-charge" aria-hidden="true"></i></div>
+                    <p class="metric-label mb-1">High Priority</p>
+                    <h4 id="metricHighPriority" class="metric-value mb-1 counter-value" data-count="{{ high_priority }}" data-decimals="0">{{ high_priority }}</h4>
+                    <small class="text-muted">Marked urgent</small>
+                </div>
+            </div>
+            <div class="col-6 col-sm-6 col-xl-2" data-reveal>
+                <div class="metric-card metric-card-left h-100">
+                    <div class="metric-icon bg-success bg-opacity-10 text-success"><i class="bi bi-speedometer2" aria-hidden="true"></i></div>
+                    <p class="metric-label mb-1">SLA Compliance</p>
+                    <h4 id="metricSlaCompliance" class="metric-value mb-1 counter-value" data-count="{{ sla_compliance }}" data-decimals="2">{{ '%.2f'|format(sla_compliance) }}</h4>
+                    <small class="text-muted">% closed within SLA</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-5">
+            <div class="col-6 col-lg-4" data-reveal>
+                <div class="dashboard-insight dashboard-insight-danger h-100">
+                    <div class="dashboard-insight-title"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>Delay Pressure</div>
+                    <div class="dashboard-insight-value" id="insightDelayedValue">{{ delayed }} delayed complaints</div>
+                    <div class="small text-muted">Cases that have exceeded SLA timeline.</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4" data-reveal>
+                <div class="dashboard-insight dashboard-insight-neutral h-100">
+                    <div class="dashboard-insight-title"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Citizen Reopens</div>
+                    <div class="dashboard-insight-value" id="insightReopenedValue">{{ reopened }} reopened complaints</div>
+                    <div class="small text-muted">Complaints reopened after closure for additional action.</div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4" data-reveal>
+                <div class="dashboard-insight dashboard-insight-success h-100">
+                    <div class="dashboard-insight-title"><i class="bi bi-percent me-2" aria-hidden="true"></i>Backlog Pressure</div>
+                    <div class="dashboard-insight-value" id="insightBacklogValue">{{ backlog_rate }}%</div>
+                    <div class="small text-muted">Share of total complaints still not closed.</div>
+                </div>
+            </div>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-lg-4" data-reveal>
+                <div class="dashboard-insight dashboard-insight-warning h-100">
+                    <div class="dashboard-insight-title"><i class="bi bi-emoji-angry me-2" aria-hidden="true"></i>Sentiment Snapshot</div>
+                    <div class="dashboard-insight-row">
+                        <span class="small text-muted">Negative</span>
+                        <strong id="sentimentNegative">{{ '%.2f'|format(stats.negative_percent or 0) }}%</strong>
+                    </div>
+                    <div class="dashboard-insight-row">
+                        <span class="small text-muted">Urgent</span>
+                        <strong id="sentimentUrgent">{{ '%.2f'|format(stats.urgent_percent or 0) }}%</strong>
+                    </div>
+                    <div class="dashboard-insight-row">
+                        <span class="small text-muted">Reopened</span>
+                        <strong id="sentimentRepeated">{{ '%.2f'|format(stats.repeated_percent or 0) }}%</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4" data-reveal>
+                <div class="dashboard-insight dashboard-insight-success h-100">
+                    <div class="dashboard-insight-title"><i class="bi bi-graph-up-arrow me-2" aria-hidden="true"></i>Quality Signals</div>
+                    <div class="dashboard-insight-row">
+                        <span class="small text-muted">Avg Resolution</span>
+                        <strong id="qualityAvgResolution">{{ stats.avg_resolution_hours or 0 }} hrs</strong>
+                    </div>
+                    <div class="dashboard-insight-row">
+                        <span class="small text-muted">Feedback Rate</span>
+                        <strong id="qualityFeedbackRate">{{ '%.2f'|format(stats.feedback_rate or 0) }}%</strong>
+                    </div>
+                    <div class="dashboard-insight-row">
+                        <span class="small text-muted">Resolution Rate</span>
+                        <strong>{{ '%.2f'|format(stats.resolution_rate or 0) }}%</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4" data-reveal>
+                <div class="dashboard-insight dashboard-insight-neutral h-100">
+                    <div class="dashboard-insight-title"><i class="bi bi-trophy me-2" aria-hidden="true"></i>Top Services</div>
+                    <div id="topServicesPanel">
+                        {% for item in top_services %}
+                        <div class="dashboard-insight-row">
+                            <span class="small text-muted text-truncate d-inline-block" style="max-width: 190px;">{{ item.name }}</span>
+                            <strong>{{ item.count }}</strong>
+                        </div>
+                        {% endfor %}
+                        {% if not top_services %}
+                        <p class="small text-muted mb-0">No service activity yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-8" data-reveal>
+                <div class="chart-card h-100">
+                    <div class="card-header bg-transparent border-0 py-3 px-4"><h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary" aria-hidden="true"></i>Monthly Complaint Trends</h5></div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="chart-canvas-wrap">
+                            <canvas id="monthlyChart"></canvas>
+                            <div class="chart-loading" id="monthlyChartState"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading trend data</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4" data-reveal>
+                <div class="chart-card h-100">
+                    <div class="card-header bg-transparent border-0 py-3 px-4"><h5 class="mb-0"><i class="bi bi-pie-chart me-2 text-primary" aria-hidden="true"></i>Status Breakdown</h5></div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="chart-canvas-wrap">
+                            <canvas id="statusChart"></canvas>
+                            <div class="chart-loading" id="statusChartState"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading status data</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-lg-8" data-reveal>
+                <div class="chart-card h-100">
+                    <div class="card-header bg-transparent border-0 py-3 px-4"><h5 class="mb-0"><i class="bi bi-building me-2 text-primary" aria-hidden="true"></i>Department Workload Comparison</h5></div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="chart-canvas-wrap chart-canvas-wrap-short">
+                            <canvas id="deptChart"></canvas>
+                            <div class="chart-loading" id="deptChartState"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading department data</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4" data-reveal>
+                <div class="chart-card mb-4">
+                    <div class="card-header bg-transparent border-0 py-3 px-4"><h6 class="mb-0"><i class="bi bi-stopwatch me-2 text-primary" aria-hidden="true"></i>Avg Resolution Time (hrs)</h6></div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="chart-canvas-wrap chart-canvas-wrap-short">
+                            <canvas id="resolutionTimeChart"></canvas>
+                            <div class="chart-loading" id="resolutionTimeChartState"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading resolution time</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="card-header bg-transparent border-0 py-3 px-4"><h6 class="mb-0"><i class="bi bi-shield-check me-2 text-primary" aria-hidden="true"></i>SLA Compliance Trend</h6></div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="chart-canvas-wrap chart-canvas-wrap-short">
+                            <canvas id="slaComplianceChart"></canvas>
+                            <div class="chart-loading" id="slaComplianceChartState"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading SLA trend</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6" data-reveal>
+                <div class="dashboard-insight dashboard-insight-success mb-0">
+                    <div class="dashboard-insight-title"><i class="bi bi-trophy me-2" aria-hidden="true"></i>Best Department</div>
+                    <div class="dashboard-insight-value" id="bestDepartmentName">{{ best_department.name if best_department else 'N/A' }}</div>
+                    <div class="small text-muted">Score <span id="bestDepartmentScore">{{ best_department.score if best_department else 'N/A' }}</span></div>
+                </div>
+            </div>
+            <div class="col-md-6" data-reveal>
+                <div class="dashboard-insight dashboard-insight-warning mb-0">
+                    <div class="dashboard-insight-title"><i class="bi bi-graph-down-arrow me-2" aria-hidden="true"></i>Most Delayed</div>
+                    <div class="dashboard-insight-value" id="worstDepartmentName">{{ worst_department.name if worst_department else 'N/A' }}</div>
+                    <div class="small text-muted">Score <span id="worstDepartmentScore">{{ worst_department.score if worst_department else 'N/A' }}</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card mb-5" data-reveal>
+            <div class="card-header bg-transparent border-0 py-3 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-steps me-2 text-primary" aria-hidden="true"></i>Department Scoreboard</h5>
+                <span class="small text-muted">Sorted by transparency score</span>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <div class="row g-3" id="deptScoreboardGrid">
+                    {% for dept in ranked_departments %}
+                    <div class="col-md-6 col-xl-4">
+                        <div class="dept-rank-card h-100">
+                            <div class="dept-rank-head mb-3">
+                                <div>
+                                    <h6 class="fw-semibold mb-1">{{ dept.name }}</h6>
+                                    <p class="small text-muted mb-0">{{ dept.total }} total complaints</p>
+                                </div>
+                                <span class="dept-rank-badge">#{{ loop.index }}</span>
+                            </div>
+                            <div class="row g-2 text-center mb-3">
+                                <div class="col-4"><div class="dept-rank-stat"><div class="fw-bold">{{ dept.pending }}</div><small class="text-muted">Pending</small></div></div>
+                                <div class="col-4"><div class="dept-rank-stat dept-rank-stat-success"><div class="fw-bold text-success">{{ dept.closed }}</div><small class="text-muted">Closed</small></div></div>
+                                <div class="col-4"><div class="dept-rank-stat dept-rank-stat-danger"><div class="fw-bold text-danger">{{ dept.delayed }}</div><small class="text-muted">Delayed</small></div></div>
+                            </div>
+                            <div class="d-flex justify-content-between small mb-1"><span>Resolution Rate</span><span class="fw-semibold">{{ dept.resolution_rate }}%</span></div>
+                            <div class="progress" style="height: 6px;"><div class="progress-bar bg-success" style="width: {{ dept.resolution_rate }}%"></div></div>
+                            <div class="d-flex justify-content-between small mt-2"><span class="text-muted">Delay penalty {{ dept.delay_penalty }}%</span><span class="fw-semibold">Score {{ dept.score }}</span></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card" data-reveal>
+            <div class="card-header bg-transparent border-0 py-3 px-4"><h5 class="mb-0"><i class="bi bi-clock-history me-2 text-primary" aria-hidden="true"></i>Recent Activity (Last 30 Days)</h5></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 table-sm mobile-data-table">
+                        <caption class="visually-hidden">Recent public complaint activity from the last 30 days</caption>
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Tracking ID</th>
+                                <th scope="col">Department</th>
+                                <th scope="col" class="d-none d-md-table-cell">Service</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Submitted</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentActivityBody">
+                            {% if recent_complaints %}
+                                {% for complaint in recent_complaints %}
+                                <tr>
+                                    <td data-label="Tracking ID"><code>{{ complaint.tracking_id }}</code></td>
+                                    <td data-label="Department">{{ complaint.department.name }}</td>
+                                    <td data-label="Service" class="d-none d-md-table-cell">{{ complaint.service.name }}</td>
+                                    <td data-label="Status"><span class="badge-status {{ complaint.status|status_badge }}">{{ complaint.status }}</span></td>
+                                    <td data-label="Submitted">
+                                        {{ complaint.submitted_at|format_datetime('%d %b %Y, %I:%M %p') if complaint.submitted_at else 'N/A' }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr class="table-empty-state"><td colspan="5" class="text-center text-muted py-4">No recent activity for current selection.</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/chart.js/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard_public.js') }}"></script>
+{% endblock %}

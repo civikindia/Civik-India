@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Departments{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-light">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="gov-breadcrumb mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Manage Departments</li>
+            </ol>
+        </nav>
+        
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h4 fw-bold mb-0"><i class="bi bi-building me-2"></i>Manage Departments</h1>
+            <button class="btn btn-gov-primary" data-bs-toggle="modal" data-bs-target="#createDeptModal">
+                <i class="bi bi-plus-lg me-2"></i>Add Department
+            </button>
+        </div>
+        
+        <!-- Departments Grid -->
+        <div class="row g-4">
+            {% for dept in departments %}
+            <div class="col-md-6 col-lg-4">
+                <div class="mibsp-card h-100 department-card">
+                    <div class="card-header bg-white py-3">
+                        <h2 class="h5 mb-0">{{ dept.name }}</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">{{ dept.description or 'No description' }}</p>
+                        
+                        <dl class="department-stats">
+                            <div><dt>Services</dt><dd>{{ dept.services.count() }}</dd></div>
+                            <div><dt>Officers</dt><dd>{{ dept.users.count() }}</dd></div>
+                            <div><dt>Complaints</dt><dd>{{ dept.complaints.count() }}</dd></div>
+                        </dl>
+                        
+                        <h6 class="fw-semibold mb-2">Services</h6>
+                        <ul class="list-group list-group-flush">
+                            {% for service in dept.services %}
+                            <li class="list-group-item px-0 py-2">
+                                <span><i class="bi bi-clipboard-check text-muted me-2"></i>{{ service.name }}</span>
+                                <span class="badge-status badge-assigned">SLA {{ service.sla_days }}d</span>
+                            </li>
+                            {% else %}
+                            <li class="list-group-item px-0 text-muted">
+                                <em>No services added yet.</em>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="card-footer bg-white">
+                        <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal" 
+                                data-bs-target="#addServiceModal{{ dept.id }}">
+                            <i class="bi bi-plus-lg me-2"></i>Add Service
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center py-5">
+                <div class="empty-state"><div class="empty-state-icon"><i class="bi bi-building"></i></div><div class="empty-state-title">No departments found</div></div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Create Department Modal -->
+<div class="modal fade" id="createDeptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin.create_department') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Department</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close add department dialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="newDepartmentName">Department Name</label>
+                        <input type="text" class="form-control" id="newDepartmentName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="newDepartmentDescription">Description</label>
+                        <textarea class="form-control" id="newDepartmentDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="newDepartmentSlaDays">SLA Days</label>
+                        <input type="number" class="form-control" id="newDepartmentSlaDays" name="sla_days" value="7" min="1" max="60" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Service Modals -->
+{% for dept in departments %}
+<div class="modal fade" id="addServiceModal{{ dept.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin.add_service', dept_id=dept.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Service - {{ dept.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close add service dialog for {{ dept.name }}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="serviceName{{ dept.id }}">Service Name</label>
+                        <input type="text" class="form-control" id="serviceName{{ dept.id }}" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="serviceDescription{{ dept.id }}">Description</label>
+                        <textarea class="form-control" id="serviceDescription{{ dept.id }}" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Service</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

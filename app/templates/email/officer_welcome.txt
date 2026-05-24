@@ -1,0 +1,13 @@
+Government of India
+CivikIndia Officer Account
+CivikIndia Staff Portal
+
+Your CivikIndia staff account has been created.
+
+Username: {{ user.username }}
+Role: {{ user.role }}
+Temporary password: {{ temporary_password or 'Set by administrator' }}
+
+Login: {{ login_url }}
+
+Please change your password after first login and enroll 2FA where required.

@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}Officer Dashboard{% endblock %}
+
+{% block content %}
+<div class="py-4 bg-light mobile-data-page officer-dashboard-v2 dashboard-shell">
+    <div class="container">
+        <div class="dashboard-page-header mb-4">
+            <div>
+                <h1><i class="bi bi-speedometer2"></i>Officer Dashboard</h1>
+                <p>Welcome back, {{ session.username }}</p>
+            </div>
+            <span class="badge-status badge-role-officer"><i class="bi bi-person-badge"></i>{{ session.role|replace('_', ' ')|title }}</span>
+        </div>
+
+        <div class="today-actions mb-3">
+            <span><strong>Today's Actions</strong></span>
+            <span>You have {{ stats.delayed }} complaints due for urgent review and {{ stats.high_priority }} high-priority items.</span>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3"><div class="kpi-card assigned"><div class="kpi-label">Assigned</div><div class="kpi-value counter-value" data-count="{{ stats.assigned }}">{{ stats.assigned }}</div><div class="kpi-sub">Total workload</div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card pending"><div class="kpi-label">Pending</div><div class="kpi-value counter-value" data-count="{{ stats.pending }}">{{ stats.pending }}</div><div class="kpi-sub">Awaiting first action</div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card total"><div class="kpi-label">In Progress</div><div class="kpi-value counter-value" data-count="{{ stats.under_review }}">{{ stats.under_review }}</div><div class="kpi-sub">Under review</div></div></div>
+            <div class="col-6 col-md-3"><div class="kpi-card resolved"><div class="kpi-label">Closed</div><div class="kpi-value counter-value" data-count="{{ stats.closed }}">{{ stats.closed }}</div><div class="kpi-sub">Completed</div></div></div>
+        </div>
+
+        <div class="stat-chips-row">
+            <span class="stat-chip danger"><i class="bi bi-exclamation-triangle"></i>Delayed: {{ stats.delayed }} exceeded SLA</span>
+            <span class="stat-chip warning"><i class="bi bi-flag-fill"></i>High Priority: {{ stats.high_priority }} urgent</span>
+            <span class="stat-chip success" style="background-color: #d1e7dd; color: #0f5132; border-color: #badbcc;"><i class="bi bi-shield-check"></i>SLA Compliance: {{ stats.sla_compliance }}%</span>
+        </div>
+
+        {#- Priority Queue: only show active High or Urgent priority complaints -#}
+        {% if priority_complaints %}
+        <div class="priority-queue mibsp-card mb-4" data-reveal>
+            <div class="table-card-header"><h2><i class="bi bi-flag-fill"></i>Priority Queue</h2></div>
+            <div class="list-group list-group-flush">
+                {% for complaint in priority_complaints[:5] %}
+                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-3" href="{{ url_for('officer.complaint_detail', tracking_id=complaint.tracking_id) }}">
+                    <span>
+                        <div class="d-flex align-items-center gap-2">
+                            {% set sla_status = complaint.get_sla_status() %}
+                            {% if sla_status == 'overdue' %}
+                                <span class="sla-indicator-ring sla-ring-red" title="SLA Breached" aria-label="SLA Breached"></span>
+                            {% elif sla_status == 'warning' %}
+                                <span class="sla-indicator-ring sla-ring-orange" title="SLA Nearing Breach: {{ complaint.get_sla_time_remaining() }}" aria-label="SLA Nearing Breach"></span>
+                            {% elif sla_status == 'safe' %}
+                                <span class="sla-indicator-ring sla-ring-green" title="Within SLA: {{ complaint.get_sla_time_remaining() }}" aria-label="Within SLA"></span>
+                            {% endif %}
+                            <code class="tracking-id">{{ complaint.tracking_id }}</code>
+                        </div>
+                        <small class="d-block text-muted mt-1">{{ complaint.department.name }} · {{ complaint.get_sla_time_remaining() }}</small>
+                    </span>
+                    <span class="badge-status {{ 'badge-priority-critical' if complaint.priority == 'Urgent' else 'badge-priority-high' }}">{{ complaint.priority }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-8" data-reveal>
+                <div class="mibsp-card">
+                    <div class="table-card-header">
+                        <h2><i class="bi bi-clipboard-check"></i>My Assigned Complaints</h2>
+                        <span class="badge-status badge-assigned">{{ stats.active }} active</span>
+                    </div>
+                    {% if assigned_complaints %}
+                    <div class="table-responsive">
+                        <table class="mibsp-table mobile-data-table">
+                            <caption class="visually-hidden">Complaints assigned to the current officer</caption>
+                            <thead>
+                                <tr><th scope="col">Tracking ID</th><th scope="col">Department</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col">SLA</th><th scope="col">Submitted</th><th scope="col">View</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for complaint in assigned_complaints %}
+                                <tr>
+                                    <td data-label="Tracking ID"><code class="tracking-id">{{ complaint.tracking_id }}</code></td>
+                                    <td data-label="Department">{{ complaint.department.name }}</td>
+                                    <td data-label="Priority">
+                                        <span class="badge-status {% if complaint.priority == 'Urgent' %}badge-priority-critical{% elif complaint.priority == 'High' %}badge-priority-high{% elif complaint.priority == 'Low' %}badge-priority-low{% else %}badge-priority-normal{% endif %}">
+                                            {{ complaint.priority }}
+                                        </span>
+                                    </td>
+                                    <td data-label="Status"><span class="badge-status {{ complaint.status|status_badge }}">{{ complaint.status }}</span></td>
+                                    <td data-label="SLA">
+                                        {% set sla_status = complaint.get_sla_status() %}
+                                        {% set remaining_text = complaint.get_sla_time_remaining() %}
+                                        <div class="sla-indicator-container" title="{{ remaining_text }}">
+                                            {% if sla_status == 'overdue' %}
+                                                <span class="sla-indicator-ring sla-ring-red" aria-label="SLA Breached"></span>
+                                                <span class="badge-status badge-delayed">Breached</span>
+                                            {% elif sla_status == 'warning' %}
+                                                <span class="sla-indicator-ring sla-ring-orange" aria-label="SLA Nearing Breach"></span>
+                                                <span class="badge-status badge-warning" style="background-color: #fff3cd; color: #664d03; border-color: #ffecb5;">{{ remaining_text }}</span>
+                                            {% elif sla_status == 'safe' %}
+                                                <span class="sla-indicator-ring sla-ring-green" aria-label="Within SLA"></span>
+                                                <span class="badge-status badge-resolved">{{ remaining_text }}</span>
+                                            {% else %}
+                                                <span class="sla-indicator-ring sla-ring-inactive" aria-label="SLA Inactive"></span>
+                                                <span class="badge-status badge-secondary">{{ remaining_text }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td data-label="Submitted">{{ complaint.submitted_at|format_datetime('%d %b %Y') if complaint.submitted_at else 'N/A' }}</td>
+                                    <td data-label="View"><a href="{{ url_for('officer.complaint_detail', tracking_id=complaint.tracking_id) }}" class="btn-icon" title="View Complaint"><i class="bi bi-eye"></i><span class="visually-hidden">complaint {{ complaint.tracking_id }}</span></a></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if complaints_pagination and complaints_pagination.pages > 1 %}
+                    <div class="pagination-row d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 border-top">
+                        <div class="text-muted small">
+                            Showing {{ complaints_pagination.first }}-{{ complaints_pagination.last }} of {{ complaints_pagination.total }}
+                        </div>
+                        <nav aria-label="Assigned complaints pagination">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item {% if not complaints_pagination.has_prev %}disabled{% endif %}">
+                                    <a class="page-link" href="{{ url_for('officer.dashboard', page=complaints_pagination.prev_num) if complaints_pagination.has_prev else '#' }}">Previous</a>
+                                </li>
+                                {% for page_num in complaints_pagination.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1) %}
+                                    {% if page_num %}
+                                    <li class="page-item {% if page_num == complaints_pagination.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('officer.dashboard', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    {% endif %}
+                                {% endfor %}
+                                <li class="page-item {% if not complaints_pagination.has_next %}disabled{% endif %}">
+                                    <a class="page-link" href="{{ url_for('officer.dashboard', page=complaints_pagination.next_num) if complaints_pagination.has_next else '#' }}">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="empty-state"><div class="empty-state-icon"><i class="bi bi-clipboard-check"></i></div><div class="empty-state-title">No complaints assigned</div><p class="empty-state-message">New department complaints will appear here after assignment.</p></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-lg-4" data-reveal>
+                <div class="mibsp-card">
+                    <div class="table-card-header"><h2><i class="bi bi-inbox"></i>Unassigned</h2></div>
+                    {% if unassigned_complaints %}
+                    <div class="list-group list-group-flush mobile-compact-list">
+                        {% for complaint in unassigned_complaints %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start gap-3">
+                                <div><code class="tracking-id">{{ complaint.tracking_id }}</code><p class="mb-0 small text-muted">{{ complaint.department.name }}</p><small class="text-muted">{{ complaint.submitted_at|format_datetime }}</small></div>
+                                <form method="POST" action="{{ url_for('officer.assign_to_me', tracking_id=complaint.tracking_id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-gov-secondary btn-sm"><i class="bi bi-hand-index-thumb me-1"></i>Take</button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state py-4"><div class="empty-state-title">No unassigned complaints</div></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // ── T1-D: Live officer KPI refresh every 60 seconds ───────────────────────
+    const officerKpiMap = {
+        'total_assigned': '.kpi-card.assigned .kpi-value',
+        'pending':        '.kpi-card.pending .kpi-value',
+        'under_review':   '.kpi-card.total .kpi-value',
+        'closed':         '.kpi-card.resolved .kpi-value',
+    };
+
+    let lastRefresh = Date.now();
+    let indicator = null;
+    const headerP = document.querySelector('.dashboard-page-header p');
+    if (headerP) {
+        indicator = document.createElement('small');
+        indicator.id = 'officerKpiIndicator';
+        indicator.className = 'text-muted ms-2';
+        indicator.setAttribute('aria-live', 'polite');
+        headerP.appendChild(indicator);
+    }
+
+    function updateLabel() {
+        if (!indicator) return;
+        const secs = Math.round((Date.now() - lastRefresh) / 1000);
+        indicator.textContent = secs < 5 ? ' · KPIs just updated' : ` · KPIs updated ${secs}s ago`;
+    }
+
+    function refreshOfficerKPIs() {
+        fetch('/officer/api/my-stats')
+            .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+            .then(data => {
+                Object.entries(officerKpiMap).forEach(([key, selector]) => {
+                    const el = document.querySelector(selector);
+                    if (el && data[key] !== undefined) el.textContent = data[key];
+                });
+                // Update stat chips text nodes
+                const chips = document.querySelectorAll('.stat-chip');
+                chips.forEach(chip => {
+                    const t = chip.textContent;
+                    if (t.includes('Delayed') && data.delayed !== undefined) {
+                        chip.innerHTML = chip.innerHTML.replace(/Delayed:\s*\d+/, `Delayed: ${data.delayed}`);
+                    }
+                    if (t.includes('High Priority') && data.high_priority !== undefined) {
+                        chip.innerHTML = chip.innerHTML.replace(/High Priority:\s*\d+/, `High Priority: ${data.high_priority}`);
+                    }
+                    if (t.includes('SLA') && data.sla_compliance !== undefined) {
+                        chip.innerHTML = chip.innerHTML.replace(/SLA Compliance:\s*[\d.]+%/, `SLA Compliance: ${data.sla_compliance}%`);
+                    }
+                });
+                lastRefresh = Date.now();
+                updateLabel();
+            })
+            .catch(() => {});
+    }
+
+    setInterval(updateLabel, 5000);
+    setInterval(refreshOfficerKPIs, 60000);
+});
+</script>
+{% endblock %}

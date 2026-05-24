@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<body style="font-family: Arial, sans-serif; color: #1f2933; line-height: 1.5; margin: 0; padding: 0;">
+  <div style="border-top: 6px solid #ff9933; border-bottom: 6px solid #138808; padding: 20px;">
+    <p style="margin: 0; font-size: 13px; color: #52616b;">Government of India | CivikIndia SLA Escalation Notice</p>
+    <h1 style="margin: 4px 0 12px; font-size: 20px;">SLA Breach Escalated to L{{ escalation_level }}</h1>
+    <p>Complaint <strong>{{ complaint.tracking_id }}</strong> requires immediate review.</p>
+    <p>Department: {{ complaint.department.name if complaint.department else 'N/A' }}</p>
+    <p>Service: {{ complaint.service.name if complaint.service else 'N/A' }}</p>
+    <p>SLA Due: {{ complaint.sla_due_at|format_datetime if complaint.sla_due_at else 'N/A' }}</p>
+    <p><a href="{{ track_url }}" style="color: #0f5e3d;">Open complaint</a></p>
+  </div>
+</body>
+</html>

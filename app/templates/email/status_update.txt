@@ -1,0 +1,9 @@
+Government of India
+CivikIndia Status Update
+
+Complaint {{ complaint.tracking_id if complaint else '' }} is now {{ new_status }}.
+
+Department: {{ complaint.department.name if complaint and complaint.department else 'N/A' }}
+Service: {{ complaint.service.name if complaint and complaint.service else 'N/A' }}
+
+Track status: {{ track_url }}

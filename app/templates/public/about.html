@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}About{% endblock %}
+
+{% block content %}
+<section class="py-5 bg-light">
+    <div class="container">
+        <nav aria-label="breadcrumb" class="gov-breadcrumb mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}">Home</a></li>
+                <li class="breadcrumb-item active">About</li>
+            </ol>
+        </nav>
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="mibsp-card">
+                    <div class="static-page-hero page-hero-card">
+                        <div class="page-hero-icon" aria-hidden="true"><i class="bi bi-shield-check"></i></div>
+                        <h1 class="h3 fw-bold mb-2">About CivikIndia</h1>
+                        <p class="mb-0">A secure public grievance and municipal transparency portal.</p>
+                    </div>
+                    <div class="card-body p-4 p-md-5">
+                        <div class="static-page-content">
+                        <p class="text-muted mb-4">
+                            CivikIndia is a secure civic grievance platform that lets citizens across India report corruption, service failures, and misconduct without creating an account or revealing their identity.
+                        </p>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="p-3 bg-light rounded-3 h-100">
+                                    <i class="bi bi-incognito text-success fs-3"></i>
+                                    <h6 class="fw-semibold mb-2">Anonymous by Design</h6>
+                                    <p class="small text-muted mb-0">Citizens can submit complaints without login or registration.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 bg-light rounded-3 h-100">
+                                    <i class="bi bi-eye text-success fs-3"></i>
+                                    <h6 class="fw-semibold mb-2">Transparent Tracking</h6>
+                                    <p class="small text-muted mb-0">Each complaint receives a tracking ID for status visibility.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 bg-light rounded-3 h-100">
+                                    <i class="bi bi-shield-check text-success fs-3"></i>
+                                    <h6 class="fw-semibold mb-2">Government Backed</h6>
+                                    <p class="small text-muted mb-0">Role-based review with audit trails for administrative actions.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <h2 class="h5 fw-semibold mb-3">Core Objectives</h2>
+                        <ul class="text-muted mb-0">
+                            <li>Reduce barriers to reporting misconduct.</li>
+                            <li>Improve redressal speed across departments.</li>
+                            <li>Provide measurable public transparency.</li>
+                        </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

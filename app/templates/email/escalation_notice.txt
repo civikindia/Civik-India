@@ -1,0 +1,10 @@
+Government of India
+CivikIndia SLA Escalation Notice
+
+Complaint {{ complaint.tracking_id }} has breached SLA and escalated to L{{ escalation_level }}.
+
+Department: {{ complaint.department.name if complaint.department else 'N/A' }}
+Service: {{ complaint.service.name if complaint.service else 'N/A' }}
+SLA Due: {{ complaint.sla_due_at|format_datetime if complaint.sla_due_at else 'N/A' }}
+
+Review: {{ track_url }}

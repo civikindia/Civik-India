@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Escalation Matrix{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-diagram-3 me-2"></i>Escalation Matrix</h1>
+            <p class="text-muted mb-0">Maintain department contacts for SLA breach escalation.</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="mibsp-card escalation-form-card">
+                <div class="card-header bg-white">
+                    <h2 class="h6 mb-0">Add Contact</h2>
+                </div>
+                <div class="card-body form-section">
+                    <form method="POST" action="{{ url_for('admin.create_escalation_contact') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <label class="form-label" for="escalationDepartment">Department</label>
+                            <select class="form-select" id="escalationDepartment" name="department_id" required>
+                                <option value="">Select department</option>
+                                {% for department in departments %}
+                                    <option value="{{ department.id }}">{{ department.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="escalationLevel">Level</label>
+                            <select class="form-select" id="escalationLevel" name="level" required>
+                                <option value="1">L1 - Assigned Officer</option>
+                                <option value="2">L2 - Department Head</option>
+                                <option value="3">L3 - District Authority</option>
+                                <option value="4">L4 - RTI/Lokpal Referral</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="escalationName">Name</label>
+                            <input class="form-control" id="escalationName" name="name" maxlength="120" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="escalationDesignation">Designation</label>
+                            <input class="form-control" id="escalationDesignation" name="designation" maxlength="120" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="escalationEmail">Email</label>
+                            <input type="email" class="form-control" id="escalationEmail" name="email" maxlength="120">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="escalationPhone">Phone</label>
+                            <input class="form-control" id="escalationPhone" name="phone" maxlength="20">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="escalationWhatsapp">WhatsApp</label>
+                            <input class="form-control" id="escalationWhatsapp" name="whatsapp_number" maxlength="20">
+                        </div>
+
+                        <button type="submit" class="btn btn-gov-primary w-100">
+                            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add Contact
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="mibsp-card">
+                <div class="card-header bg-white">
+                    <h2 class="h6 mb-0">Configured Contacts</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="mibsp-table align-middle mb-0">
+                        <caption class="visually-hidden">Configured SLA escalation contacts by department and level</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Department</th>
+                                <th scope="col">Level</th>
+                                <th scope="col">Contact</th>
+                                <th scope="col">Channels</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contact in contacts %}
+                                <tr>
+                                    <td data-label="Department">{{ contact.department.name if contact.department else '-' }}</td>
+                                    <td data-label="Level"><span class="badge-status escalation-level-{{ contact.level }}">L{{ contact.level }}</span></td>
+                                    <td data-label="Contact">
+                                        <div class="fw-semibold">{{ contact.name }}</div>
+                                        <small class="text-muted">{{ contact.designation }}</small>
+                                    </td>
+                                    <td data-label="Channels">
+                                        {% if contact.email %}<div><i class="bi bi-envelope me-1" aria-hidden="true"></i>{{ contact.email }}</div>{% endif %}
+                                        {% if contact.phone %}<div><i class="bi bi-telephone me-1" aria-hidden="true"></i>{{ contact.phone }}</div>{% endif %}
+                                        {% if contact.whatsapp_number %}<div><i class="bi bi-whatsapp me-1" aria-hidden="true"></i>{{ contact.whatsapp_number }}</div>{% endif %}
+                                    </td>
+                                    <td data-label="Status">
+                                        <span class="badge-status {{ 'badge-resolved' if contact.is_active else 'badge-delayed' }}">
+                                            {{ 'Active' if contact.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td data-label="Action">
+                                        <form method="POST" action="{{ url_for('admin.toggle_escalation_contact', contact_id=contact.id) }}" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn-icon" aria-label="{{ 'Deactivate' if contact.is_active else 'Activate' }} {{ contact.name }}">
+                                                <i class="bi bi-{{ 'toggle-on' if contact.is_active else 'toggle-off' }}" aria-hidden="true"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">No escalation contacts configured.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

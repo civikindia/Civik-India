@@ -1,0 +1,144 @@
+<header class="gov-header-v2" role="banner">
+    <div class="gov-identity-bar">
+        <div class="container d-flex align-items-center justify-content-between gap-3">
+            <div class="gov-identity-left">
+                <span class="gov-emblem" aria-hidden="true">IN</span>
+                <span>{{ _('Government of India') }}</span>
+                <span class="identity-separator" aria-hidden="true">|</span>
+                <span lang="hi">भारत सरकार</span>
+                <span class="identity-separator d-none d-md-inline" aria-hidden="true">|</span>
+                <span class="d-none d-md-inline" lang="hi">सत्यमेव जयते</span>
+                <span class="identity-separator d-none d-lg-inline" aria-hidden="true">|</span>
+                <span class="d-none d-lg-inline">{{ _('CivikIndia — Civic Accountability Platform') }}</span>
+                <span class="visually-hidden">{{ _('Anti-Corruption Helpline') }}: 1064</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="gov-accessibility-controls d-flex align-items-center gap-2 me-2" aria-label="Accessibility Controls">
+                    <button type="button" class="btn-identity font-scale-btn" data-scale="small" title="Decrease Font Size" aria-label="Decrease Font Size">A-</button>
+                    <button type="button" class="btn-identity btn-identity-reset font-scale-btn active" data-scale="medium" title="Normal Font Size" aria-label="Reset Font Size">A</button>
+                    <button type="button" class="btn-identity font-scale-btn" data-scale="large" title="Increase Font Size" aria-label="Increase Font Size">A+</button>
+                    <button type="button" class="btn-identity font-scale-btn" data-scale="xlarge" title="Extra Large Font Size" aria-label="Extra Large Font Size">A++</button>
+                    <span class="identity-separator" aria-hidden="true">|</span>
+                    <button type="button" class="btn-identity contrast-toggle-btn" id="contrastToggleBtn" title="Toggle Contrast Mode" aria-label="Toggle Contrast Mode">
+                        <i class="bi bi-circle-half"></i>
+                    </button>
+                </div>
+                
+                <div class="gov-language-pills" aria-label="{{ _('Language selection') }}">
+                    {% for code, language in supported_languages.items() %}
+                        {% if code in ['en', 'hi'] %}
+                        <a class="{% if current_locale == code %}active{% endif %}" href="{{ url_for('set_language', locale=code, next=request.full_path) }}" lang="{{ code }}">
+                            {{ 'EN' if code == 'en' else '&#2361;&#2367;'|safe }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="portal-header">
+        <div class="container">
+            <div class="portal-header-inner">
+                {% if session.user_id %}
+                    {% if session.role == 'admin' %}
+                        {% set brand_href = url_for('admin.dashboard') %}
+                    {% else %}
+                        {% set brand_href = url_for('officer.dashboard') %}
+                    {% endif %}
+                {% else %}
+                    {% set brand_href = url_for('public.index') %}
+                {% endif %}
+                <a class="portal-brand" href="{{ brand_href }}" aria-label="{{ _('CivikIndia home') }}">
+                    <span class="portal-shield" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
+                    <span class="portal-copy">
+                        <span class="portal-title">CivikIndia</span>
+                        <span class="portal-title-hi" lang="hi">{{ _('सिविकइंडिया — नागरिक शिकायत एवं जवाबदेही पोर्टल') }}</span>
+                        <span class="portal-subtitle">CivikIndia | Report. Track. Demand Accountability.</span>
+                    </span>
+                </a>
+
+                <div class="portal-helplines d-none d-xl-flex" aria-label="{{ _('Important helpline numbers') }}">
+                    <span><i class="bi bi-telephone"></i> {{ _('Anti-Corruption') }}: <strong>1064</strong></span>
+                    <span class="sep">|</span>
+                    <span>{{ _('Vigilance') }}: <strong>1800-11-0180</strong></span>
+                    <span class="sep">|</span>
+                    <span>{{ _('Emergency') }}: <strong>112</strong></span>
+                </div>
+
+                <div class="portal-helplines-inline d-none d-md-flex d-xl-none flex-wrap gap-2 align-items-center small text-muted" aria-label="{{ _('Important helpline numbers') }}">
+                    <span><i class="bi bi-telephone me-1" aria-hidden="true"></i><strong>1064</strong> &middot; <strong>1800-11-0180</strong> &middot; <strong>112</strong></span>
+                </div>
+
+                <div class="portal-helplines-inline d-md-none d-flex flex-wrap gap-2 align-items-center small px-1" aria-label="{{ _('Important helpline numbers') }}">
+                    <span class="text-muted">{{ _('AC') }} <strong>1064</strong></span>
+                    <span class="text-muted">{{ _('Vig') }} <strong>1800-11-0180</strong></span>
+                    <span class="text-muted">{{ _('Emerg') }} <strong>112</strong></span>
+                </div>
+
+                <button class="portal-menu-toggle d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#portalNav" aria-controls="portalNav" aria-expanded="false" aria-label="{{ _('Toggle navigation') }}">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <nav class="portal-nav collapse d-md-flex" id="portalNav" aria-label="{{ _('Primary navigation') }}">
+                    <ul class="portal-nav-list">
+                        {% if not session.user_id %}
+                            <li><a class="{% if request.endpoint == 'public.index' %}active{% endif %}" href="{{ url_for('public.index') }}"><i class="bi bi-house"></i>{{ _('Home') }}</a></li>
+                            <li><a class="submit-pill {% if request.endpoint == 'public.submit_complaint' %}active{% endif %}" href="{{ url_for('public.submit_complaint') }}"><i class="bi bi-file-text"></i>{{ _('Submit Complaint') }}</a></li>
+                            <li><a class="{% if request.endpoint == 'public.track_complaint' %}active{% endif %}" href="{{ url_for('public.track_complaint') }}"><i class="bi bi-search"></i>{{ _('Track Complaint') }}</a></li>
+                            <li><a class="{% if request.endpoint == 'public.public_dashboard' %}active{% endif %}" href="{{ url_for('public.public_dashboard') }}"><i class="bi bi-bar-chart"></i>{{ _('Dashboard') }}</a></li>
+                            <li><a class="{% if request.endpoint == 'public.geo_heatmap' %}active{% endif %}" href="{{ url_for('public.geo_heatmap') }}"><i class="bi bi-geo-alt"></i>{{ _('Geo Heatmap') }}</a></li>
+                            <li class="dropdown">
+                                <a class="dropdown-toggle {% if request.endpoint in ['public.about', 'public.help_page', 'public.how_it_works'] %}active{% endif %}" href="#" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-info-circle"></i>{{ _('Information') }}</a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{{ url_for('public.about') }}">{{ _('About') }}</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('public.how_it_works') }}">{{ _('How It Works') }}</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('public.help_page') }}">{{ _('Help') }}</a></li>
+                                </ul>
+                            </li>
+                            <li><a class="staff-login {% if request.endpoint == 'auth.login' %}active{% endif %}" href="{{ url_for('auth.login') }}"><i class="bi bi-lock"></i>{{ _('Staff Login') }}</a></li>
+                        {% else %}
+                            {% if session.role == 'admin' %}
+                                <li>
+                                    <a class="{% if request.endpoint == 'admin.review_inbox' %}active{% endif %}" href="{{ url_for('admin.review_inbox') }}">
+                                        <i class="bi bi-inbox"></i>{{ _('Review Inbox') }}
+                                        {% if pending_review_count > 0 %}
+                                            <span class="badge bg-danger badge-nav ms-1">{{ pending_review_count }}</span>
+                                        {% endif %}
+                                    </a>
+                                </li>
+                                <li><a class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}"><i class="bi bi-speedometer2"></i>{{ _('Dashboard') }}</a></li>
+                                <li><a class="{% if request.endpoint == 'admin.complaints' %}active{% endif %}" href="{{ url_for('admin.complaints') }}"><i class="bi bi-chat-square-text"></i>{{ _('All Complaints') }}</a></li>
+                                <li><a class="{% if request.endpoint == 'admin.officers' %}active{% endif %}" href="{{ url_for('admin.officers') }}"><i class="bi bi-people"></i>{{ _('Officers') }}</a></li>
+                                <li><a class="{% if request.endpoint == 'admin.departments' %}active{% endif %}" href="{{ url_for('admin.departments') }}"><i class="bi bi-building"></i>{{ _('Departments') }}</a></li>
+                                <li><a class="{% if request.endpoint == 'admin.audit_logs' %}active{% endif %}" href="{{ url_for('admin.audit_logs') }}"><i class="bi bi-clock-history"></i>{{ _('Audit Logs') }}</a></li>
+                                <li><a class="{% if request.endpoint == 'admin.rti_compliance_report' %}active{% endif %}" href="{{ url_for('admin.rti_compliance_report') }}"><i class="bi bi-file-earmark-bar-graph"></i>{{ _('RTI Report') }}</a></li>
+                            {% else %}
+                                <li><a class="{% if request.endpoint and request.endpoint.startswith('officer.') %}active{% endif %}" href="{{ url_for('officer.dashboard') }}"><i class="bi bi-speedometer2"></i>{{ _('Staff Dashboard') }}</a></li>
+                            {% endif %}
+                            
+                            <li class="dropdown">
+                                <a class="dropdown-toggle staff-menu" href="#" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person-circle"></i>{{ session.username }}</a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><span class="dropdown-item-text text-muted"><small>{{ _('Role') }}: {{ session.role|title }}</small></span></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">{{ _('Profile') }}</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="POST" action="{{ url_for('auth.logout') }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="dropdown-item text-danger">{{ _('Logout') }}</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        {% endif %}
+                    </ul>
+                    <div class="drawer-helplines d-lg-none">
+                        <strong>{{ _('Helplines') }}</strong>
+                        <span>1064 | 1800-11-0180 | 112</span>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>

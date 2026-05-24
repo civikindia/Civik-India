@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Complaint Submitted{% endblock %}
+
+{% block content %}
+<div class="py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card shadow-lg border-0 text-center">
+                    <div class="card-body p-5">
+                        <!-- Success Icon -->
+                        <div class="success-icon mb-4">
+                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                                <i class="bi bi-check-circle-fill display-1"></i>
+                            </div>
+                        </div>
+                        
+                        <h2 class="fw-bold mb-3">Complaint Submitted!</h2>
+                        <p class="text-muted mb-4">Your complaint has been received and is under review</p>
+                        
+                        <!-- Tracking ID Card -->
+                        <div class="tracking-card bg-light rounded-4 p-4 mb-4">
+                            <p class="text-muted mb-2">Your Tracking ID</p>
+                            <div class="tracking-id display-5 fw-bold text-primary mb-3" id="trackingId">
+                                {{ complaint.tracking_id }}
+                            </div>
+                            <button class="btn btn-outline-primary" onclick="copyTrackingId()">
+                                <i class="bi bi-copy me-2"></i>Copy to Clipboard
+                            </button>
+                        </div>
+
+                        <div class="card border-0 bg-white text-start mb-4 submission-summary-card">
+                            <div class="card-body p-4">
+                                <h6 class="fw-semibold mb-3">Submission Summary</h6>
+                                <div class="row g-3 small">
+                                    <div class="col-sm-6">
+                                        <span class="text-muted d-block">Submitted</span>
+                                        <strong>{{ complaint.submitted_at|format_datetime if complaint.submitted_at else 'N/A' }}</strong>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <span class="text-muted d-block">Department</span>
+                                        <strong>{{ complaint.department.name if complaint.department else 'N/A' }}</strong>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <span class="text-muted d-block">Service</span>
+                                        <strong>{{ complaint.service.name if complaint.service else 'N/A' }}</strong>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <span class="text-muted d-block">Priority</span>
+                                        <span class="badge-status {{ 'badge-priority-high' if complaint.priority == 'High' else 'badge-priority-normal' }}">{{ complaint.priority or 'Normal' }}</span>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <span class="text-muted d-block">Status</span>
+                                        {% if complaint.status == 'Awaiting Review' %}
+                                            <strong>{{ _('Under Initial Review') }}</strong>
+                                        {% else %}
+                                            <strong>{{ complaint.status }}</strong>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Important Notice -->
+                        <div class="alert alert-warning d-flex text-start mb-4">
+                            <i class="bi bi-exclamation-triangle me-3 mt-1"></i>
+                            <div>
+                                <strong>Important:</strong>
+                                <p class="mb-0">Save this tracking ID securely. You will need it to track your complaint status. <strong>It cannot be recovered if lost.</strong></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                            <a href="{{ url_for('public.complaint_receipt_pdf', tracking_id=complaint.tracking_id) }}" class="btn btn-success btn-lg">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>Download Receipt
+                            </a>
+                            <a href="{{ url_for('public.track_complaint', tracking_id=complaint.tracking_id) }}" class="btn btn-primary btn-lg">
+                                <i class="bi bi-search me-2"></i>Track Now
+                            </a>
+                            <a href="{{ url_for('public.index') }}" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-house me-2"></i>Back to Home
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Next Steps -->
+                <div class="mt-4">
+                    <h5 class="fw-semibold mb-3">What happens next?</h5>
+                    <div class="list-group">
+                        <div class="list-group-item d-flex align-items-center">
+                            <span class="badge-status badge-assigned me-3">1</span>
+                            <div>
+                                <h6 class="mb-1">Review &amp; Assignment</h6>
+                                <p class="mb-0 text-muted small">An administrator will review your complaint and dispatch it to the relevant department within 1–2 business days.</p>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex align-items-center">
+                            <span class="badge-status badge-pending me-3">2</span>
+                            <div>
+                                <h6 class="mb-1">Investigation</h6>
+                                <p class="mb-0 text-muted small">Officer investigates and takes appropriate action.</p>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex align-items-center">
+                            <span class="badge-status badge-resolved me-3">3</span>
+                            <div>
+                                <h6 class="mb-1">Resolution</h6>
+                                <p class="mb-0 text-muted small">Complaint is resolved and status updated.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyTrackingId() {
+    const trackingId = document.getElementById('trackingId').textContent.trim();
+    
+    navigator.clipboard.writeText(trackingId).then(function() {
+        const btn = document.querySelector('button[onclick="copyTrackingId()"]');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check me-2"></i>Copied!';
+        btn.classList.remove('btn-outline-primary');
+        btn.classList.add('btn-success');
+        
+        setTimeout(function() {
+            btn.innerHTML = originalHtml;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-primary');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy. Please manually copy the tracking ID.');
+    });
+}
+</script>
+{% endblock %}

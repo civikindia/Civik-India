@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Admin Review Inbox - CivikIndia{% endblock %}
+{% block content %}
+<div class="container py-4 dashboard-shell">
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 text-gradient">Review Inbox</h1>
+            <p class="text-muted mb-0">Review, prioritize, and dispatch newly submitted citizen complaints.</p>
+        </div>
+        <span class="badge bg-primary fs-6 px-3 py-2">{{ complaints|length }} Pending Review</span>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if not complaints %}
+        <div class="card border-0 shadow-sm text-center py-5">
+            <div class="card-body">
+                <div class="text-success mb-3" style="font-size:4rem;">✔</div>
+                <h3>All Caught Up!</h3>
+                <p class="text-muted">There are no new complaints awaiting administrative review.</p>
+            </div>
+        </div>
+    {% else %}
+
+        <!-- ═══ T1-B: BULK ACTION TOOLBAR ═══ -->
+        <div class="card border-0 shadow-sm mb-4 sticky-top" style="top:64px;z-index:100;" id="bulkActionBar">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <!-- Select-all checkbox -->
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="selectAllCheckbox" title="Select all complaints">
+                        <label class="form-check-label fw-semibold small" for="selectAllCheckbox">
+                            Select All (<span id="selectedCount">0</span> selected)
+                        </label>
+                    </div>
+
+                    <!-- Bulk Approve button -->
+                    <form id="bulkApproveForm"
+                          action="{{ url_for('admin.bulk_approve_complaints') }}"
+                          method="POST" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="complaint_ids" id="bulkApproveIds">
+                        <button type="submit" class="btn btn-success btn-sm" id="bulkApproveBtn" disabled>
+                            <i class="bi bi-check-all me-1"></i>Bulk Approve (<span class="bulk-count">0</span>)
+                        </button>
+                    </form>
+
+                    <!-- Bulk Reject section -->
+                    <div class="d-flex align-items-center gap-2 flex-grow-1" id="bulkRejectSection">
+                        <form id="bulkRejectForm"
+                              action="{{ url_for('admin.bulk_reject_complaints') }}"
+                              method="POST" class="d-flex align-items-center gap-2 flex-grow-1">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="complaint_ids" id="bulkRejectIds">
+                            <input type="text" name="rejection_reason" id="bulkRejectReason"
+                                   class="form-control form-control-sm"
+                                   placeholder="Rejection reason (min 20 chars)…"
+                                   style="max-width:320px;"
+                                   minlength="20">
+                            <button type="submit" class="btn btn-danger btn-sm" id="bulkRejectBtn" disabled>
+                                <i class="bi bi-x-circle me-1"></i>Bulk Reject (<span class="bulk-count">0</span>)
+                            </button>
+                        </form>
+                    </div>
+
+                    <span class="text-muted small ms-auto fst-italic" id="bulkHint">
+                        Tick checkboxes to enable bulk actions
+                    </span>
+                </div>
+            </div>
+        </div>
+        <!-- ═══ END BULK ACTION TOOLBAR ═══ -->
+
+        <div class="row" id="complaintsList">
+            {% for complaint in complaints %}
+            <div class="col-12 mb-4" data-reveal>
+                <div class="card border-0 shadow-sm review-card">
+                    <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-3">
+                        <!-- Checkbox + Tracking ID -->
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input complaint-checkbox"
+                                       type="checkbox"
+                                       value="{{ complaint.id }}"
+                                       id="check-{{ complaint.id }}"
+                                       aria-label="Select complaint {{ complaint.tracking_id }}">
+                            </div>
+                            <span class="badge bg-secondary font-monospace">{{ complaint.tracking_id }}</span>
+                        </div>
+                        <small class="text-muted"><i class="bi bi-clock me-1"></i>Submitted {{ complaint.submitted_at|format_datetime }}</small>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5 class="card-title text-primary">
+                                    {{ complaint.department.name }} &mdash;
+                                    <span class="text-dark">{{ complaint.service.name }}</span>
+                                </h5>
+                                <p class="card-text complaint-desc">{{ complaint.description }}</p>
+
+                                <div class="d-flex gap-3 mb-3 flex-wrap">
+                                    <span class="badge bg-light text-dark">
+                                        <i class="bi bi-geo-alt text-danger me-1"></i>{{ complaint.city or 'No Location' }}
+                                    </span>
+                                    <span class="badge {% if complaint.priority == 'High' or complaint.ai_urgent %}bg-danger-subtle text-danger{% else %}bg-light text-dark{% endif %}">
+                                        <i class="bi bi-robot me-1"></i>AI Urgent: {{ 'Yes' if complaint.ai_urgent else 'No' }} (Priority: {{ complaint.priority }})
+                                    </span>
+                                    {% if complaint.evidence_path %}
+                                    <span class="badge bg-info-subtle text-info">
+                                        <i class="bi bi-paperclip me-1"></i>Evidence attached
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4 border-start">
+                                <!-- Individual Action Tabs -->
+                                <ul class="nav nav-pills nav-fill mb-3" id="tab-{{ complaint.id }}" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active btn-sm"
+                                                id="approve-tab-{{ complaint.id }}"
+                                                data-bs-toggle="pill"
+                                                data-bs-target="#approve-pane-{{ complaint.id }}"
+                                                type="button" role="tab">
+                                            <i class="bi bi-check-circle me-1"></i>Approve
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link btn-sm text-danger"
+                                                id="reject-tab-{{ complaint.id }}"
+                                                data-bs-toggle="pill"
+                                                data-bs-target="#reject-pane-{{ complaint.id }}"
+                                                type="button" role="tab">
+                                            <i class="bi bi-x-circle me-1"></i>Reject
+                                        </button>
+                                    </li>
+                                </ul>
+
+                                <div class="tab-content" id="content-{{ complaint.id }}">
+                                    <!-- Approve Pane -->
+                                    <div class="tab-pane fade show active"
+                                         id="approve-pane-{{ complaint.id }}" role="tabpanel">
+                                        <form action="{{ url_for('admin.approve_complaint', complaint_id=complaint.id) }}"
+                                              method="POST">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="mb-2">
+                                                <label class="form-label small fw-bold" for="priority-{{ complaint.id }}">Priority Override</label>
+                                                <select class="form-select form-select-sm" name="priority" id="priority-{{ complaint.id }}">
+                                                    <option value="Normal" {% if complaint.priority == 'Normal' %}selected{% endif %}>Normal</option>
+                                                    <option value="Low"    {% if complaint.priority == 'Low'    %}selected{% endif %}>Low</option>
+                                                    <option value="High"   {% if complaint.priority == 'High'   %}selected{% endif %}>High</option>
+                                                    <option value="Urgent" {% if complaint.priority == 'Urgent' %}selected{% endif %}>Urgent</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label small fw-bold" for="notes-approve-{{ complaint.id }}">Admin Notes (Optional)</label>
+                                                <textarea class="form-control form-control-sm" name="admin_notes"
+                                                          id="notes-approve-{{ complaint.id }}"
+                                                          rows="2" placeholder="Add notes for the officer…"></textarea>
+                                            </div>
+                                            <button type="submit" class="btn btn-success btn-sm w-100">
+                                                <i class="bi bi-send me-1"></i>Approve &amp; Dispatch
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <!-- Reject Pane -->
+                                    <div class="tab-pane fade"
+                                         id="reject-pane-{{ complaint.id }}" role="tabpanel">
+                                        <form action="{{ url_for('admin.reject_complaint', complaint_id=complaint.id) }}"
+                                              method="POST">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="mb-2">
+                                                <label class="form-label small fw-bold text-danger" for="reason-{{ complaint.id }}">Rejection Reason (min 20 chars)</label>
+                                                <textarea class="form-control form-control-sm border-danger"
+                                                          name="rejection_reason"
+                                                          id="reason-{{ complaint.id }}"
+                                                          rows="2"
+                                                          placeholder="Explain why this complaint was rejected…"
+                                                          required minlength="20"></textarea>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label small fw-bold" for="notes-reject-{{ complaint.id }}">Internal Notes (Optional)</label>
+                                                <textarea class="form-control form-control-sm"
+                                                          name="admin_notes"
+                                                          id="notes-reject-{{ complaint.id }}"
+                                                          rows="2" placeholder="Private internal comments…"></textarea>
+                                            </div>
+                                            <button type="submit" class="btn btn-danger btn-sm w-100">
+                                                <i class="bi bi-x me-1"></i>Confirm Rejection
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div><!-- /tab-content -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAll   = document.getElementById('selectAllCheckbox');
+    const checkboxes  = document.querySelectorAll('.complaint-checkbox');
+    const countEl     = document.getElementById('selectedCount');
+    const bulkCountEls = document.querySelectorAll('.bulk-count');
+    const approveBtn  = document.getElementById('bulkApproveBtn');
+    const rejectBtn   = document.getElementById('bulkRejectBtn');
+    const approveIds  = document.getElementById('bulkApproveIds');
+    const rejectIds   = document.getElementById('bulkRejectIds');
+    const bulkHint    = document.getElementById('bulkHint');
+
+    function getSelected() {
+        return Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+    }
+
+    function updateBulkBar() {
+        const ids = getSelected();
+        const n   = ids.length;
+        countEl.textContent = n;
+        bulkCountEls.forEach(el => el.textContent = n);
+        approveIds.value = ids.join(',');
+        rejectIds.value  = ids.join(',');
+        approveBtn.disabled = (n === 0);
+        rejectBtn.disabled  = (n === 0);
+        bulkHint.textContent = n > 0
+            ? `${n} complaint${n > 1 ? 's' : ''} selected`
+            : 'Tick checkboxes to enable bulk actions';
+        selectAll.indeterminate = (n > 0 && n < checkboxes.length);
+        selectAll.checked = (n === checkboxes.length && n > 0);
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            checkboxes.forEach(cb => { cb.checked = this.checked; });
+            updateBulkBar();
+        });
+    }
+
+    checkboxes.forEach(cb => cb.addEventListener('change', updateBulkBar));
+
+    // Validate bulk reject reason before submitting
+    const bulkRejectForm = document.getElementById('bulkRejectForm');
+    if (bulkRejectForm) {
+        bulkRejectForm.addEventListener('submit', function (e) {
+            const reason = document.getElementById('bulkRejectReason').value.trim();
+            if (reason.length < 20) {
+                e.preventDefault();
+                alert('Rejection reason must be at least 20 characters.');
+                document.getElementById('bulkRejectReason').focus();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% endblock %}

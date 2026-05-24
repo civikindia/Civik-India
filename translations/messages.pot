@@ -1,0 +1,899 @@
+# Translations template for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-05-18 02:13+0530\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: app/templates/base.html:6
+msgid ""
+"CivikIndia — Civic Grievance & Accountability Portal - Report corruption "
+"anonymously"
+msgstr ""
+
+#: app/templates/base.html:11 app/templates/base.html:16
+#: app/templates/base.html:60 app/templates/partials/_navbar.html:34
+#: app/templates/partials/_navbar.html:49
+msgid "CivikIndia"
+msgstr ""
+
+#: app/templates/base.html:16
+msgid "Civic Grievance & Accountability Portal"
+msgstr ""
+
+#: app/templates/base.html:38
+msgid "Skip to main content"
+msgstr ""
+
+#: app/templates/base.html:62 app/templates/partials/_navbar.html:32
+msgid "CivikIndia — Civic Grievance & Accountability Portal"
+msgstr ""
+
+#: app/templates/base.html:63
+msgid ""
+"Promoting transparency and accountability in governance through secure "
+"anonymous reporting."
+msgstr ""
+
+#: app/templates/base.html:65 app/templates/public/static_page.html:36
+#: app/templates/public/track.html:132
+msgid "Last Updated"
+msgstr ""
+
+#: app/templates/base.html:66
+msgid "Visitor Counter"
+msgstr ""
+
+#: app/templates/base.html:67
+msgid "Anti-Corruption Helpline"
+msgstr ""
+
+#: app/templates/base.html:68
+msgid "Vigilance Helpline"
+msgstr ""
+
+#: app/templates/base.html:72
+msgid "Citizen Services"
+msgstr ""
+
+#: app/templates/base.html:74 app/templates/partials/_navbar.html:60
+#: app/templates/public/index.html:3 app/templates/public/sitemap.html:10
+#: app/templates/public/static_page.html:10 app/templates/public/submit.html:11
+#: app/templates/public/track.html:11
+msgid "Home"
+msgstr ""
+
+#: app/templates/base.html:75 app/templates/partials/_navbar.html:65
+#: app/templates/public/index.html:30 app/templates/public/submit.html:3
+#: app/templates/public/submit.html:12 app/templates/public/submit.html:243
+msgid "Submit Complaint"
+msgstr ""
+
+#: app/templates/base.html:76 app/templates/public/index.html:33
+#: app/templates/public/index.html:161 app/templates/public/track.html:3
+#: app/templates/public/track.html:12 app/templates/public/track.html:50
+msgid "Track Complaint"
+msgstr ""
+
+#: app/templates/base.html:77
+msgid "Public Dashboard"
+msgstr ""
+
+#: app/templates/base.html:78 app/templates/partials/_navbar.html:80
+msgid "Geo Heatmap"
+msgstr ""
+
+#: app/templates/base.html:79 app/templates/partials/_navbar.html:15
+#: app/templates/public/sitemap.html:3 app/templates/public/sitemap.html:11
+#: app/templates/public/sitemap.html:20
+msgid "Sitemap"
+msgstr ""
+
+#: app/templates/base.html:83
+msgid "Website Information"
+msgstr ""
+
+#: app/templates/base.html:85
+msgid "Disclaimer"
+msgstr ""
+
+#: app/templates/base.html:86
+msgid "Accessibility Statement"
+msgstr ""
+
+#: app/templates/base.html:87
+msgid "Screen Reader Access"
+msgstr ""
+
+#: app/templates/base.html:88
+msgid "Website Policies"
+msgstr ""
+
+#: app/templates/base.html:89
+msgid "Privacy Policy"
+msgstr ""
+
+#: app/templates/base.html:90
+msgid "Terms of Use"
+msgstr ""
+
+#: app/templates/base.html:94
+msgid "Help and Contact"
+msgstr ""
+
+#: app/templates/base.html:96
+msgid "Help"
+msgstr ""
+
+#: app/templates/base.html:97
+msgid "Contact Us"
+msgstr ""
+
+#: app/templates/base.html:98 app/templates/partials/_navbar.html:161
+msgid "Staff Login"
+msgstr ""
+
+#: app/templates/base.html:110 app/templates/partials/_navbar.html:8
+msgid "Government of India"
+msgstr ""
+
+#: app/templates/base.html:110
+msgid "All rights reserved."
+msgstr ""
+
+#: app/templates/base.html:115
+msgid "Secure Government Portal"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:11
+msgid "Municipal Governance Department"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:14
+msgid "Accessibility"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:18
+msgid "Helpline"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:26
+#: app/templates/partials/_navbar.html:47
+msgid "CivikIndia home"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:34
+msgid "Public Grievance and Transparency System"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:37
+msgid "Important helpline numbers"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:38
+msgid "Anti-Corruption"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:39
+msgid "Vigilance"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:40
+msgid "Emergency"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:45
+msgid "Primary navigation"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:52
+msgid "Toggle navigation"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:70
+msgid "Track"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:75
+#: app/templates/partials/_navbar.html:111
+msgid "Dashboard"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:114
+msgid "All Complaints"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:117
+msgid "Officers"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:120
+msgid "Departments"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:124
+msgid "Audit Logs"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:131
+msgid "Staff Dashboard"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:142
+msgid "Role"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:145
+msgid "Profile"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:152
+msgid "Logout"
+msgstr ""
+
+#: app/templates/partials/_navbar.html:166 app/templates/public/index.html:321
+msgid "Submit Now"
+msgstr ""
+
+#: app/templates/public/index.html:19
+msgid "Government of India Initiative"
+msgstr ""
+
+#: app/templates/public/index.html:22
+msgid "Report Corruption."
+msgstr ""
+
+#: app/templates/public/index.html:23
+msgid "Demand Accountability."
+msgstr ""
+
+#: app/templates/public/index.html:26
+msgid ""
+"Submit complaints completely anonymously. No login required. No personal "
+"information collected. Track your complaint with a unique tamper-proof "
+"ID."
+msgstr ""
+
+#: app/templates/public/index.html:37
+msgid "Anonymous by design"
+msgstr ""
+
+#: app/templates/public/index.html:38
+msgid "Secure submission"
+msgstr ""
+
+#: app/templates/public/index.html:39
+msgid "Public transparency"
+msgstr ""
+
+#: app/templates/public/index.html:46
+msgid "Live Portal Snapshot"
+msgstr ""
+
+#: app/templates/public/index.html:47
+msgid "Operational"
+msgstr ""
+
+#: app/templates/public/index.html:54
+msgid "Total Complaints"
+msgstr ""
+
+#: app/templates/public/index.html:61
+msgid "Pending"
+msgstr ""
+
+#: app/templates/public/index.html:68
+msgid "In Progress"
+msgstr ""
+
+#: app/templates/public/index.html:75
+msgid "Resolved"
+msgstr ""
+
+#: app/templates/public/index.html:81
+msgid "Resolution Rate"
+msgstr ""
+
+#: app/templates/public/index.html:90
+msgid "View Full Dashboard"
+msgstr ""
+
+#: app/templates/public/index.html:107
+msgid "No personal identifiers"
+msgstr ""
+
+#: app/templates/public/index.html:108
+msgid "You can report without creating an account."
+msgstr ""
+
+#: app/templates/public/index.html:116
+msgid "Tamper-resistant trail"
+msgstr ""
+
+#: app/templates/public/index.html:117
+msgid "Every action is tracked for audit integrity."
+msgstr ""
+
+#: app/templates/public/index.html:125
+msgid "Open performance metrics"
+msgstr ""
+
+#: app/templates/public/index.html:126
+msgid "Citizens can monitor response patterns in real time."
+msgstr ""
+
+#: app/templates/public/index.html:143
+msgid "AI Guidance"
+msgstr ""
+
+#: app/templates/public/index.html:144
+msgid "Need Help Using The Portal?"
+msgstr ""
+
+#: app/templates/public/index.html:146
+msgid ""
+"Ask the assistant how to submit complaints, track updates, and use "
+"transparency tools."
+msgstr ""
+
+#: app/templates/public/index.html:149
+msgid ""
+"Do not share personal identifiers like your name, phone number, or "
+"address."
+msgstr ""
+
+#: app/templates/public/index.html:158
+msgid "How To Submit"
+msgstr ""
+
+#: app/templates/public/index.html:164
+msgid "Evidence Tips"
+msgstr ""
+
+#: app/templates/public/index.html:169
+msgid "Ask the assistant"
+msgstr ""
+
+#: app/templates/public/index.html:178
+msgid "Example: What should I include before submitting?"
+msgstr ""
+
+#: app/templates/public/index.html:182
+msgid "Send"
+msgstr ""
+
+#: app/templates/public/index.html:200
+msgid "How It Works"
+msgstr ""
+
+#: app/templates/public/index.html:201
+msgid "Simple, secure, and transparent process"
+msgstr ""
+
+#: app/templates/public/index.html:209
+msgid "1. Submit"
+msgstr ""
+
+#: app/templates/public/index.html:210
+msgid ""
+"Fill out the complaint form with details about the incident. No personal "
+"info required."
+msgstr ""
+
+#: app/templates/public/index.html:218
+msgid "2. Receive ID"
+msgstr ""
+
+#: app/templates/public/index.html:219
+msgid "Get a unique tracking ID. Save it securely to track your complaint status."
+msgstr ""
+
+#: app/templates/public/index.html:227
+msgid "3. Review"
+msgstr ""
+
+#: app/templates/public/index.html:228
+msgid "Officers review and investigate your complaint through proper channels."
+msgstr ""
+
+#: app/templates/public/index.html:236
+msgid "4. Resolution"
+msgstr ""
+
+#: app/templates/public/index.html:237
+msgid "Track progress and receive updates until your complaint is resolved."
+msgstr ""
+
+#: app/templates/public/index.html:248
+msgid "Covered Departments"
+msgstr ""
+
+#: app/templates/public/index.html:249
+msgid "Report issues across all municipal services"
+msgstr ""
+
+#: app/templates/public/index.html:261
+msgid "Municipal services and grievance redressal"
+msgstr ""
+
+#: app/templates/public/index.html:274
+msgid "Why CivikIndia?"
+msgstr ""
+
+#: app/templates/public/index.html:281
+msgid "Complete Anonymity"
+msgstr ""
+
+#: app/templates/public/index.html:282
+msgid ""
+"No registration, no login, no personal data collection. Your identity is "
+"never stored."
+msgstr ""
+
+#: app/templates/public/index.html:290
+msgid "Tamper-Proof Records"
+msgstr ""
+
+#: app/templates/public/index.html:291
+msgid "Hash-chained audit logs ensure no one can alter complaint history."
+msgstr ""
+
+#: app/templates/public/index.html:299
+msgid "Public Transparency"
+msgstr ""
+
+#: app/templates/public/index.html:300
+msgid "Real-time statistics and dashboards are available to all citizens."
+msgstr ""
+
+#: app/templates/public/index.html:308
+msgid "Mobile Friendly"
+msgstr ""
+
+#: app/templates/public/index.html:309
+msgid "Submit and track complaints from any device, anywhere."
+msgstr ""
+
+#: app/templates/public/index.html:316
+msgid "Citizen Action"
+msgstr ""
+
+#: app/templates/public/index.html:318
+msgid "Ready to Report?"
+msgstr ""
+
+#: app/templates/public/index.html:319
+msgid "Join citizens promoting transparency and accountability in governance."
+msgstr ""
+
+#: app/templates/public/sitemap.html:8 app/templates/public/static_page.html:8
+msgid "breadcrumb"
+msgstr ""
+
+#: app/templates/public/sitemap.html:23
+msgid ""
+"Browse public services, dashboards, and mandatory information pages."
+msgstr ""
+
+#: app/templates/public/submit.html:20
+msgid "Anonymous Reporting"
+msgstr ""
+
+#: app/templates/public/submit.html:22
+msgid "Submit Complaint Securely"
+msgstr ""
+
+#: app/templates/public/submit.html:24
+msgid ""
+"Provide clear facts, location context, and optional evidence. The system "
+"does not require login and does not store your identity."
+msgstr ""
+
+#: app/templates/public/submit.html:31
+msgid "No login needed"
+msgstr ""
+
+#: app/templates/public/submit.html:35
+msgid "2-3 minutes to submit"
+msgstr ""
+
+#: app/templates/public/submit.html:39
+msgid "Track via MIB ID"
+msgstr ""
+
+#: app/templates/public/submit.html:50
+msgid "Submit Anonymous Complaint"
+msgstr ""
+
+#: app/templates/public/submit.html:51
+msgid ""
+"Your identity will not be recorded. All fields are required unless marked"
+" optional."
+msgstr ""
+
+#: app/templates/public/submit.html:59
+msgid "Department & Service"
+msgstr ""
+
+#: app/templates/public/submit.html:60
+msgid "Choose the department and service where the incident occurred."
+msgstr ""
+
+#: app/templates/public/submit.html:65
+msgid "Select Department"
+msgstr ""
+
+#: app/templates/public/submit.html:68
+msgid "Choose Department"
+msgstr ""
+
+#: app/templates/public/submit.html:75
+msgid "Select the department related to your complaint."
+msgstr ""
+
+#: app/templates/public/submit.html:79
+msgid "Select Service"
+msgstr ""
+
+#: app/templates/public/submit.html:89
+msgid "First Select Department"
+msgstr ""
+
+#: app/templates/public/submit.html:91
+msgid "Services load automatically after department selection."
+msgstr ""
+
+#: app/templates/public/submit.html:97
+msgid "Auto Classify Department/Service"
+msgstr ""
+
+#: app/templates/public/submit.html:100
+msgid "Apply Suggestion"
+msgstr ""
+
+#: app/templates/public/submit.html:109 app/templates/public/track.html:82
+msgid "Complaint Details"
+msgstr ""
+
+#: app/templates/public/submit.html:110
+msgid "Write a clear factual summary including dates, place, and service impact."
+msgstr ""
+
+#: app/templates/public/submit.html:113
+msgid "Complaint Description"
+msgstr ""
+
+#: app/templates/public/submit.html:123
+msgid ""
+"Describe your complaint in detail. Include dates, locations, and any "
+"relevant information..."
+msgstr ""
+
+#: app/templates/public/submit.html:126
+msgid "Minimum 50 characters required."
+msgstr ""
+
+#: app/templates/public/submit.html:139
+msgid "AI Draft Assistant"
+msgstr ""
+
+#: app/templates/public/submit.html:141
+msgid "Optional"
+msgstr ""
+
+#: app/templates/public/submit.html:144
+msgid ""
+"Ask AI to improve your complaint draft. Do not include your name, phone, "
+"or address."
+msgstr ""
+
+#: app/templates/public/submit.html:147
+msgid "What help do you need?"
+msgstr ""
+
+#: app/templates/public/submit.html:149
+msgid "Example: Rewrite my complaint to be clearer and include missing details."
+msgstr ""
+
+#: app/templates/public/submit.html:153
+msgid "Ask AI"
+msgstr ""
+
+#: app/templates/public/submit.html:156
+msgid "Use Response In Description"
+msgstr ""
+
+#: app/templates/public/submit.html:161
+msgid "AI Response"
+msgstr ""
+
+#: app/templates/public/submit.html:170
+msgid "Evidence & Location (Optional)"
+msgstr ""
+
+#: app/templates/public/submit.html:171
+msgid "Attach relevant files and optional location details to speed up review."
+msgstr ""
+
+#: app/templates/public/submit.html:174
+msgid "Evidence (Optional)"
+msgstr ""
+
+#: app/templates/public/submit.html:185
+msgid "Allowed: PDF, PNG, JPG (Max 16MB)"
+msgstr ""
+
+#: app/templates/public/submit.html:191
+msgid "Location Pin (Optional)"
+msgstr ""
+
+#: app/templates/public/submit.html:197
+msgid "State (e.g., Maharashtra)"
+msgstr ""
+
+#: app/templates/public/submit.html:202
+msgid "District (e.g., Mumbai Suburban)"
+msgstr ""
+
+#: app/templates/public/submit.html:207
+msgid "City (e.g., Mumbai)"
+msgstr ""
+
+#: app/templates/public/submit.html:214
+msgid "Latitude"
+msgstr ""
+
+#: app/templates/public/submit.html:219
+msgid "Longitude"
+msgstr ""
+
+#: app/templates/public/submit.html:227
+msgid "You can optionally attach approximate coordinates for faster field action."
+msgstr ""
+
+#: app/templates/public/submit.html:233
+msgid "Privacy Notice:"
+msgstr ""
+
+#: app/templates/public/submit.html:234
+msgid ""
+"Your complaint is completely anonymous. We do not collect or store any "
+"personal information including your IP address, name, phone number, or "
+"email."
+msgstr ""
+
+#: app/templates/public/submit.html:240
+msgid "Cancel"
+msgstr ""
+
+#: app/templates/public/submit.html:253
+msgid "Submission Progress"
+msgstr ""
+
+#: app/templates/public/submit.html:255 app/templates/public/track.html:114
+msgid "Department"
+msgstr ""
+
+#: app/templates/public/submit.html:256 app/templates/public/submit.html:260
+msgid "Not selected"
+msgstr ""
+
+#: app/templates/public/submit.html:259 app/templates/public/track.html:120
+msgid "Service"
+msgstr ""
+
+#: app/templates/public/submit.html:263
+msgid "Description Length"
+msgstr ""
+
+#: app/templates/public/submit.html:264
+msgid "0 characters"
+msgstr ""
+
+#: app/templates/public/submit.html:267
+msgid "Completion"
+msgstr ""
+
+#: app/templates/public/submit.html:276
+msgid "Before You Submit"
+msgstr ""
+
+#: app/templates/public/submit.html:278
+msgid "Describe what happened in clear factual language."
+msgstr ""
+
+#: app/templates/public/submit.html:279
+msgid "Include approximate date/time and exact location."
+msgstr ""
+
+#: app/templates/public/submit.html:280
+msgid "Mention service impact and expected action."
+msgstr ""
+
+#: app/templates/public/submit.html:281
+msgid "Attach relevant evidence if available."
+msgstr ""
+
+#: app/templates/public/submit.html:282
+msgid "Avoid personal identifiers in text and files."
+msgstr ""
+
+#: app/templates/public/track.html:20
+msgid "Track Your Complaint"
+msgstr ""
+
+#: app/templates/public/track.html:21
+msgid "Enter your tracking ID to check the status of your complaint."
+msgstr ""
+
+#: app/templates/public/track.html:28 app/templates/public/track.html:83
+msgid "Tracking ID"
+msgstr ""
+
+#: app/templates/public/track.html:38
+msgid "e.g., MIB3A9F2K1"
+msgstr ""
+
+#: app/templates/public/track.html:45
+msgid "Enter the tracking ID provided when you submitted your complaint."
+msgstr ""
+
+#: app/templates/public/track.html:63
+msgid "Lost your tracking ID?"
+msgstr ""
+
+#: app/templates/public/track.html:65
+msgid ""
+"Unfortunately, tracking IDs cannot be recovered as we do not collect any "
+"personal information. If you've lost your tracking ID, you may need to "
+"submit a new complaint."
+msgstr ""
+
+#: app/templates/public/track.html:93
+msgid "Progress"
+msgstr ""
+
+#: app/templates/public/track.html:103
+msgid "Submitted"
+msgstr ""
+
+#: app/templates/public/track.html:104
+msgid "Under Review"
+msgstr ""
+
+#: app/templates/public/track.html:105
+msgid "Action Taken"
+msgstr ""
+
+#: app/templates/public/track.html:106
+msgid "Closed"
+msgstr ""
+
+#: app/templates/public/track.html:126
+msgid "Submitted On"
+msgstr ""
+
+#: app/templates/public/track.html:138
+msgid "Priority"
+msgstr ""
+
+#: app/templates/public/track.html:144
+msgid "Escalation Level"
+msgstr ""
+
+#: app/templates/public/track.html:151
+msgid "SLA Due Date"
+msgstr ""
+
+#: app/templates/public/track.html:159
+msgid "Reopen Count"
+msgstr ""
+
+#: app/templates/public/track.html:167
+msgid "Resolved On"
+msgstr ""
+
+#: app/templates/public/track.html:173
+msgid "Resolution Time"
+msgstr ""
+
+#: app/templates/public/track.html:174
+msgid "hours"
+msgstr ""
+
+#: app/templates/public/track.html:183
+msgid "Updates & Notes"
+msgstr ""
+
+#: app/templates/public/track.html:192
+msgid "Rate Resolution (Anonymous)"
+msgstr ""
+
+#: app/templates/public/track.html:196
+msgid "Rating"
+msgstr ""
+
+#: app/templates/public/track.html:198
+msgid "Select rating"
+msgstr ""
+
+#: app/templates/public/track.html:199
+msgid "Excellent"
+msgstr ""
+
+#: app/templates/public/track.html:200
+msgid "Good"
+msgstr ""
+
+#: app/templates/public/track.html:201
+msgid "Average"
+msgstr ""
+
+#: app/templates/public/track.html:202
+msgid "Poor"
+msgstr ""
+
+#: app/templates/public/track.html:203
+msgid "Very Poor"
+msgstr ""
+
+#: app/templates/public/track.html:207
+msgid "Feedback (optional)"
+msgstr ""
+
+#: app/templates/public/track.html:209
+msgid "Share your experience"
+msgstr ""
+
+#: app/templates/public/track.html:212
+msgid "Submit Feedback"
+msgstr ""
+
+#: app/templates/public/track.html:218
+msgid "Citizen Feedback"
+msgstr ""
+
+#: app/templates/public/track.html:220
+msgid "Rating:"
+msgstr ""
+
+#: app/templates/public/track.html:230
+msgid "Not satisfied with closure?"
+msgstr ""
+
+#: app/templates/public/track.html:235
+msgid "Explain why the complaint should be reopened..."
+msgstr ""
+
+#: app/templates/public/track.html:238
+msgid "Request Reopen"
+msgstr ""
+
+#: app/templates/public/track.html:247
+msgid "Evidence Submitted"
+msgstr ""
+
+#: app/templates/public/track.html:249
+msgid "File attached"
+msgstr ""
+
+#: app/templates/public/track.html:258
+msgid "Status updates may take 24-48 hours"
+msgstr ""
+
+#: app/templates/public/track.html:261
+msgid "Print"
+msgstr ""
+
