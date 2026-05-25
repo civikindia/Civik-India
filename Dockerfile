@@ -18,6 +18,7 @@ WORKDIR ${APP_HOME}
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     default-libmysqlclient-dev \
+    libmagic1 \
     gcc \
     pkg-config \
     curl \

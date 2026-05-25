@@ -3,7 +3,7 @@ services:
     name: civikindia
     env: docker
     region: singapore
-    plan: starter
+    plan: free
     healthCheckPath: /healthz
     envVars:
       - key: FLASK_ENV
