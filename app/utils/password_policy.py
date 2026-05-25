@@ -1,6 +1,6 @@
 """
-Password Policy Enforcement for CivikIndia
-Government-grade password requirements per NIC/CERT-In standards.
+Password Policy Enforcement for Civik India
+Strong password requirements for staff accounts.
 """
 import re
 
@@ -41,7 +41,7 @@ _COMMON_PASSWORDS = frozenset([
 
 def validate_password(password, username=None):
     """
-    Validate password against government-grade policy.
+    Validate password against the strong staff-account policy.
     
     Requirements:
     - Minimum 12 characters

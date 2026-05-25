@@ -158,7 +158,7 @@ def send_system_email(subject, body, recipients, html_body=None):
     if not recipients:
         return False, 'No recipients available.'
 
-    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'no-reply@civikindia.gov.in'
+    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'no-reply@civikindia.online'
     message = Message(
         subject=subject,
         sender=sender,
@@ -313,7 +313,7 @@ def send_status_update_notification(tracking_id, new_status, contact_method=None
     if citizen_email:
         email_recipients.add(citizen_email)
 
-    subject = f'CivikIndia — Complaint Status Update: {tracking_id} is now {new_status}'
+    subject = f'Civik India — Complaint Status Update: {tracking_id} is now {new_status}'
     email_sent, email_error = _send_email_notification(
         subject,
         'status_update',
@@ -329,7 +329,7 @@ def send_status_update_notification(tracking_id, new_status, contact_method=None
         sms_recipients.add(citizen_phone)
 
     sms_message = (
-        f'CivikIndia: Complaint {tracking_id} status updated to {new_status}. '
+        f'Civik India: Complaint {tracking_id} status updated to {new_status}. '
         f'Track at /track using your ID.'
     )
     sms_sent, sms_error = _send_sms_notification(
@@ -382,7 +382,7 @@ def send_complaint_submission_notification(tracking_id):
 
     track_url = url_for('public.track_complaint', tracking_id=tracking_id, _external=True)
     staff_recipients = _collect_submission_recipients()
-    staff_subject = f'CivikIndia New Complaint Submitted: {tracking_id}'
+    staff_subject = f'Civik India New Complaint Submitted: {tracking_id}'
     staff_email_sent, staff_email_error = _send_email_notification(
         staff_subject,
         'assignment_notification',
@@ -396,7 +396,7 @@ def send_complaint_submission_notification(tracking_id):
     citizen_email = _citizen_email(complaint)
     if citizen_email:
         citizen_email_sent, citizen_email_error = _send_email_notification(
-            f'CivikIndia — Complaint Acknowledgment: {tracking_id}',
+            f'Civik India — Complaint Acknowledgment: {tracking_id}',
             'complaint_acknowledgment',
             [citizen_email],
             complaint=complaint,
@@ -408,7 +408,7 @@ def send_complaint_submission_notification(tracking_id):
     if citizen_phone:
         sms_recipients.add(citizen_phone)
     sms_message = (
-        f'CivikIndia: Complaint received. Tracking ID {tracking_id}. '
+        f'Civik India: Complaint received. Tracking ID {tracking_id}. '
         f'Use this ID to track status on the portal.'
     )
     sms_sent, sms_error = _send_sms_notification(
@@ -513,7 +513,7 @@ def send_escalation_notice(tracking_id):
     email_recipients = [contact.email for contact in contacts if contact.email]
     sms_recipients = [contact.phone for contact in contacts if contact.phone]
 
-    subject = f'CivikIndia — Escalation Notice: {tracking_id}'
+    subject = f'Civik India — Escalation Notice: {tracking_id}'
     email_sent, email_error = _send_email_notification(
         subject,
         'escalation_notice',
@@ -523,7 +523,7 @@ def send_escalation_notice(tracking_id):
         track_url=url_for('admin.complaint_detail', tracking_id=tracking_id, _external=True)
     )
     sms_sent, sms_error = _send_sms_notification(
-        f'CivikIndia SLA breach L{complaint.escalation_level}: {tracking_id}. Login to review.',
+        f'Civik India SLA breach L{complaint.escalation_level}: {tracking_id}. Login to review.',
         'escalation_notice',
         sms_recipients,
         complaint=complaint,
@@ -550,7 +550,7 @@ def send_officer_welcome_notification(user_id, temporary_password=None):
         return {'success': False, 'user_id': user_id, 'mode': 'missing_email'}
 
     sent, error = _send_email_notification(
-        'CivikIndia — Officer Account Created',
+        'Civik India — Officer Account Created',
         'officer_welcome',
         [user.email],
         complaint=None,

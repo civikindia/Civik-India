@@ -1,5 +1,5 @@
 /**
- * CivikIndia Floating AI Chatbot Assistant
+ * Civik India Floating AI Chatbot Assistant
  */
 document.addEventListener('DOMContentLoaded', function() {
     const triggerBtn = document.getElementById('chatbotTriggerBtn');
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!welcomeShown) {
                 welcomeShown = true;
                 setTimeout(() => {
-                    appendMessage('assistant', 'Hello! I am your CivikIndia digital assistant. How can I help you use the portal today?');
+                    appendMessage('assistant', 'Hello! I am your Civik India digital assistant. How can I help you use the portal today?');
                 }, 400); // 400ms delay for smooth entrance sequence
             }
         } else {

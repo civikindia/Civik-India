@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CivikIndia Report — {{ complaint.tracking_id }}</title>
+    <title>Civik India Report — {{ complaint.tracking_id }}</title>
     <style>
         /* ── Base ── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -204,7 +204,7 @@
 
 <!-- Screen-only toolbar -->
 <div class="screen-toolbar no-print">
-    <span>📄 CivikIndia Complaint Report — {{ complaint.tracking_id }}</span>
+    <span>📄 Civik India Complaint Report — {{ complaint.tracking_id }}</span>
     <div style="display:flex;gap:10px;">
         <a href="{{ url_for('admin.complaint_detail', tracking_id=complaint.tracking_id) }}">← Back</a>
         <button onclick="window.print()">🖨 Print / Save as PDF</button>
@@ -217,13 +217,13 @@
 <!-- Letterhead -->
 <div class="letterhead">
     <div>
-        <div class="letterhead-title">🏛 CivikIndia</div>
-        <div class="letterhead-sub">CivikIndia — Civic Grievance &amp; Accountability Portal</div>
-        <div class="letterhead-sub">Government of India — Citizen Grievance Division</div>
+        <div class="letterhead-title">Civik India</div>
+        <div class="letterhead-sub">Civik India — Citizen Voice Against Corruption</div>
+        <div class="letterhead-sub">Independent public awareness initiative</div>
     </div>
     <div class="letterhead-right">
         <div><strong>Report Generated:</strong> {{ utc_now().strftime('%d %b %Y, %H:%M UTC') }}</div>
-        <div><strong>Document Type:</strong> Official Complaint Record</div>
+        <div><strong>Document Type:</strong> Platform Complaint Record</div>
         <div><strong>Classification:</strong> Confidential / Internal Use</div>
     </div>
 </div>
@@ -371,7 +371,7 @@
 
 <!-- Footer -->
 <div class="print-footer">
-    <span>CivikIndia — Civic Grievance &amp; Accountability Portal | Confidential Government Document</span>
+    <span>Civik India — Citizen Voice Against Corruption | Confidential Platform Record</span>
     <span>Ref: {{ complaint.tracking_id }} | Printed: {{ utc_now().strftime('%d/%m/%Y') }}</span>
 </div>
 

@@ -1,5 +1,5 @@
 """
-CivikIndia Authentication Routes
+Civik India Authentication Routes
 Staff login, logout, password reset, and 2FA.
 """
 import hashlib
@@ -147,10 +147,10 @@ def forgot_password():
             try:
                 db.session.commit()
                 reset_url = url_for('auth.reset_password', token=token, _external=True)
-                subject = 'CivikIndia — Password Reset'
+                subject = 'Civik India — Password Reset'
                 body = (
                     f'Hello {user.username},\n\n'
-                    'A password reset was requested for your CivikIndia staff account.\n'
+                    'A password reset was requested for your Civik India staff account.\n'
                     f'Use this link within 1 hour: {reset_url}\n\n'
                     'If you did not request this, you can safely ignore this email.'
                 )
@@ -292,9 +292,9 @@ def login():
                 otp_code = ''.join(secrets.choice(string.digits) for _ in range(otp_length))
                 otp_expires_at = utc_epoch_seconds() + (otp_expiry_minutes * 60)
 
-                subject = 'CivikIndia — Admin Login OTP'
+                subject = 'Civik India — Admin Login OTP'
                 body = (
-                    f'Your OTP for CivikIndia admin login is: {otp_code}\n'
+                    f'Your OTP for Civik India admin login is: {otp_code}\n'
                     f'This code expires in {otp_expiry_minutes} minutes.'
                 )
                 sent, send_error = send_system_email(subject, body, [user.email])
@@ -452,7 +452,7 @@ def setup_2fa():
             
     # Generate QR Code
     totp = pyotp.TOTP(secret)
-    provisioning_uri = totp.provisioning_uri(name=user.username, issuer_name="CivikIndia")
+    provisioning_uri = totp.provisioning_uri(name=user.username, issuer_name="Civik India")
     
     factory = qrcode.image.svg.SvgImage
     img = qrcode.make(provisioning_uri, image_factory=factory)

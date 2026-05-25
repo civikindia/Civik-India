@@ -1,5 +1,5 @@
 """
-CivikIndia Admin Routes
+Civik India Admin Routes
 Admin-specific management routes.
 """
 import csv
@@ -1170,7 +1170,7 @@ def export_complaints_csv():
 
     csv_data = output.getvalue()
     output.close()
-    filename = f'CivikIndia_Complaints_Export_{utc_now().strftime("%Y%m%d_%H%M%S")}.csv'
+    filename = f'Civik_India_Complaints_Export_{utc_now().strftime("%Y%m%d_%H%M%S")}.csv'
     return Response(
         csv_data,
         mimetype='text/csv',
@@ -1195,7 +1195,7 @@ def export_complaints_pdf():
     elements = []
     
     styles = getSampleStyleSheet()
-    elements.append(Paragraph("CivikIndia Complaints Report (Recent 100)", styles['Title']))
+    elements.append(Paragraph("Civik India Complaints Report (Recent 100)", styles['Title']))
     
     data = [['Tracking ID', 'Department', 'Service', 'Status', 'Priority', 'Submitted Date']]
     for c in complaints:
@@ -1225,7 +1225,7 @@ def export_complaints_pdf():
     pdf_out = buffer.getvalue()
     buffer.close()
     
-    filename = f'CivikIndia_Complaints_Export_{utc_now().strftime("%Y%m%d_%H%M%S")}.pdf'
+    filename = f'Civik_India_Complaints_Export_{utc_now().strftime("%Y%m%d_%H%M%S")}.pdf'
     return Response(
         pdf_out,
         mimetype='application/pdf',
@@ -1259,7 +1259,7 @@ def export_audit_logs_json():
         })
     
     json_data = json_mod.dumps(chain, indent=2, ensure_ascii=False)
-    filename = f'CivikIndia_Audit_Log_{utc_now().strftime("%Y%m%d_%H%M%S")}.json'
+    filename = f'Civik_India_Audit_Log_{utc_now().strftime("%Y%m%d_%H%M%S")}.json'
     
     log_action('AUDIT_CHAIN_EXPORTED', details={'format': 'json', 'records': len(chain)})
     
@@ -1296,7 +1296,7 @@ def export_audit_logs_csv():
     
     csv_data = output.getvalue()
     output.close()
-    filename = f'CivikIndia_Audit_Log_{utc_now().strftime("%Y%m%d_%H%M%S")}.csv'
+    filename = f'Civik_India_Audit_Log_{utc_now().strftime("%Y%m%d_%H%M%S")}.csv'
     
     log_action('AUDIT_CHAIN_EXPORTED', details={'format': 'csv', 'records': len(logs)})
     

@@ -1,5 +1,5 @@
 """
-CivikIndia Public Routes
+Civik India Public Routes
 Citizen-facing routes - no authentication required.
 """
 import csv
@@ -743,26 +743,26 @@ def about():
 
 @public_bp.route('/contact')
 def contact():
-    """GIGW contact and help desk information."""
+    """Contact and help desk information."""
     return render_template('public/static_page.html', page={
         'title': 'Contact Us',
         'icon': 'fa-headset',
-        'summary': 'Official support channels for portal assistance, accessibility issues, and grievance guidance.',
+        'summary': 'Support channels for Civik India assistance, accessibility issues, and civic awareness guidance.',
         'sections': [
             {
-                'heading': 'Help Desk',
+                'heading': 'Civik India',
                 'items': [
-                    'Email: support@civikindia.gov.in',
-                    'Toll Free: 1800-11-0180',
-                    'Anti-Corruption Helpline: 1064',
-                    'Emergency Assistance: 112',
+                    'Website: https://www.civikindia.online',
+                    'Instagram: @civik.india',
+                    'Instagram URL: https://www.instagram.com/civik.india',
+                    'Email: support@civikindia.online',
                 ],
             },
             {
-                'heading': 'Office Hours',
+                'heading': 'Important Disclaimer',
                 'items': [
-                    'Monday to Saturday: 9:00 AM to 6:00 PM',
-                    'CivikIndia — Civic Accountability Platform, Main Civic Office',
+                    'Civik India is an independent public awareness initiative and is not affiliated with any government department, political party, or law enforcement authority.',
+                    'Emergency or immediate safety matters should be reported to the appropriate official emergency channels.',
                 ],
             },
         ],
@@ -775,7 +775,7 @@ def privacy():
     return render_template('public/static_page.html', page={
         'title': 'Privacy Policy',
         'icon': 'fa-user-shield',
-        'summary': 'CivikIndia follows data minimisation and purpose limitation for grievance processing.',
+        'summary': 'Civik India follows data minimisation and purpose limitation for civic issue processing.',
         'sections': [
             {
                 'heading': 'Information Collection',
@@ -802,7 +802,7 @@ def terms():
     return render_template('public/static_page.html', page={
         'title': 'Terms of Use',
         'icon': 'fa-scale-balanced',
-        'summary': 'Conditions for using the portal as an official municipal grievance channel.',
+        'summary': 'Conditions for using Civik India as an independent civic awareness and accountability platform.',
         'sections': [
             {
                 'heading': 'Acceptable Use',
@@ -815,7 +815,7 @@ def terms():
             {
                 'heading': 'Service Scope',
                 'items': [
-                    'The portal supports complaint intake, tracking, analytics, and administrative workflow.',
+                    'The portal supports civic issue intake, tracking, analytics, and awareness workflows.',
                     'Emergency matters should also be reported through the appropriate emergency helpline.',
                 ],
             },
@@ -831,17 +831,17 @@ def how_it_works():
 
 @public_bp.route('/disclaimer')
 def disclaimer():
-    """Government website disclaimer page."""
+    """Independent initiative disclaimer page."""
     return render_template('public/static_page.html', page={
         'title': 'Disclaimer',
         'icon': 'fa-circle-info',
-        'summary': 'Information on this portal is provided for grievance facilitation and public transparency.',
+        'summary': 'Civik India is an independent public awareness initiative.',
         'sections': [
             {
-                'heading': 'Official Use',
+                'heading': 'Independent Status',
                 'items': [
-                    'Every effort is made to keep information accurate and current.',
-                    'Administrative decisions are taken by authorised officers according to applicable rules.',
+                    'Civik India is an independent public awareness initiative and is not affiliated with any government department, political party, or law enforcement authority.',
+                    'Information on this portal is provided for civic awareness, public accountability, and issue tracking support.',
                     'External links, where present, are provided for convenience and are not endorsements.',
                 ],
             },
@@ -851,11 +851,11 @@ def disclaimer():
 
 @public_bp.route('/accessibility')
 def accessibility_statement():
-    """GIGW accessibility statement."""
+    """Accessibility statement."""
     return render_template('public/static_page.html', page={
         'title': 'Accessibility Statement',
         'icon': 'fa-universal-access',
-        'summary': 'CivikIndia is being upgraded toward WCAG 2.1 Level AA and GIGW accessibility expectations.',
+        'summary': 'Civik India is being upgraded toward WCAG 2.1 Level AA accessibility expectations.',
         'sections': [
             {
                 'heading': 'Accessibility Measures',
@@ -863,7 +863,7 @@ def accessibility_statement():
                     'Skip-to-content navigation is available as the first focusable control.',
                     'Keyboard-visible focus indicators are provided for interactive elements.',
                     'Pages use semantic landmarks including header, nav, main, and footer.',
-                    'Feedback about accessibility barriers can be sent to support@civikindia.gov.in.',
+                    'Feedback about accessibility barriers can be sent to support@civikindia.online.',
                 ],
             },
         ],
@@ -892,7 +892,7 @@ def screen_reader_access():
 
 @public_bp.route('/website-policies')
 def website_policies():
-    """GIGW website policies page."""
+    """Website policies page."""
     return render_template('public/static_page.html', page={
         'title': 'Website Policies',
         'icon': 'fa-file-contract',
@@ -932,7 +932,7 @@ def help_page():
 
 @public_bp.route('/sitemap')
 def sitemap():
-    """Human-readable sitemap required by GIGW navigation guidance."""
+    """Human-readable sitemap for public navigation."""
     sitemap_sections = [
         {
             'heading': 'Citizen Services',
@@ -948,7 +948,7 @@ def sitemap():
             'links': [
                 ('Public Dashboard', 'public.public_dashboard'),
                 ('Geo Heatmap', 'public.geo_heatmap'),
-                ('About CivikIndia', 'public.about'),
+                ('About Civik India', 'public.about'),
             ],
         },
         {
@@ -971,7 +971,7 @@ def sitemap():
 @public_bp.route('/favicon.ico')
 def favicon():
     """Serve site favicon through static asset pipeline."""
-    return redirect(url_for('static', filename='favicon.svg'))
+    return redirect(url_for('static', filename='brand/favicon.ico'))
 
 
 @public_bp.route('/geo-heatmap')
@@ -1289,8 +1289,8 @@ def complaint_receipt_pdf(tracking_id):
     )
     
     # Header
-    elements.append(Paragraph("CivikIndia — Civic Grievance & Accountability Portal", header_style))
-    elements.append(Paragraph("Government of India | भारत सरकार", subtitle_style))
+    elements.append(Paragraph("Civik India — Citizen Voice Against Corruption", header_style))
+    elements.append(Paragraph("Independent public awareness initiative", subtitle_style))
     elements.append(Spacer(1, 12))
     
     # Tracking ID (prominent)
@@ -1364,7 +1364,7 @@ def complaint_receipt_pdf(tracking_id):
     pdf_data = buffer.getvalue()
     buffer.close()
     
-    filename = f'CivikIndia_Receipt_{tracking_id}.pdf'
+    filename = f'Civik_India_Receipt_{tracking_id}.pdf'
     return Response(
         pdf_data,
         mimetype='application/pdf',
@@ -1947,7 +1947,7 @@ def ai_assist():
 
     if assistant_mode == 'homepage':
         system_prompt = (
-            "You are the homepage help chatbot for CivikIndia — Civic Grievance & Accountability Portal. "
+            "You are the homepage help chatbot for Civik India — Citizen Voice Against Corruption. "
             "Help citizens use the portal effectively. "
             "Be concise, practical, and neutral. "
             "Do not request or encourage sharing personal identifiers. "

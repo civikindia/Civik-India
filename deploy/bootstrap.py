@@ -158,7 +158,7 @@ def ensure_sla_policies():
 
 def ensure_admin():
     username = os.environ.get("DEFAULT_ADMIN_USERNAME", "admin")
-    email = os.environ.get("DEFAULT_ADMIN_EMAIL", "admin@civikindia.gov.in")
+    email = os.environ.get("DEFAULT_ADMIN_EMAIL", "admin@civikindia.online")
 
     admin = User.query.filter_by(username=username).first()
     if admin is not None:
@@ -177,7 +177,7 @@ def ensure_admin():
 
 def ensure_default_officer():
     username = os.environ.get("DEFAULT_OFFICER_USERNAME", "officer_water")
-    email = os.environ.get("DEFAULT_OFFICER_EMAIL", "officer_water@civikindia.gov.in")
+    email = os.environ.get("DEFAULT_OFFICER_EMAIL", "officer_water@civikindia.online")
     department_name = os.environ.get("DEFAULT_OFFICER_DEPARTMENT", "Water Supply")
 
     officer = User.query.filter_by(username=username).first()

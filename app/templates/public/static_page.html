@@ -38,7 +38,15 @@
                             <h2 id="section-{{ loop.index }}" class="h5 fw-semibold mb-3">{{ section.heading }}</h2>
                             <ul class="text-muted mb-0">
                                 {% for item in section['items'] %}
-                                <li class="mb-2">{{ item }}</li>
+                                <li class="mb-2">
+                                    {% if item.startswith('Website: https://www.civikindia.online') %}
+                                        Website: <a href="https://www.civikindia.online">civikindia.online</a>
+                                    {% elif item.startswith('Instagram URL: https://www.instagram.com/civik.india') %}
+                                        Instagram URL: <a href="https://www.instagram.com/civik.india" target="_blank" rel="noopener noreferrer">https://www.instagram.com/civik.india</a>
+                                    {% else %}
+                                        {{ item }}
+                                    {% endif %}
+                                </li>
                                 {% endfor %}
                             </ul>
                         </section>

@@ -1,5 +1,5 @@
-Government of India
-CivikIndia SLA Escalation Notice
+Civik India
+SLA Escalation Notice
 
 Complaint {{ complaint.tracking_id }} has breached SLA and escalated to L{{ escalation_level }}.
 

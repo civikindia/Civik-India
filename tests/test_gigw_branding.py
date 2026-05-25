@@ -1,5 +1,5 @@
 """
-GIGW branding and shared layout smoke tests.
+Civik India branding and shared layout smoke tests.
 """
 import pytest
 
@@ -21,16 +21,17 @@ def client(app):
     return app.test_client()
 
 
-def test_gigw_header_and_footer_render_on_public_page(client):
+def test_brand_header_and_footer_render_on_public_page(client):
     response = client.get('/about')
 
     assert response.status_code == 200
     assert b'breadcrumb' in response.data
     assert b'About' in response.data
-    assert b'Government of India' in response.data
-    assert 'भारत सरकार'.encode('utf-8') in response.data
-    assert 'सत्यमेव जयते'.encode('utf-8') in response.data
-    assert b'CivikIndia' in response.data or b'Municipal Governance Department' in response.data
+    assert b'Civik India' in response.data
+    assert b'Civik India logo' in response.data
+    assert b'Independent Public Awareness Initiative' in response.data
+    assert b'@civik.india' in response.data
+    assert b'Not a government website' in response.data
     assert b'Anti-Corruption Helpline' in response.data
     assert b'1064' in response.data
     assert b'1800-11-0180' in response.data
@@ -42,7 +43,7 @@ def test_gigw_header_and_footer_render_on_public_page(client):
     assert b'Sitemap' in response.data
 
 
-def test_gigw_static_information_pages_load(client):
+def test_static_information_pages_load(client):
     pages = [
         '/sitemap',
         '/disclaimer',

@@ -3,13 +3,13 @@
         <div class="container d-flex align-items-center justify-content-between gap-3">
             <div class="gov-identity-left">
                 <span class="gov-emblem" aria-hidden="true">IN</span>
-                <span>{{ _('Government of India') }}</span>
+                <span>{{ _('Independent Public Awareness Initiative') }}</span>
                 <span class="identity-separator" aria-hidden="true">|</span>
-                <span lang="hi">भारत सरकार</span>
+                <span>{{ _('Youth-led civic accountability') }}</span>
                 <span class="identity-separator d-none d-md-inline" aria-hidden="true">|</span>
-                <span class="d-none d-md-inline" lang="hi">सत्यमेव जयते</span>
+                <span class="d-none d-md-inline">{{ _('Not a government website') }}</span>
                 <span class="identity-separator d-none d-lg-inline" aria-hidden="true">|</span>
-                <span class="d-none d-lg-inline">{{ _('CivikIndia — Civic Accountability Platform') }}</span>
+                <span class="d-none d-lg-inline">{{ _('Civik India — Youth-Led Civic Awareness Platform') }}</span>
                 <span class="visually-hidden">{{ _('Anti-Corruption Helpline') }}: 1064</span>
             </div>
             <div class="d-flex align-items-center gap-2">
@@ -23,7 +23,7 @@
                         <i class="bi bi-circle-half"></i>
                     </button>
                 </div>
-                
+
                 <div class="gov-language-pills" aria-label="{{ _('Language selection') }}">
                     {% for code, language in supported_languages.items() %}
                         {% if code in ['en', 'hi'] %}
@@ -49,12 +49,14 @@
                 {% else %}
                     {% set brand_href = url_for('public.index') %}
                 {% endif %}
-                <a class="portal-brand" href="{{ brand_href }}" aria-label="{{ _('CivikIndia home') }}">
-                    <span class="portal-shield" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
+                <a class="portal-brand" href="{{ brand_href }}" aria-label="{{ _('Civik India home') }}">
+                    <span class="portal-shield brand-logo-shell">
+                        <img src="{{ url_for('static', filename='brand/logo-mark.png') }}" alt="{{ _('Civik India logo') }}">
+                    </span>
                     <span class="portal-copy">
-                        <span class="portal-title">CivikIndia</span>
-                        <span class="portal-title-hi" lang="hi">{{ _('सिविकइंडिया — नागरिक शिकायत एवं जवाबदेही पोर्टल') }}</span>
-                        <span class="portal-subtitle">CivikIndia | Report. Track. Demand Accountability.</span>
+                        <span class="portal-title">Civik India</span>
+                        <span class="portal-title-hi">{{ _('Citizen Voice Against Corruption') }}</span>
+                        <span class="portal-subtitle">Civik India | Voice. Accountability. Justice.</span>
                     </span>
                 </a>
 
@@ -116,7 +118,7 @@
                             {% else %}
                                 <li><a class="{% if request.endpoint and request.endpoint.startswith('officer.') %}active{% endif %}" href="{{ url_for('officer.dashboard') }}"><i class="bi bi-speedometer2"></i>{{ _('Staff Dashboard') }}</a></li>
                             {% endif %}
-                            
+
                             <li class="dropdown">
                                 <a class="dropdown-toggle staff-menu" href="#" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-person-circle"></i>{{ session.username }}</a>
                                 <ul class="dropdown-menu dropdown-menu-end">

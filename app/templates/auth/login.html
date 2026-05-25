@@ -6,9 +6,11 @@
 <section class="staff-login-page">
     <div class="login-left-panel">
         <div class="login-panel-content">
-            <span class="portal-shield large" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
-            <h1>CivikIndia — Civic Grievance &amp; Accountability Portal</h1>
-            <p>Secure operational access for officers and administrators handling public grievance workflows.</p>
+            <span class="portal-shield large brand-logo-shell">
+                <img src="{{ url_for('static', filename='brand/logo-mark.png') }}" alt="Civik India logo">
+            </span>
+            <h1>Civik India — Citizen Voice Against Corruption</h1>
+            <p>Secure operational access for staff handling civic awareness, complaint review, and accountability workflows.</p>
             <ul>
                 <li><i class="bi bi-check-circle"></i>Review, assign, and resolve complaints</li>
                 <li><i class="bi bi-check-circle"></i>Monitor SLA deadlines and escalations</li>
@@ -19,7 +21,7 @@
     </div>
     <div class="login-right-panel">
         <div class="login-form-wrap">
-            <h2>CivikIndia Staff Portal</h2>
+            <h2>Civik India Staff Portal</h2>
             <p class="text-muted mb-4">Officers and Administrators</p>
             <form method="POST" action="{{ url_for('auth.login') }}" class="login-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

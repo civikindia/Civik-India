@@ -1,5 +1,5 @@
 /**
- * CivikIndia — Civic Grievance & Accountability Portal
+ * Civik India — Citizen Voice Against Corruption
  * Main JavaScript File
  */
 
@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             fn();
         } catch (err) {
-            console.error('[CivikIndia]', name, err);
+            console.error('[Civik India]', name, err);
         }
     }
 
@@ -628,7 +628,7 @@ window.MIBSP = {
 };
 
 /**
- * Initialize GIGW Accessibility Controls (Font size scaling & Contrast mode)
+ * Initialize Accessibility Controls (Font size scaling & Contrast mode)
  */
 function initAccessibilityControls() {
     const htmlEl = document.documentElement;

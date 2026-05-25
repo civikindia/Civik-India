@@ -1,8 +1,11 @@
-const CACHE_NAME = 'civikindia-v1';
+const CACHE_NAME = 'civikindia-v2';
 const CORE_ASSETS = [
   '/',
   '/static/manifest.json',
-  '/static/favicon.svg',
+  '/static/brand/favicon.ico',
+  '/static/brand/logo-mark.png',
+  '/static/brand/pwa-192.png',
+  '/static/brand/pwa-512.png',
   '/static/css/mibsp-tokens.css',
   '/static/css/style.css',
   '/static/vendor/bootstrap-icons/bootstrap-icons.css',

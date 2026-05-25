@@ -1,6 +1,6 @@
-# CivikIndia Public Deployment Guide
+# Civik India Public Deployment Guide
 
-This guide deploys CivikIndia on a low-budget stack:
+This guide deploys Civik India on a low-budget stack:
 
 - Koyeb web service first
 - Render web service as fallback

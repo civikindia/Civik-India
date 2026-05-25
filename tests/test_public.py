@@ -1,5 +1,5 @@
 """
-CivikIndia Public Routes Tests
+Civik India Public Routes Tests
 Tests for citizen-facing functionality.
 """
 import io
@@ -51,7 +51,7 @@ class TestHomepage:
         """Test homepage loads successfully."""
         response = client.get('/')
         assert response.status_code == 200
-        assert b'CivikIndia' in response.data or b'MIBSP' in response.data
+        assert b'Civik India' in response.data
     
     def test_homepage_shows_stats(self, client):
         """Test homepage shows statistics."""
@@ -70,7 +70,7 @@ class TestHomepage:
         """Test about page loads successfully."""
         response = client.get('/about')
         assert response.status_code == 200
-        assert b'CivikIndia' in response.data or b'MIBSP' in response.data
+        assert b'Civik India' in response.data
         assert b'breadcrumb' in response.data
 
     def test_nav_includes_information_links(self, client):

@@ -1,7 +1,7 @@
 {
-  "name": "CivikIndia — Civic Grievance & Accountability Portal",
-  "short_name": "CivikIndia",
-  "description": "Report civic complaints anonymously and track government accountability transparently.",
+  "name": "Civik India — Citizen Voice Against Corruption",
+  "short_name": "Civik India",
+  "description": "Youth-led public awareness platform for civic accountability, anti-corruption awareness, and public service issue tracking.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -10,9 +10,14 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/static/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "/static/brand/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/brand/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }

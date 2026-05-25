@@ -1,5 +1,5 @@
-Government of India
-CivikIndia Status Update
+Civik India
+Status Update
 
 Complaint {{ complaint.tracking_id if complaint else '' }} is now {{ new_status }}.
 

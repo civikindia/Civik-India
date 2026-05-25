@@ -17,17 +17,29 @@
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{{ _('CivikIndia — Report civic issues anonymously. Track complaints. Demand government accountability.') }}">
+    <meta name="description" content="{{ _('Civik India is a youth-led public awareness platform helping citizens raise their voice against corruption, bribery, and public service issues.') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#006B3C">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="{{ _('CivikIndia') }}">
+    <meta name="apple-mobile-web-app-title" content="{{ _('Civik India') }}">
+    <link rel="canonical" href="https://www.civikindia.online{{ request.path }}">
+    <meta property="og:site_name" content="Civik India">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.civikindia.online{{ request.path }}">
+    <meta property="og:title" content="{{ _('Civik India | Public Awareness & Civic Accountability') }}">
+    <meta property="og:description" content="{{ _('Civik India is a youth-led public awareness platform helping citizens raise their voice against corruption, bribery, and public service issues.') }}">
+    <meta property="og:image" content="https://www.civikindia.online/static/brand/logo.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ _('Civik India | Public Awareness & Civic Accountability') }}">
+    <meta name="twitter:description" content="{{ _('Civik India is a youth-led public awareness platform helping citizens raise their voice against corruption, bribery, and public service issues.') }}">
+    <meta name="twitter:image" content="https://www.civikindia.online/static/brand/logo.png">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <link rel="icon" type="image/svg+xml" sizes="16x16 32x32 any" href="{{ url_for('static', filename='favicon.svg') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="icon" type="image/x-icon" sizes="any" href="{{ url_for('static', filename='brand/favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='brand/pwa-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand/apple-touch-icon.png') }}">
 
-    <title>{% block title %}{{ _('CivikIndia') }}{% endblock %} | CivikIndia | {{ _('Civic Grievance & Accountability Portal') }}</title>
+    <title>{% block title %}{{ _('Civik India') }}{% endblock %} | Civik India | {{ _('Citizen Voice Against Corruption') }}</title>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
@@ -55,16 +67,24 @@
                 <div class="row g-4 align-items-start">
                     <div class="col-lg-5">
                         <div class="footer-brand d-flex align-items-start gap-3">
-                            <span class="footer-shield" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
+                            <span class="footer-shield brand-logo-shell">
+                                <img src="{{ url_for('static', filename='brand/logo-mark.png') }}" alt="{{ _('Civik India logo') }}" loading="lazy">
+                            </span>
                             <div>
-                                <h2 id="site-footer-heading" class="h5 mb-2">CivikIndia</h2>
-                                <p class="mb-0">{{ _("India's civic grievance platform — report anonymously, track transparently, demand accountability.") }}</p>
+                                <h2 id="site-footer-heading" class="h5 mb-2">Civik India</h2>
+                                <p class="mb-2">{{ _('Public awareness and civic accountability platform.') }}</p>
+                                <div class="footer-brand-links">
+                                    <a href="https://www.civikindia.online">civikindia.online</a>
+                                    <span aria-hidden="true">|</span>
+                                    <a href="https://www.instagram.com/civik.india" target="_blank" rel="noopener noreferrer">@civik.india</a>
+                                </div>
+                                <p class="footer-disclaimer mb-0">{{ _('Independent public awareness initiative. Not a government website.') }}</p>
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-4 col-lg-2"><div class="footer-helpline"><span>{{ _('Anti-Corruption') }}</span><strong>1064</strong></div></div>
-                    <div class="col-sm-4 col-lg-2"><div class="footer-helpline"><span>{{ _('Vigilance') }}</span><strong>1800-11-0180</strong></div></div>
-                    <div class="col-sm-4 col-lg-3"><div class="footer-helpline"><span>{{ _('Emergency') }}</span><strong>112</strong></div></div>
+                    <div class="col-sm-4 col-lg-2"><div class="footer-helpline"><span>{{ _('Website') }}</span><strong>civikindia.online</strong></div></div>
+                    <div class="col-sm-4 col-lg-2"><div class="footer-helpline"><span>{{ _('Instagram') }}</span><strong>@civik.india</strong></div></div>
+                    <div class="col-sm-4 col-lg-3"><div class="footer-helpline"><span>{{ _('Focus') }}</span><strong>{{ _('Voice. Accountability. Justice.') }}</strong></div></div>
                 </div>
             </div>
         </div>
@@ -103,8 +123,8 @@
                         <ul>
                             <li><a href="{{ url_for('public.contact') }}">{{ _('Contact Us') }}</a></li>
                             <li><a href="{{ url_for('auth.login') }}">{{ _('Staff Login') }}</a></li>
-                            <li><a href="mailto:support@civikindia.gov.in">support@civikindia.gov.in</a></li>
-                            <li>{{ _('Office Hours') }}: 10:00-17:00</li>
+                            <li><a href="mailto:support@civikindia.online">support@civikindia.online</a></li>
+                            <li><a href="https://www.instagram.com/civik.india" target="_blank" rel="noopener noreferrer">@civik.india</a></li>
                         </ul>
                     </div>
                 </div>
@@ -112,8 +132,8 @@
         </div>
         <div class="gov-footer-bottom">
             <div class="container d-flex flex-column flex-md-row justify-content-between gap-2">
-                <span>&copy; 2026 {{ _('CivikIndia') }}. {{ _('Built for the people of India.') }}</span>
-                <span>{{ _('Last Updated') }}: {{ site_last_updated }} | {{ _('Visitor Counter') }}: {{ '{:,}'.format(visitor_counter) }} | NIC | MeitY</span>
+                <span>&copy; 2026 {{ _('Civik India') }}. {{ _('Independent public awareness initiative.') }}</span>
+                <span>{{ _('Last Updated') }}: {{ site_last_updated }} | {{ _('Visitor Counter') }}: {{ '{:,}'.format(visitor_counter) }}</span>
             </div>
         </div>
     </footer>

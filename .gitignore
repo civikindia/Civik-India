@@ -71,6 +71,9 @@ app/static/uploads/
 *.jpg
 *.jpeg
 !app/static/img/
+!app/static/brand/
+!app/static/brand/*.png
+!app/static/brand/*.ico
 !app/static/vendor/leaflet/images/*.png
 
 # Logs

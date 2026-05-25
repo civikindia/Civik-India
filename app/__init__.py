@@ -103,7 +103,7 @@ def create_app(config_name=None):
 
     @app.before_request
     def track_public_visit():
-        """Maintain a lightweight visitor count for the GIGW footer."""
+        """Maintain a lightweight visitor count for the public footer."""
         if (
             request.method == 'GET'
             and request.endpoint
@@ -131,7 +131,7 @@ def create_app(config_name=None):
 
     @app.after_request
     def add_security_headers(response):
-        """Add GIGW mandated security headers."""
+        """Add baseline security headers."""
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'

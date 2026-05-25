@@ -1,6 +1,6 @@
 /*
- * CivikIndia — Civic Grievance & Accountability Portal
- * Government-grade UI theme
+ * Civik India — Citizen Voice Against Corruption
+ * Public awareness platform UI theme
  */
 
 /* ==========================================================================
@@ -107,7 +107,7 @@ h6 {
 }
 
 /* ==========================================================================
-   Government Header and Navigation
+   Public Header and Navigation
    ========================================================================== */
 .gov-header {
     background: #ffffff;
@@ -2424,7 +2424,7 @@ textarea:focus-visible,
     }
 }
 /* ==========================================================================
-   CivikIndia Government UI/UX Upgrade Layer
+   Civik India UI/UX Upgrade Layer
    ========================================================================== */
 
 .gov-header-v2 {
@@ -2529,11 +2529,33 @@ textarea:focus-visible,
   flex: 0 0 auto;
 }
 
+.brand-logo-shell {
+  background: var(--white);
+  border: 1px solid rgba(26, 43, 74, 0.16);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  padding: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.brand-logo-shell img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  border-radius: var(--radius-full);
+}
+
 .portal-shield.large {
   width: 72px;
   height: 72px;
   font-size: 2.25rem;
   background: rgba(255,255,255,0.14);
+}
+
+.portal-shield.large.brand-logo-shell {
+  background: var(--white);
+  padding: 3px;
 }
 
 .portal-copy {
@@ -2748,7 +2770,35 @@ button:focus-visible,
 
 .footer-helpline strong {
   color: var(--gov-navy);
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.footer-brand-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.footer-brand-links a {
+  color: var(--gov-green);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+}
+
+.footer-brand-links a:hover {
+  color: var(--gov-green-mid);
+  text-decoration: underline;
+}
+
+.footer-disclaimer {
+  max-width: 42rem;
+  color: var(--neutral-700);
+  font-size: var(--text-sm);
 }
 
 .gov-footer-links {
@@ -3744,7 +3794,7 @@ button:focus-visible,
 }
 
 /* ==========================================================================
-   GIGW/NIC Compliance Accessibility Controls
+   Accessibility Controls
    ========================================================================== */
 .gov-accessibility-controls {
   display: inline-flex;
@@ -4504,7 +4554,7 @@ html[data-theme="contrast"] .geo-india-map-label span {
 }
 
 /* ==========================================================================
-   CivikIndia Animation Layer
+   Civik India Animation Layer
    ========================================================================== */
 @media (prefers-reduced-motion: no-preference) {
     /* 4.2 — Direction-Aware Reveals inside Hero and Dashboard */
@@ -5290,4 +5340,3 @@ html[data-theme="contrast"] .btn-suggestion {
         animation: pulse-ring-green-slow 3s infinite;
     }
 }
-

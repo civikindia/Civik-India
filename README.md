@@ -1,4 +1,4 @@
-# 🇮🇳 CivikIndia — Civic Grievance & Accountability Portal
+# Civik India — Citizen Voice Against Corruption
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Flask](https://img.shields.io/badge/flask-3.0+-green.svg)](https://flask.palletsprojects.com/)
@@ -225,10 +225,10 @@ docker-compose exec web python deploy/bootstrap.py
 5. Add these required environment variables for first login:
    - `DEFAULT_ADMIN_USERNAME` (default: `admin`)
    - `DEFAULT_ADMIN_PASSWORD`
-   - `DEFAULT_ADMIN_EMAIL` (default: `admin@civikindia.gov.in`)
+   - `DEFAULT_ADMIN_EMAIL` (default: `admin@civikindia.online`)
    - `DEFAULT_OFFICER_USERNAME` (default: `officer_water`)
    - `DEFAULT_OFFICER_PASSWORD`
-   - `DEFAULT_OFFICER_EMAIL` (default: `officer_water@civikindia.gov.in`)
+   - `DEFAULT_OFFICER_EMAIL` (default: `officer_water@civikindia.online`)
 6. Required environment variables:
    - `SECRET_KEY`
    - `FLASK_ENV=production`
@@ -437,7 +437,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-For support, email support@civikindia.gov.in or open an issue on GitHub.
+For support, email support@civikindia.online, follow @civik.india on Instagram, or open an issue on GitHub.
 
 ---
 

@@ -1,5 +1,5 @@
-Government of India
-CivikIndia — Civic Grievance & Accountability Portal
+Civik India
+Citizen Voice Against Corruption
 
 Your complaint has been received.
 
@@ -12,5 +12,5 @@ Status: {{ complaint.status }}
 Track status: {{ track_url }}
 
 Please keep this tracking ID for all future reference.
-Anti-Corruption Helpline: 1064
-Vigilance Helpline: 1800-11-0180
+Website: https://www.civikindia.online
+Instagram: @civik.india

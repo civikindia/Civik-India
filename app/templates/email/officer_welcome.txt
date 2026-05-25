@@ -1,8 +1,8 @@
-Government of India
-CivikIndia Officer Account
-CivikIndia Staff Portal
+Civik India
+Staff Account
+Civik India Staff Portal
 
-Your CivikIndia staff account has been created.
+Your Civik India staff account has been created.
 
 Username: {{ user.username }}
 Role: {{ user.role }}

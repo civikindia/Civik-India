@@ -1,6 +1,6 @@
 """
-CivikIndia Database Models
-All SQLAlchemy models for the CivikIndia — Civic Grievance & Accountability Portal.
+Civik India Database Models
+All SQLAlchemy models for the Civik India civic awareness and accountability platform.
 """
 from datetime import timedelta
 from flask_sqlalchemy import SQLAlchemy
