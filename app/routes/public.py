@@ -510,6 +510,8 @@ def _apply_dashboard_filters(query, filters, date_field=Complaint.submitted_at, 
 
     if filters.get('status'):
         query = query.filter(Complaint.status == filters['status'])
+    else:
+        query = query.filter(Complaint.status.in_(DASHBOARD_STATUSES))
 
     if include_time_window and filters.get('from_month_start') and filters.get('to_month_end'):
         query = query.filter(
@@ -727,7 +729,7 @@ def _compute_top_services(filters, limit=6):
 def index():
     """Homepage with hero section and quick stats."""
     maybe_run_sla_escalations()
-    stats, _, _ = _cached_public_payload('page_home_stats', Complaint.get_stats)
+    stats, _, _ = _cached_public_payload('page_home_stats', lambda: Complaint.get_stats(public=True))
     departments = Department.query.all()
     
     return render_template('public/index.html', 
@@ -1505,6 +1507,7 @@ def public_dashboard():
     # Recent activity (last 30 days)
     thirty_days_ago = utc_now() - timedelta(days=30)
     recent_complaints = Complaint.query.filter(
+        Complaint.status.in_(DASHBOARD_STATUSES),
         Complaint.submitted_at >= thirty_days_ago
     ).order_by(Complaint.submitted_at.desc()).limit(10).all()
     
@@ -1536,7 +1539,7 @@ def get_services(department_id):
 def get_stats():
     """API endpoint for statistics (used by charts)."""
     maybe_run_sla_escalations()
-    return _cached_public_json('stats', Complaint.get_stats)
+    return _cached_public_json('stats', lambda: Complaint.get_stats(public=True))
 
 
 @public_bp.route('/api/dashboard/overview')
@@ -1763,10 +1766,10 @@ def get_sla_compliance_chart_data():
 def public_data_api():
     """Public transparency dataset (aggregate only)."""
     def build_payload():
-        stats = Complaint.get_stats()
+        stats = Complaint.get_stats(public=True)
         departments = []
         for dept in Department.query.all():
-            q = Complaint.query.filter_by(department_id=dept.id)
+            q = Complaint.query.filter_by(department_id=dept.id).filter(Complaint.status.in_(DASHBOARD_STATUSES))
             total = q.count()
             closed = q.filter_by(status='Closed').count()
             delayed = q.filter_by(status='Delayed').count()
@@ -1858,6 +1861,8 @@ def get_geo_heatmap_data():
 
         if geo_filters.get('status'):
             query = query.filter(Complaint.status == geo_filters['status'])
+        else:
+            query = query.filter(Complaint.status.in_(DASHBOARD_STATUSES))
         if geo_filters.get('priority'):
             if geo_filters['priority'] == 'High':
                 query = query.filter(Complaint.priority.in_(['High', 'Urgent']))

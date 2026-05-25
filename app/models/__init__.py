@@ -684,17 +684,22 @@ class Complaint(db.Model):
         return len(escalated)
     
     @staticmethod
-    def get_stats():
+    def get_stats(public=False):
         """Get aggregate statistics for dashboard."""
-        total = Complaint.query.count()
+        if public:
+            public_statuses = ['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed']
+            total = Complaint.query.filter(Complaint.status.in_(public_statuses)).count()
+        else:
+            total = Complaint.query.count()
+
         pending = Complaint.query.filter_by(status='Pending').count()
         under_review = Complaint.query.filter_by(status='Under Review').count()
         action_taken = Complaint.query.filter_by(status='Action Taken').count()
         delayed = Complaint.query.filter_by(status='Delayed').count()
         reopened = Complaint.query.filter_by(status='Reopened').count()
         closed = Complaint.query.filter_by(status='Closed').count()
-        awaiting_review = Complaint.query.filter_by(status='Awaiting Review').count()
-        rejected = Complaint.query.filter_by(status='Rejected').count()
+        awaiting_review = 0 if public else Complaint.query.filter_by(status='Awaiting Review').count()
+        rejected = 0 if public else Complaint.query.filter_by(status='Rejected').count()
         high_priority = Complaint.query.filter(
             Complaint.priority.in_(['High', 'Urgent']),
             Complaint.status.in_(Complaint.ACTIVE_STATUSES)
