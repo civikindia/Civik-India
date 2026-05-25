@@ -11,13 +11,13 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.6
       - key: SECRET_KEY
-        sync: false
+        generateValue: true
       - key: DATABASE_URL
         sync: false
       - key: EVIDENCE_ENCRYPTION_KEY
-        sync: false
+        generateValue: true
       - key: AUDIT_HMAC_SECRET
-        sync: false
+        generateValue: true
       - key: DEFAULT_ADMIN_PASSWORD
         sync: false
       - key: DEFAULT_OFFICER_PASSWORD
@@ -43,7 +43,7 @@ services:
       - key: GOOGLE_SERVICE_ACCOUNT_JSON
         sync: false
       - key: BACKUP_CRON_TOKEN
-        sync: false
+        generateValue: true
       - key: WEB_CONCURRENCY
         value: "1"
       - key: GUNICORN_TIMEOUT

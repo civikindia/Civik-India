@@ -40,7 +40,7 @@ WEB_CONCURRENCY=1
 GUNICORN_TIMEOUT=120
 ```
 
-Use long random values for `SECRET_KEY`, `EVIDENCE_ENCRYPTION_KEY`, `AUDIT_HMAC_SECRET`, `BACKUP_CRON_TOKEN`, `DEFAULT_ADMIN_PASSWORD`, and `DEFAULT_OFFICER_PASSWORD`. `EVIDENCE_ENCRYPTION_KEY` can be a 64-character hex string or another long random secret.
+When deploying from the included Render Blueprint, Render auto-generates `SECRET_KEY`, `EVIDENCE_ENCRYPTION_KEY`, `AUDIT_HMAC_SECRET`, and `BACKUP_CRON_TOKEN`. Use long random values for `DEFAULT_ADMIN_PASSWORD` and `DEFAULT_OFFICER_PASSWORD`. `EVIDENCE_ENCRYPTION_KEY` can be a 64-character hex string or another long random secret if you set it manually outside the Blueprint flow.
 
 ## A. Neon PostgreSQL
 
