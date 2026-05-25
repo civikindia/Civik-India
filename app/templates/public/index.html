@@ -2,6 +2,35 @@
 
 {% block title %}{{ _('Home') }}{% endblock %}
 
+{% block extra_css %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Civik India",
+  "url": "https://www.civikindia.online",
+  "description": "Civik India is a youth-led public awareness platform helping citizens raise their voice against corruption, bribery, and public service issues.",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://www.civikindia.online/track?tracking_id={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Civik India",
+  "url": "https://www.civikindia.online",
+  "logo": "https://www.civikindia.online/static/brand/logo.png",
+  "sameAs": [
+    "https://www.instagram.com/civik.india"
+  ]
+}
+</script>
+{% endblock %}
+
 {% block content %}
 {% set total = stats.total or 0 %}
 {% set closed = stats.closed or 0 %}

@@ -932,6 +932,66 @@ def help_page():
     })
 
 
+@public_bp.route('/robots.txt')
+def robots_txt():
+    """Generate robots.txt rules dynamically."""
+    rules = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /admin/\n"
+        "Disallow: /officer/\n"
+        "Disallow: /auth/\n"
+        "Disallow: /internal/\n"
+        "Disallow: /api/\n"
+        "\n"
+        "Sitemap: https://www.civikindia.online/sitemap.xml\n"
+    )
+    return Response(rules, mimetype='text/plain')
+
+
+@public_bp.route('/sitemap.xml')
+def sitemap_xml():
+    """Generate XML sitemap dynamically for search engine crawlers."""
+    pages = []
+    static_urls = [
+        ('public.index', 1.0, 'daily'),
+        ('public.about', 0.8, 'monthly'),
+        ('public.how_it_works', 0.8, 'monthly'),
+        ('public.contact', 0.7, 'monthly'),
+        ('public.submit_complaint', 0.9, 'weekly'),
+        ('public.track_complaint', 0.9, 'daily'),
+        ('public.public_dashboard', 0.9, 'daily'),
+        ('public.geo_heatmap', 0.8, 'daily'),
+        ('public.help_page', 0.7, 'monthly'),
+        ('public.privacy', 0.3, 'yearly'),
+        ('public.terms', 0.3, 'yearly'),
+        ('public.disclaimer', 0.3, 'yearly'),
+        ('public.website_policies', 0.3, 'yearly'),
+    ]
+    
+    for endpoint, priority, changefreq in static_urls:
+        url = url_for(endpoint, _external=True, _scheme='https')
+        pages.append({
+            'loc': url,
+            'priority': priority,
+            'changefreq': changefreq,
+            'lastmod': utc_now().strftime('%Y-%m-%d')
+        })
+        
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for page in pages:
+        xml += '  <url>\n'
+        xml += f"    <loc>{page['loc']}</loc>\n"
+        xml += f"    <lastmod>{page['lastmod']}</lastmod>\n"
+        xml += f"    <changefreq>{page['changefreq']}</changefreq>\n"
+        xml += f"    <priority>{page['priority']}</priority>\n"
+        xml += '  </url>\n'
+    xml += '</urlset>\n'
+    
+    return Response(xml, mimetype='application/xml')
+
+
 @public_bp.route('/sitemap')
 def sitemap():
     """Human-readable sitemap for public navigation."""
