@@ -138,7 +138,9 @@ def dashboard():
 @admin_required
 def review_inbox():
     # Fetch complaints in 'Awaiting Review' status, ordered by submitted_at (oldest first)
-    complaints = Complaint.query.filter_by(status='Awaiting Review').order_by(Complaint.submitted_at.asc()).all()
+    complaints = Complaint.query.filter_by(status='Awaiting Review')\
+        .options(joinedload(Complaint.evidence_files))\
+        .order_by(Complaint.submitted_at.asc()).all()
     return render_template('admin/review_inbox.html', complaints=complaints)
 
 
@@ -473,7 +475,9 @@ def complaints():
 def complaint_detail(tracking_id):
     """View complaint details as admin."""
     maybe_run_sla_escalations()
-    complaint = Complaint.query.filter_by(tracking_id=tracking_id).first_or_404()
+    complaint = Complaint.query.filter_by(tracking_id=tracking_id)\
+        .options(joinedload(Complaint.evidence_files))\
+        .first_or_404()
     
     # Get audit logs for this complaint
     audit_logs = AuditLog.query.filter(
@@ -612,6 +616,41 @@ def download_evidence(tracking_id):
         current_app.logger.error(f'Evidence download error: {str(e)}')
         flash('Error downloading evidence file.', 'danger')
         return redirect(url_for('admin.complaint_detail', tracking_id=tracking_id))
+
+
+@admin_bp.route('/complaint/<path:tracking_id>/evidence/preview')
+@admin_required
+def preview_evidence(tracking_id):
+    """
+    Stream evidence file inline for in-browser preview (image, PDF, video).
+    Uses Content-Disposition: inline instead of attachment.
+    Only accessible to authenticated admins.
+    """
+    from app.models import EvidenceFile
+    from app.utils import evidence_preview_response
+
+    complaint = Complaint.query.filter_by(tracking_id=tracking_id).first_or_404()
+
+    if not complaint.evidence_path:
+        abort(404)
+
+    evidence_file = EvidenceFile.query.filter_by(complaint_id=complaint.id).first()
+    if not evidence_file:
+        abort(404)
+
+    try:
+        response = evidence_preview_response(evidence_file, tracking_id)
+        log_action('EVIDENCE_PREVIEWED', details={
+            'tracking_id': tracking_id,
+            'filename': evidence_file.original_filename,
+            'mime_type': evidence_file.mime_type
+        })
+        return response
+    except FileNotFoundError:
+        abort(404)
+    except Exception as e:
+        current_app.logger.error(f'Evidence preview error: {str(e)}')
+        abort(500)
 
 
 @admin_bp.route("/officers")

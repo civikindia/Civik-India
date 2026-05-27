@@ -331,6 +331,11 @@ class Complaint(db.Model):
     
     reviewed_by = db.relationship('User', foreign_keys=[reviewed_by_id])
     
+    evidence_files = db.relationship('EvidenceFile',
+                                      foreign_keys='EvidenceFile.complaint_id',
+                                      primaryjoin='Complaint.id == EvidenceFile.complaint_id',
+                                      overlaps='complaint')
+    
     # Valid status transitions
     VALID_STATUSES = ['Awaiting Review', 'Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed', 'Rejected']
     ACTIVE_STATUSES = ['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened'] # Awaiting Review & Rejected are NOT active

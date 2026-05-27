@@ -385,6 +385,37 @@ def evidence_download_response(evidence_file, tracking_id):
     return response
 
 
+def evidence_preview_response(evidence_file, tracking_id):
+    """
+    Build a secure backend-streamed INLINE response for an EvidenceFile.
+    Used for in-browser preview (images, PDFs, videos).
+    Unlike evidence_download_response, this uses Content-Disposition: inline.
+    """
+    from app.storage import get_storage
+
+    storage_key = evidence_file.storage_key or evidence_file.storage_path
+    storage_provider = evidence_file.storage_provider or 'local'
+    storage = get_storage(storage_provider)
+    with storage.open_file(storage_key) as stored_file:
+        payload = stored_file.read()
+
+    if evidence_file.encryption_iv:
+        payload = decrypt_evidence_bytes(payload, evidence_file.encryption_iv)
+
+    # Safe filename for Content-Disposition
+    safe_name = evidence_file.original_filename or f'evidence_{tracking_id}'
+    mime_type = evidence_file.mime_type or 'application/octet-stream'
+
+    response = Response(payload, mimetype=mime_type)
+    # KEY DIFFERENCE: inline instead of attachment — allows browser rendering
+    response.headers['Content-Disposition'] = f'inline; filename="{safe_name}"'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Cache-Control'] = 'no-store, private'
+    # Security: prevent embedding in third-party frames
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    return response
+
+
 # =============================================================================
 # AUDIT LOG HELPER
 # =============================================================================

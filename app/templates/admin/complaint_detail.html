@@ -121,12 +121,93 @@
           </div>
 
           {% if complaint.evidence_path %}
+          {% set ev = complaint.evidence_files[0] if complaint.evidence_files else none %}
           <div class="mt-3">
-            <p class="mb-1 text-muted small">Evidence File</p>
+            <p class="mb-2 text-muted small fw-semibold"><i class="bi bi-paperclip me-1"></i>Evidence File</p>
+            
+            {% if ev %}
+            <div class="evidence-preview-panel rounded border overflow-hidden">
+              
+              <!-- File metadata bar -->
+              <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
+                <div>
+                  <strong class="small">{{ ev.original_filename or 'Evidence File' }}</strong>
+                  <span class="text-muted small ms-2">{{ ev.mime_type or 'Unknown type' }}</span>
+                  {% if ev.byte_size %}
+                  <span class="text-muted small ms-2">
+                    ({{ (ev.byte_size / 1024)|round(1) }} KB)
+                  </span>
+                  {% endif %}
+                </div>
+                <a href="{{ url_for('admin.download_evidence', tracking_id=complaint.tracking_id) }}"
+                   class="btn btn-outline-secondary btn-sm">
+                  <i class="bi bi-download me-1"></i>Download
+                </a>
+              </div>
+
+              <!-- Inline preview area -->
+              <div class="evidence-inline-viewer bg-dark"
+                   style="min-height: 240px; display:flex; align-items:center; justify-content:center;">
+                
+                {% if ev.mime_type and ev.mime_type.startswith('image/') %}
+                  <!-- IMAGE -->
+                  <img src="{{ url_for('admin.preview_evidence', tracking_id=complaint.tracking_id) }}"
+                       alt="Evidence: {{ ev.original_filename }}"
+                       class="img-fluid"
+                       style="max-height: 400px; object-fit: contain; display: block; margin: auto; padding: 12px;"
+                       loading="lazy">
+
+                {% elif ev.mime_type == 'application/pdf' %}
+                  <!-- PDF -->
+                  <iframe
+                    src="{{ url_for('admin.preview_evidence', tracking_id=complaint.tracking_id) }}"
+                    title="Evidence PDF"
+                    sandbox="allow-scripts allow-same-origin"
+                    style="width:100%; height:480px; border:none; display:block;">
+                  </iframe>
+
+                {% elif ev.mime_type and ev.mime_type.startswith('video/') %}
+                  <!-- VIDEO -->
+                  <video controls preload="metadata"
+                         style="max-width:100%; max-height:400px; display:block; margin:auto; background:#000;">
+                    <source src="{{ url_for('admin.preview_evidence', tracking_id=complaint.tracking_id) }}"
+                            type="{{ ev.mime_type }}">
+                    Your browser does not support video playback.
+                  </video>
+
+                {% elif ev.mime_type and ev.mime_type.startswith('audio/') %}
+                  <!-- AUDIO -->
+                  <div class="text-center py-4 text-white">
+                    <i class="bi bi-file-music display-2 mb-3 d-block text-white-50"></i>
+                    <p class="small text-white-50 mb-3">{{ ev.original_filename }}</p>
+                    <audio controls style="width: 90%; max-width: 420px;">
+                      <source src="{{ url_for('admin.preview_evidence', tracking_id=complaint.tracking_id) }}"
+                              type="{{ ev.mime_type }}">
+                      Your browser does not support audio playback.
+                    </audio>
+                  </div>
+
+                {% else %}
+                  <!-- DOCUMENT or UNKNOWN — no inline preview -->
+                  <div class="text-center py-4 text-white">
+                    <i class="bi bi-file-earmark-text display-2 mb-3 d-block text-white-50"></i>
+                    <p class="text-white-50 small mb-3">Preview not available for this file type.</p>
+                    <a href="{{ url_for('admin.download_evidence', tracking_id=complaint.tracking_id) }}"
+                       class="btn btn-outline-light btn-sm">
+                      <i class="bi bi-download me-1"></i>Download to View
+                    </a>
+                  </div>
+                {% endif %}
+
+              </div>
+            </div>
+            {% else %}
+            <!-- Evidence path exists but EvidenceFile record not found — show download only -->
             <a href="{{ url_for('admin.download_evidence', tracking_id=complaint.tracking_id) }}"
                class="btn btn-outline-secondary btn-sm">
-              <i class="bi bi-paperclip me-1"></i> Download Evidence
+              <i class="bi bi-paperclip me-1"></i>Download Evidence
             </a>
+            {% endif %}
           </div>
           {% endif %}
 
@@ -306,4 +387,162 @@
     </div><!-- /col-lg-4 -->
   </div><!-- /row -->
 </div>
+
+<!-- ═══ EVIDENCE PREVIEW MODAL ═══ -->
+<div class="modal fade" id="evidenceModal" tabindex="-1"
+     aria-labelledby="evidenceModalLabel" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-dark text-white">
+        <div>
+          <h5 class="modal-title mb-0" id="evidenceModalLabel">
+            <i class="bi bi-file-earmark-zoom me-2"></i>Evidence Preview
+          </h5>
+          <small id="evidenceModalMeta" class="text-white-50"></small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a id="evidenceDownloadBtn"
+             href="#"
+             class="btn btn-outline-light btn-sm"
+             target="_blank" rel="noopener">
+            <i class="bi bi-download me-1"></i>Download
+          </a>
+          <button type="button" class="btn-close btn-close-white"
+                  data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body p-0 d-flex align-items-center justify-content-center"
+           id="evidenceModalBody"
+           style="min-height: 400px; background: #1a1a2e;">
+        <!-- Content injected by JS -->
+        <div id="evidenceSpinner" class="text-center text-white py-5">
+          <div class="spinner-border mb-3" role="status" aria-live="polite">
+            <span class="visually-hidden">Loading evidence…</span>
+          </div>
+          <p class="small text-white-50">Loading evidence…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ═══ END EVIDENCE PREVIEW MODAL ═══ -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const evidenceModal = document.getElementById('evidenceModal');
+  if (evidenceModal) {
+    evidenceModal.addEventListener('show.bs.modal', function (event) {
+      const btn = event.relatedTarget;
+      if (!btn || !btn.classList.contains('btn-view-evidence')) return;
+
+      const previewUrl  = btn.dataset.previewUrl;
+      const downloadUrl = btn.dataset.downloadUrl;
+      const mimeType    = btn.dataset.mime || '';
+      const filename    = btn.dataset.filename || 'Evidence';
+      const trackingId  = btn.dataset.tracking || '';
+
+      // Update modal header metadata
+      document.getElementById('evidenceModalLabel').innerHTML =
+        '<i class="bi bi-file-earmark-zoom me-2"></i>Evidence — ' + trackingId;
+      document.getElementById('evidenceModalMeta').textContent =
+        filename + (mimeType ? ' (' + mimeType + ')' : '');
+      document.getElementById('evidenceDownloadBtn').href = downloadUrl;
+
+      // Clear old content and show spinner
+      const body = document.getElementById('evidenceModalBody');
+      body.innerHTML =
+        '<div id="evidenceSpinner" class="text-center text-white py-5">' +
+        '<div class="spinner-border mb-3" role="status"><span class="visually-hidden">Loading…</span></div>' +
+        '<p class="small text-white-50">Decrypting and loading evidence…</p></div>';
+
+      // Render viewer by mime type
+      function renderViewer() {
+        body.innerHTML = '';
+
+        if (mimeType.startsWith('image/')) {
+          // Image viewer
+          const img = document.createElement('img');
+          img.src = previewUrl;
+          img.alt = 'Evidence: ' + filename;
+          img.className = 'img-fluid';
+          img.style.cssText = 'max-height:80vh; object-fit:contain; display:block; margin:auto; padding:16px;';
+          img.onerror = () => renderFallback('Image failed to load.');
+          body.appendChild(img);
+
+        } else if (mimeType === 'application/pdf') {
+          // PDF viewer — sandboxed iframe
+          const iframe = document.createElement('iframe');
+          iframe.src = previewUrl;
+          iframe.title = 'Evidence PDF: ' + filename;
+          iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+          iframe.style.cssText = 'width:100%; height:80vh; border:none; display:block;';
+          iframe.onerror = () => renderFallback('PDF could not be loaded.');
+          body.appendChild(iframe);
+
+        } else if (mimeType.startsWith('video/')) {
+          // Video player
+          const video = document.createElement('video');
+          video.controls = true;
+          video.autoplay = false;
+          video.style.cssText = 'max-width:100%; max-height:80vh; display:block; margin:auto; background:#000;';
+          const source = document.createElement('source');
+          source.src = previewUrl;
+          source.type = mimeType;
+          video.appendChild(source);
+          video.onerror = () => renderFallback('Video could not be played.');
+          body.style.background = '#000';
+          body.appendChild(video);
+
+        } else if (mimeType.startsWith('audio/')) {
+          // Audio player
+          const wrap = document.createElement('div');
+          wrap.className = 'text-center py-5';
+          wrap.innerHTML =
+            '<i class="bi bi-file-music display-1 text-white-50 mb-4 d-block"></i>' +
+            '<p class="text-white mb-3">' + filename + '</p>';
+          const audio = document.createElement('audio');
+          audio.controls = true;
+          audio.style.cssText = 'width:80%; max-width:500px;';
+          const source = document.createElement('source');
+          source.src = previewUrl;
+          source.type = mimeType;
+          audio.appendChild(source);
+          wrap.appendChild(audio);
+          body.appendChild(wrap);
+
+        } else {
+          // Document / unknown — show fallback
+          renderFallback(
+            'In-browser preview is not available for this file type (' + (mimeType || 'unknown') + ').'
+          );
+        }
+      }
+
+      function renderFallback(reason) {
+        body.innerHTML =
+          '<div class="text-center py-5 px-4">' +
+          '<i class="bi bi-file-earmark-x display-1 text-white-50 mb-3 d-block"></i>' +
+          '<p class="text-white mb-1">' + reason + '</p>' +
+          '<p class="text-white-50 small mb-4">You can still download the file to view it locally.</p>' +
+          '<a href="' + downloadUrl + '" class="btn btn-outline-light">' +
+          '<i class="bi bi-download me-2"></i>Download Evidence</a></div>';
+      }
+
+      // Small delay so spinner is visible, then render
+      setTimeout(renderViewer, 150);
+    });
+
+    // Clean up video/audio streams when modal is hidden
+    evidenceModal.addEventListener('hide.bs.modal', function () {
+      const body = document.getElementById('evidenceModalBody');
+      const video = body.querySelector('video');
+      const audio = body.querySelector('audio');
+      if (video) { video.pause(); video.src = ''; }
+      if (audio) { audio.pause(); audio.src = ''; }
+    });
+  }
+});
+</script>
 {% endblock %}

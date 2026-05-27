@@ -5595,4 +5595,47 @@ html[data-theme="contrast"] .btn-suggestion {
   .ticker-item { font-size: 0.82rem; padding: 0 20px; }
 }
 
+/* ══════════════════════════════════════════════
+   EVIDENCE PREVIEW PANEL (complaint_detail.html)
+   ══════════════════════════════════════════════ */
+
+.evidence-preview-panel {
+  border: 1px solid rgba(0,0,0,0.12) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+
+.evidence-inline-viewer {
+  background: #1a1a2e;
+  min-height: 240px;
+  position: relative;
+}
+
+/* ══════════════════════════════════════════════
+   EVIDENCE MODAL (review_inbox.html)
+   ══════════════════════════════════════════════ */
+
+#evidenceModal .modal-dialog {
+  max-width: min(90vw, 1100px);
+}
+
+#evidenceModal .modal-body {
+  background: #1a1a2e;
+  min-height: 400px;
+}
+
+#evidenceModal img {
+  border-radius: 6px;
+}
+
+/* Clickable "View Evidence" badge button */
+.btn-view-evidence {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  text-decoration: none;
+}
+.btn-view-evidence:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(13,110,253,0.25);
+}
+
 
