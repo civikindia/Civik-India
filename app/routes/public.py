@@ -10,7 +10,7 @@ import re
 import time
 import threading
 from collections import deque
-from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, Response
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, Response, abort
 from sqlalchemy import text, func
 from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta
@@ -1320,6 +1320,43 @@ def confirmation(tracking_id):
     return render_template('public/confirm.html', complaint=complaint)
 
 
+@public_bp.route('/receipt/<path:tracking_id>')
+def complaint_receipt(tracking_id):
+    """
+    Public print-optimized HTML receipt page.
+    Accessible at any time using the tracking ID.
+    """
+    import io
+    import base64
+    tracking_id = normalize_tracking_id(tracking_id)
+    if not validate_tracking_id(tracking_id):
+        abort(404)
+    complaint = Complaint.query.filter_by(tracking_id=tracking_id).first_or_404()
+    track_url = url_for('public.track_complaint',
+                        tracking_id=tracking_id, _external=True)
+
+    # Generate QR code as base64 data URI
+    qr_data_uri = None
+    try:
+        import qrcode
+        qr = qrcode.QRCode(version=1, box_size=5, border=2)
+        qr.add_data(track_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color='#0f2057', back_color='white')
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+        qr_data_uri = f'data:image/png;base64,{b64}'
+    except Exception:
+        pass  # QR is optional — page works without it
+
+    log_action('COMPLAINT_RECEIPT_VIEWED', details={'tracking_id': tracking_id})
+    return render_template('public/receipt.html',
+                           complaint=complaint,
+                           track_url=track_url,
+                           qr_data_uri=qr_data_uri)
+
+
 @public_bp.route('/confirmation/<path:tracking_id>/receipt.pdf')
 def complaint_receipt_pdf(tracking_id):
     """Generate a downloadable PDF receipt for a submitted complaint."""
@@ -1336,6 +1373,23 @@ def complaint_receipt_pdf(tracking_id):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
     elements = []
+    
+    # Add tricolour stripe using Table at the top of elements
+    stripe_data = [['', '', '']]
+    stripe_table = Table(stripe_data, colWidths=[2.5*inch, 2.5*inch, 2.5*inch], rowHeights=[8])
+    stripe_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#ff9933')),
+        ('BACKGROUND', (1, 0), (1, 0), colors.HexColor('#ffffff')),
+        ('BACKGROUND', (2, 0), (2, 0), colors.HexColor('#138808')),
+        ('GRID', (0, 0), (-1, -1), 0, colors.white),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    elements.append(stripe_table)
+    elements.append(Spacer(1, 10))
+    
     styles = getSampleStyleSheet()
     
     # Custom styles
@@ -1421,11 +1475,31 @@ def complaint_receipt_pdf(tracking_id):
         "You can track the status of your complaint at any time using the tracking ID above.",
         styles['Normal']
     ))
-    elements.append(Spacer(1, 8))
+    # Helplines section
+    elements.append(Spacer(1, 16))
     elements.append(Paragraph(
-        "Anti-Corruption Helpline: <b>1064</b> | Vigilance Helpline: <b>1800-11-0180</b>",
-        ParagraphStyle('Helpline', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#666666'))
+        "<b>Government Helplines</b>",
+        ParagraphStyle('HelplineTitle', parent=styles['Normal'],
+                       fontSize=10, textColor=colors.HexColor('#0f2057'))
     ))
+    elements.append(Spacer(1, 6))
+    helpline_data = [
+        ['Anti-Corruption Helpline', '1064'],
+        ['Vigilance Helpline', '1800-11-0180'],
+        ['National Women Helpline', '181'],
+        ['Police Emergency', '100'],
+    ]
+    helpline_table = Table(helpline_data, colWidths=[3.5*inch, 2.5*inch])
+    helpline_table.setStyle(TableStyle([
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor('#138808')),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#e0e0e0')),
+        ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.HexColor('#f8fff8'), colors.white]),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(helpline_table)
     
     doc.build(elements)
     pdf_data = buffer.getvalue()

@@ -195,8 +195,19 @@
                         </div>
                         {% endif %}
 
-                        <div class="d-flex justify-content-end mt-4">
-                            <button class="btn btn-gov-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>{{ _('Print') }}</button>
+                        <div class="d-flex justify-content-end gap-2 mt-4 flex-wrap">
+                            <a href="{{ url_for('public.complaint_receipt', tracking_id=complaint.tracking_id) }}"
+                               target="_blank" rel="noopener"
+                               class="btn btn-gov-secondary btn-sm"
+                               aria-label="Print or download receipt for {{ complaint.tracking_id }}">
+                                <i class="bi bi-printer me-1"></i>{{ _('Print / Receipt') }}
+                            </a>
+                            <a href="{{ url_for('public.complaint_receipt_pdf', tracking_id=complaint.tracking_id) }}"
+                               download
+                               class="btn btn-outline-success btn-sm"
+                               aria-label="Download PDF receipt for {{ complaint.tracking_id }}">
+                                <i class="bi bi-file-earmark-pdf me-1"></i>{{ _('Download PDF') }}
+                            </a>
                         </div>
                     </div>
                 </article>

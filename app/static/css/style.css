@@ -5639,3 +5639,45 @@ html[data-theme="contrast"] .btn-suggestion {
 }
 
 
+/* ══════════════════════════════════════════
+   GLOBAL @MEDIA PRINT — base site pages
+   (This is NOT the receipt page — that has its own print CSS)
+   ══════════════════════════════════════════ */
+@media print {
+  /* Hide navigation, footer, buttons, sidebars */
+  nav, footer, .navbar, .sidebar,
+  .btn, button,
+  .no-print,
+  [data-bs-toggle],
+  .alert-dismissible .btn-close,
+  .bulk-action-bar {
+    display: none !important;
+  }
+
+  body {
+    font-size: 12pt;
+    color: #000;
+    background: #fff;
+  }
+
+  /* Expand containers to full width */
+  .container, .container-fluid {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 10pt;
+    color: #666;
+  }
+
+  /* Don't expand internal nav links */
+  a[href^="#"]::after,
+  a[href^="javascript"]::after {
+    content: "";
+  }
+}
+
+
+
