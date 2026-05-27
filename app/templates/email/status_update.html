@@ -1,13 +1,148 @@
 <!doctype html>
 <html lang="en">
-<body style="font-family: Arial, sans-serif; color: #1f2933; line-height: 1.5; margin: 0; padding: 0;">
-  <div style="border-top: 6px solid #ff9933; border-bottom: 6px solid #138808; padding: 20px;">
-    <p style="margin: 0; font-size: 13px; color: #52616b;">Civik India | Status Update</p>
-    <h1 style="margin: 4px 0 12px; font-size: 20px;">Complaint Status Updated</h1>
-    <p>Complaint <strong>{{ complaint.tracking_id if complaint else '' }}</strong> is now <strong>{{ new_status }}</strong>.</p>
-    <p>Department: {{ complaint.department.name if complaint and complaint.department else 'N/A' }}</p>
-    <p>Service: {{ complaint.service.name if complaint and complaint.service else 'N/A' }}</p>
-    <p><a href="{{ track_url }}" style="color: #0f5e3d;">Track status</a></p>
-  </div>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;color:#1f2933;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f4f6f9;padding:24px 0;">
+  <tr><td align="center">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+      <!-- Header: Tricolour stripe -->
+      <tr>
+        <td style="background:linear-gradient(to right,#ff9933 33%,#ffffff 33%,#ffffff 66%,#138808 66%);height:6px;"></td>
+      </tr>
+
+      <!-- Logo bar -->
+      <tr>
+        <td style="background:#0f2057;padding:18px 28px;">
+          <p style="margin:0;color:#ffffff;font-size:20px;font-weight:bold;letter-spacing:0.5px;">
+            🇮🇳 Civik India
+          </p>
+          <p style="margin:2px 0 0;color:#a0aec0;font-size:12px;">Citizen Voice Against Corruption</p>
+        </td>
+      </tr>
+
+      <!-- Status badge -->
+      <tr>
+        <td style="padding:28px 28px 0;">
+          <p style="margin:0 0 6px;font-size:13px;color:#718096;text-transform:uppercase;letter-spacing:0.8px;">Complaint Update</p>
+          <h1 style="margin:0 0 16px;font-size:22px;color:#1f2933;">Your complaint status has changed</h1>
+
+          <table role="presentation" cellpadding="12" cellspacing="0" width="100%"
+                 style="background:#f7fafc;border-radius:6px;border:1px solid #e2e8f0;margin-bottom:20px;">
+            <tr>
+              <td style="font-size:13px;color:#718096;width:130px;">Tracking ID</td>
+              <td style="font-size:14px;font-weight:bold;font-family:monospace;color:#2d3748;">
+                {{ complaint.tracking_id if complaint else '—' }}
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:13px;color:#718096;border-top:1px solid #e2e8f0;padding-top:10px;">New Status</td>
+              <td style="border-top:1px solid #e2e8f0;padding-top:10px;">
+                <span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:bold;
+                  background:{% if new_status == 'Closed' %}#c6f6d5{% elif new_status in ['Rejected','Delayed'] %}#fed7d7{% elif new_status == 'Under Review' %}#bee3f8{% else %}#fefcbf{% endif %};
+                  color:{% if new_status == 'Closed' %}#22543d{% elif new_status in ['Rejected','Delayed'] %}#742a2a{% elif new_status == 'Under Review' %}#2a4365{% else %}#744210{% endif %};">
+                  {{ new_status }}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:13px;color:#718096;border-top:1px solid #e2e8f0;padding-top:10px;">Department</td>
+              <td style="font-size:14px;border-top:1px solid #e2e8f0;padding-top:10px;">
+                {{ complaint.department.name if complaint and complaint.department else 'N/A' }}
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:13px;color:#718096;border-top:1px solid #e2e8f0;padding-top:10px;">Service</td>
+              <td style="font-size:14px;border-top:1px solid #e2e8f0;padding-top:10px;">
+                {{ complaint.service.name if complaint and complaint.service else 'N/A' }}
+              </td>
+            </tr>
+            {% if complaint and complaint.priority %}
+            <tr>
+              <td style="font-size:13px;color:#718096;border-top:1px solid #e2e8f0;padding-top:10px;">Priority</td>
+              <td style="font-size:14px;border-top:1px solid #e2e8f0;padding-top:10px;">{{ complaint.priority }}</td>
+            </tr>
+            {% endif %}
+          </table>
+
+          <!-- Status-specific message -->
+          {% if new_status == 'Under Review' %}
+          <p style="background:#ebf8ff;border-left:4px solid #3182ce;padding:12px 16px;border-radius:4px;font-size:14px;margin:0 0 20px;">
+            <strong>What this means:</strong> Your complaint has been accepted by the admin and is now being reviewed. A government officer will be assigned shortly.
+          </p>
+          {% elif new_status == 'Action Taken' %}
+          <p style="background:#f0fff4;border-left:4px solid #38a169;padding:12px 16px;border-radius:4px;font-size:14px;margin:0 0 20px;">
+            <strong>What this means:</strong> An officer has taken action on your complaint. Monitor the tracking page for resolution details.
+          </p>
+          {% elif new_status == 'Closed' %}
+          <p style="background:#f0fff4;border-left:4px solid #38a169;padding:12px 16px;border-radius:4px;font-size:14px;margin:0 0 20px;">
+            <strong>What this means:</strong> Your complaint has been resolved and closed. If the issue persists, you can reopen it by visiting the tracking page.
+          </p>
+          {% elif new_status == 'Rejected' %}
+          <p style="background:#fff5f5;border-left:4px solid #e53e3e;padding:12px 16px;border-radius:4px;font-size:14px;margin:0 0 20px;">
+            <strong>What this means:</strong> Your complaint could not be processed.
+            {% if complaint and complaint.rejection_reason %}
+            Reason: <em>{{ complaint.rejection_reason }}</em>
+            {% endif %}
+            You may submit a new complaint with additional evidence or clarification.
+          </p>
+          {% elif new_status == 'Delayed' %}
+          <p style="background:#fffaf0;border-left:4px solid #dd6b20;padding:12px 16px;border-radius:4px;font-size:14px;margin:0 0 20px;">
+            <strong>What this means:</strong> Your complaint has exceeded its expected resolution time. It has been automatically escalated for faster attention.
+          </p>
+          {% else %}
+          <p style="background:#f7fafc;border-left:4px solid #a0aec0;padding:12px 16px;border-radius:4px;font-size:14px;margin:0 0 20px;">
+            Your complaint status has been updated. Visit the tracking page for full details.
+          </p>
+          {% endif %}
+
+          <!-- CTA Button -->
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
+            <tr>
+              <td align="center">
+                <a href="{{ track_url }}"
+                   style="display:inline-block;padding:13px 32px;background:#0f2057;color:#ffffff;text-decoration:none;
+                          border-radius:6px;font-size:15px;font-weight:bold;letter-spacing:0.3px;">
+                  🔍 Track Your Complaint
+                </a>
+              </td>
+            </tr>
+          </table>
+
+          <p style="font-size:13px;color:#a0aec0;margin:0 0 4px;">
+            Use Tracking ID <strong style="font-family:monospace;">{{ complaint.tracking_id if complaint else '' }}</strong>
+            to track at <a href="https://www.civikindia.online/track" style="color:#3182ce;">civikindia.online/track</a>
+          </p>
+
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td style="padding:20px 28px;border-top:1px solid #e2e8f0;background:#f7fafc;">
+          <p style="margin:0;font-size:12px;color:#a0aec0;line-height:1.6;">
+            Civik India is an independent public awareness initiative and is <strong>not affiliated</strong>
+            with any government department or law enforcement authority.<br>
+            Follow us: <a href="https://www.instagram.com/civik.india" style="color:#3182ce;">@civik.india</a> |
+            <a href="https://www.civikindia.online" style="color:#3182ce;">civikindia.online</a>
+          </p>
+          <p style="margin:8px 0 0;font-size:11px;color:#cbd5e0;">
+            You are receiving this because you provided your contact details voluntarily when submitting complaint
+            {{ complaint.tracking_id if complaint else '' }}.
+            No personal data is shared with third parties.
+          </p>
+        </td>
+      </tr>
+
+      <!-- Bottom stripe -->
+      <tr>
+        <td style="background:linear-gradient(to right,#ff9933 33%,#ffffff 33%,#ffffff 66%,#138808 66%);height:4px;"></td>
+      </tr>
+
+    </table>
+  </td></tr>
+</table>
+
 </body>
 </html>

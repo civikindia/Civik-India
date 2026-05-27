@@ -1,9 +1,20 @@
-Civik India
-Status Update
+Civik India — Complaint Status Update
+======================================
 
-Complaint {{ complaint.tracking_id if complaint else '' }} is now {{ new_status }}.
+Complaint {{ complaint.tracking_id if complaint else '' }} status: {{ new_status }}
 
-Department: {{ complaint.department.name if complaint and complaint.department else 'N/A' }}
-Service: {{ complaint.service.name if complaint and complaint.service else 'N/A' }}
+Department : {{ complaint.department.name if complaint and complaint.department else 'N/A' }}
+Service    : {{ complaint.service.name if complaint and complaint.service else 'N/A' }}
+Priority   : {{ complaint.priority if complaint else 'N/A' }}
 
-Track status: {{ track_url }}
+{% if new_status == 'Rejected' and complaint and complaint.rejection_reason %}
+Rejection reason: {{ complaint.rejection_reason }}
+
+{% endif %}
+Track your complaint at:
+{{ track_url }}
+
+---
+Civik India | civikindia.online | @civik.india
+You are receiving this because you opted in to updates when submitting your complaint.
+This is an independent initiative and is not affiliated with any government authority.

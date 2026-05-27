@@ -288,6 +288,52 @@ def _send_twilio_sms(message, recipients):
     return False, '; '.join(errors[:3]) if errors else 'SMS send failed.'
 
 
+def _send_twilio_whatsapp(message, recipients):
+    """
+    Send WhatsApp message using Twilio's WhatsApp sandbox/business API.
+    Recipients should be phone numbers as strings (e.g. '+919876543210').
+    """
+    if not current_app.config.get('WHATSAPP_ENABLED', False):
+        return False, 'WhatsApp is disabled.'
+
+    account_sid = (current_app.config.get('TWILIO_ACCOUNT_SID') or '').strip()
+    auth_token  = (current_app.config.get('TWILIO_AUTH_TOKEN') or '').strip()
+    from_number = (current_app.config.get('TWILIO_WHATSAPP_FROM') or '').strip()
+
+    if not account_sid or not auth_token or not from_number:
+        return False, 'Twilio WhatsApp credentials are incomplete.'
+
+    base_url = f'https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json'
+    auth_handler = urllib.request.HTTPBasicAuthHandler()
+    auth_handler.add_password(realm=None, uri=base_url,
+                               user=account_sid, passwd=auth_token)
+    opener = urllib.request.build_opener(auth_handler)
+
+    sent_count = 0
+    errors = []
+    for recipient in recipients:
+        # Twilio WhatsApp numbers must be prefixed with 'whatsapp:'
+        to_whatsapp = recipient if recipient.startswith('whatsapp:') else f'whatsapp:{recipient}'
+        from_whatsapp = from_number if from_number.startswith('whatsapp:') else f'whatsapp:{from_number}'
+
+        payload = urllib.parse.urlencode({
+            'To': to_whatsapp,
+            'From': from_whatsapp,
+            'Body': message
+        }).encode('utf-8')
+        req = urllib.request.Request(base_url, data=payload, method='POST')
+        try:
+            with opener.open(req, timeout=15):
+                sent_count += 1
+        except Exception as exc:
+            logger.exception('WhatsApp notification failed for %s.', recipient)
+            errors.append(str(exc))
+
+    if sent_count > 0:
+        return True, None
+    return False, '; '.join(errors[:3]) if errors else 'WhatsApp send failed.'
+
+
 @celery.task(name='app.tasks.send_status_update_notification')
 def send_status_update_notification(tracking_id, new_status, contact_method=None):
     """
@@ -339,10 +385,26 @@ def send_status_update_notification(tracking_id, new_status, contact_method=None
         complaint=complaint,
         template_id=current_app.config.get('SMS_TEMPLATE_STATUS_UPDATE')
     )
+    # WhatsApp notification
+    whatsapp_sent = False
+    whatsapp_error = None
+    citizen_phone = _citizen_phone(complaint)
+    if citizen_phone and current_app.config.get('WHATSAPP_ENABLED'):
+        whatsapp_message = (
+            f'*Civik India Update*\n'
+            f'Complaint `{tracking_id}` is now *{new_status}*.\n'
+            f'Track at: {url_for("public.track_complaint", tracking_id=tracking_id, _external=True)}'
+        )
+        whatsapp_sent, whatsapp_error = _send_twilio_whatsapp(
+            whatsapp_message, [citizen_phone]
+        )
+        _log_notification(complaint, 'whatsapp', citizen_phone, 'status_update',
+                          'sent' if whatsapp_sent else 'failed', whatsapp_error)
+
     db.session.commit()
 
-    if email_sent or sms_sent:
-        logger.info('[TASK] Status notification sent: complaint=%s email=%s sms=%s', tracking_id, email_sent, sms_sent)
+    if email_sent or sms_sent or whatsapp_sent:
+        logger.info('[TASK] Status notification sent: complaint=%s email=%s sms=%s whatsapp=%s', tracking_id, email_sent, sms_sent, whatsapp_sent)
         return {
             'success': True,
             'tracking_id': tracking_id,
@@ -350,6 +412,7 @@ def send_status_update_notification(tracking_id, new_status, contact_method=None
             'mode': 'notification',
             'email_sent': email_sent,
             'sms_sent': sms_sent,
+            'whatsapp_sent': whatsapp_sent,
             'recipient_count': len(email_recipients),
             'sms_recipient_count': len(sms_recipients)
         }
@@ -362,7 +425,9 @@ def send_status_update_notification(tracking_id, new_status, contact_method=None
         'mode': 'log',
         'reason': email_error,
         'sms_sent': sms_sent,
-        'sms_reason': sms_error
+        'sms_reason': sms_error,
+        'whatsapp_sent': whatsapp_sent,
+        'whatsapp_reason': whatsapp_error
     }
 
 

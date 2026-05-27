@@ -176,6 +176,7 @@ def approve_complaint(complaint_id):
     complaint.initialize_sla_due()
     
     db.session.commit()
+    send_status_update_notification(complaint.tracking_id, complaint.status)
     
     # Log audit event
     AuditLog.create_entry(
@@ -221,6 +222,7 @@ def reject_complaint(complaint_id):
     complaint.reviewed_at = utc_now()
     
     db.session.commit()
+    send_status_update_notification(complaint.tracking_id, complaint.status)
     
     # Log audit event
     AuditLog.create_entry(
@@ -267,6 +269,7 @@ def bulk_approve_complaints():
     reviewer_id = session.get('user_id')
     reviewer_name = session.get('username', 'admin')
     now = utc_now()
+    approved_complaints = []
 
     for cid in complaint_ids:
         complaint = db.session.get(Complaint, cid)
@@ -293,10 +296,13 @@ def bulk_approve_complaints():
                 'bulk': True
             })
         )
+        approved_complaints.append(complaint)
         approved_count += 1
 
     try:
         db.session.commit()
+        for comp in approved_complaints:
+            send_status_update_notification(comp.tracking_id, comp.status)
     except Exception as exc:
         db.session.rollback()
         current_app.logger.error('Bulk approve error: %s', exc)
@@ -340,6 +346,7 @@ def bulk_reject_complaints():
     reviewer_id = session.get('user_id')
     reviewer_name = session.get('username', 'admin')
     now = utc_now()
+    rejected_complaints = []
 
     for cid in complaint_ids:
         complaint = db.session.get(Complaint, cid)
@@ -364,10 +371,13 @@ def bulk_reject_complaints():
                 'bulk': True
             })
         )
+        rejected_complaints.append(complaint)
         rejected_count += 1
 
     try:
         db.session.commit()
+        for comp in rejected_complaints:
+            send_status_update_notification(comp.tracking_id, comp.status)
     except Exception as exc:
         db.session.rollback()
         current_app.logger.error('Bulk reject error: %s', exc)
@@ -379,6 +389,29 @@ def bulk_reject_complaints():
         msg += f' {skipped_count} skipped (already processed).'
     flash(msg, 'warning')
     return redirect(url_for('admin.review_inbox'))
+
+
+@admin_bp.route('/notifications')
+@admin_required
+def notification_logs():
+    """View recent notification delivery log."""
+    from app.models import NotificationLog
+    page = request.args.get('page', 1, type=int)
+    channel_filter = request.args.get('channel', '')
+    status_filter = request.args.get('status', '')
+
+    query = NotificationLog.query.order_by(NotificationLog.sent_at.desc().nullsfirst(),
+                                           NotificationLog.id.desc())
+    if channel_filter:
+        query = query.filter(NotificationLog.channel == channel_filter)
+    if status_filter:
+        query = query.filter(NotificationLog.status == status_filter)
+
+    logs = query.paginate(page=page, per_page=50, error_out=False)
+    return render_template('admin/notification_logs.html',
+                           logs=logs,
+                           channel_filter=channel_filter,
+                           status_filter=status_filter)
 
 
 # =============================================================================

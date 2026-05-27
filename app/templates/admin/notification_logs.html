@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Notification Logs — Civik India Admin{% endblock %}
+{% block content %}
+<div class="container py-4 dashboard-shell">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h2 text-gradient">Notification Logs</h1>
+      <p class="text-muted mb-0">Delivery records for citizen and staff notifications.</p>
+    </div>
+    <span class="badge bg-secondary fs-6 px-3 py-2">{{ logs.total }} total entries</span>
+  </div>
+
+  <!-- Filters -->
+  <form class="row g-2 mb-4" method="GET">
+    <div class="col-auto">
+      <select name="channel" class="form-select form-select-sm">
+        <option value="">All Channels</option>
+        <option value="email"    {% if channel_filter=='email'    %}selected{% endif %}>Email</option>
+        <option value="sms"      {% if channel_filter=='sms'      %}selected{% endif %}>SMS</option>
+        <option value="whatsapp" {% if channel_filter=='whatsapp' %}selected{% endif %}>WhatsApp</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <select name="status" class="form-select form-select-sm">
+        <option value="">All Statuses</option>
+        <option value="sent"   {% if status_filter=='sent'   %}selected{% endif %}>Sent</option>
+        <option value="failed" {% if status_filter=='failed' %}selected{% endif %}>Failed</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="{{ url_for('admin.notification_logs') }}" class="btn btn-outline-secondary btn-sm ms-1">Reset</a>
+    </div>
+  </form>
+
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Time</th>
+            <th>Complaint</th>
+            <th>Channel</th>
+            <th>Template</th>
+            <th>Status</th>
+            <th>Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs.items %}
+          <tr>
+            <td class="text-muted small text-nowrap">
+              {{ log.sent_at|format_datetime if log.sent_at else '—' }}
+            </td>
+            <td>
+              {% if log.complaint_id %}
+              <a href="{{ url_for('admin.complaint_detail', tracking_id=log.complaint.tracking_id) }}"
+                 class="font-monospace small">
+                {{ log.complaint.tracking_id if log.complaint else log.complaint_id }}
+              </a>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if log.channel == 'email' %}
+                <span class="badge bg-primary">📧 Email</span>
+              {% elif log.channel == 'sms' %}
+                <span class="badge bg-warning text-dark">📱 SMS</span>
+              {% elif log.channel == 'whatsapp' %}
+                <span class="badge bg-success">💬 WhatsApp</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ log.channel }}</span>
+              {% endif %}
+            </td>
+            <td><code class="small">{{ log.template_name }}</code></td>
+            <td>
+              {% if log.status == 'sent' %}
+                <span class="badge bg-success-subtle text-success">✓ Sent</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger">✗ Failed</span>
+              {% endif %}
+            </td>
+            <td class="text-danger small">{{ log.error_message or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">No notification logs found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if logs.pages > 1 %}
+    <div class="card-footer d-flex justify-content-center">
+      <nav aria-label="Notification log pages">
+        <ul class="pagination pagination-sm mb-0">
+          {% for p in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <li class="page-item {% if p == logs.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('admin.notification_logs', page=p,
+                   channel=channel_filter, status=status_filter) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
