@@ -18,6 +18,37 @@
 {% set active_departments = (dept_stats | selectattr('total', 'gt', 0) | list | length) %}
 {% set ranked_departments = dept_stats | sort(attribute='score', reverse=true) %}
 
+{% if trending_items %}
+<div class="news-ticker-wrap" aria-label="Trending news ticker" role="marquee">
+  <span class="ticker-label"><i class="bi bi-broadcast-pin"></i> TRENDING</span>
+  <div class="ticker-track-outer">
+    <div class="ticker-track" id="newsTicker">
+      {% for item in trending_items %}
+      <span class="ticker-item">
+        {% if item.badge_label %}<span class="ticker-badge">{{ item.badge_label }}</span>{% endif %}
+        {% if item.link_url %}
+          <a href="{{ item.link_url }}" target="_blank" rel="noopener noreferrer">{{ item.headline }}</a>
+        {% else %}
+          {{ item.headline }}
+        {% endif %}
+      </span>
+      {% endfor %}
+      {# Duplicate for seamless loop #}
+      {% for item in trending_items %}
+      <span class="ticker-item" aria-hidden="true">
+        {% if item.badge_label %}<span class="ticker-badge">{{ item.badge_label }}</span>{% endif %}
+        {% if item.link_url %}
+          <a href="{{ item.link_url }}" target="_blank" rel="noopener noreferrer">{{ item.headline }}</a>
+        {% else %}
+          {{ item.headline }}
+        {% endif %}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <section class="py-5 dashboard-shell mobile-data-page">
     <div class="container">
         <nav aria-label="breadcrumb" class="gov-breadcrumb mb-4" data-reveal>

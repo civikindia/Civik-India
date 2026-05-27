@@ -38,6 +38,37 @@
 {% set active_departments = departments|length %}
 {% set resolution_rate = ((closed / total * 100) if total > 0 else 0)|round(1) %}
 
+{% if trending_items %}
+<div class="news-ticker-wrap" aria-label="Trending news ticker" role="marquee">
+  <span class="ticker-label"><i class="bi bi-broadcast-pin"></i> TRENDING</span>
+  <div class="ticker-track-outer">
+    <div class="ticker-track" id="newsTicker">
+      {% for item in trending_items %}
+      <span class="ticker-item">
+        {% if item.badge_label %}<span class="ticker-badge">{{ item.badge_label }}</span>{% endif %}
+        {% if item.link_url %}
+          <a href="{{ item.link_url }}" target="_blank" rel="noopener noreferrer">{{ item.headline }}</a>
+        {% else %}
+          {{ item.headline }}
+        {% endif %}
+      </span>
+      {% endfor %}
+      {# Duplicate for seamless loop #}
+      {% for item in trending_items %}
+      <span class="ticker-item" aria-hidden="true">
+        {% if item.badge_label %}<span class="ticker-badge">{{ item.badge_label }}</span>{% endif %}
+        {% if item.link_url %}
+          <a href="{{ item.link_url }}" target="_blank" rel="noopener noreferrer">{{ item.headline }}</a>
+        {% else %}
+          {{ item.headline }}
+        {% endif %}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <section class="home-hero-v2">
     <div class="container">
         <div class="row align-items-center g-5">

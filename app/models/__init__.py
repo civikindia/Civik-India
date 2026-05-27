@@ -861,3 +861,38 @@ class AuditLog(db.Model):
             'timestamp': self.timestamp.isoformat() if self.timestamp else None,
             'row_hash': self.row_hash[:16] + '...'  # Truncated for display
         }
+
+
+class TrendingNews(db.Model):
+    """
+    Admin-controlled trending news ticker items displayed on public pages.
+    Items scroll horizontally as a news ticker/marquee on the homepage
+    and public dashboard.
+    """
+    __tablename__ = 'trending_news'
+
+    id = db.Column(db.Integer, primary_key=True)
+    headline = db.Column(db.String(300), nullable=False)
+    link_url = db.Column(db.String(512), nullable=True)   # optional clickable link
+    badge_label = db.Column(db.String(40), nullable=True)  # e.g. "BREAKING", "UPDATE"
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    display_order = db.Column(db.Integer, default=0, nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=utc_now)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
+
+    created_by = db.relationship('User', foreign_keys=[created_by_id])
+
+    def __repr__(self):
+        return f'<TrendingNews {self.id}: {self.headline[:40]}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'headline': self.headline,
+            'link_url': self.link_url,
+            'badge_label': self.badge_label,
+            'is_active': self.is_active,
+            'display_order': self.display_order,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }

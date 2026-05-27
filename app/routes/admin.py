@@ -5,13 +5,13 @@ Admin-specific management routes.
 import csv
 import io
 import json
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify, current_app, Response
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify, current_app, Response, abort
 from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta
 
 from app import db
 from app.clock import utc_now
-from app.models import User, Department, Service, Complaint, AuditLog, EscalationContact
+from app.models import User, Department, Service, Complaint, AuditLog, EscalationContact, TrendingNews
 from app.utils import admin_required, log_action, maybe_run_sla_escalations
 from app.tasks import send_officer_welcome_notification, send_status_update_notification
 
@@ -694,7 +694,9 @@ def create_officer():
 @admin_required
 def toggle_officer(officer_id):
     """Enable/disable officer account."""
-    officer = User.query.get_or_404(officer_id)
+    officer = db.session.get(User, officer_id)
+    if not officer:
+        abort(404)
     
     if officer.role not in ['officer', 'zonal_officer', 'commissioner']:
         flash('Invalid user.', 'danger')
@@ -725,7 +727,9 @@ def toggle_officer(officer_id):
 @admin_required
 def reset_officer_password(officer_id):
     """Reset officer password."""
-    officer = User.query.get_or_404(officer_id)
+    officer = db.session.get(User, officer_id)
+    if not officer:
+        abort(404)
     
     if officer.role not in ['officer', 'zonal_officer', 'commissioner']:
         flash('Invalid user.', 'danger')
@@ -888,7 +892,9 @@ def create_department():
 @admin_required
 def add_service(dept_id):
     """Add service to department."""
-    dept = Department.query.get_or_404(dept_id)
+    dept = db.session.get(Department, dept_id)
+    if not dept:
+        abort(404)
     
     name = request.form.get('name', '').strip()
     description = request.form.get('description', '').strip()
@@ -1340,6 +1346,161 @@ def rti_compliance_report():
                           report_data=report_data,
                           total_overdue=len(overdue),
                           cutoff_date=cutoff.strftime('%d/%m/%Y'))
+
+
+# =============================================================================
+# TRENDING NEWS MANAGEMENT
+# =============================================================================
+
+@admin_bp.route('/trending-news')
+@admin_required
+def trending_news_list():
+    """List all trending news items for management."""
+    items = TrendingNews.query.order_by(
+        TrendingNews.display_order.asc(),
+        TrendingNews.created_at.desc()
+    ).all()
+    return render_template('admin/trending_news.html', items=items)
+
+
+@admin_bp.route('/trending-news/create', methods=['POST'])
+@admin_required
+def create_trending_news():
+    """Create a new trending news item."""
+    headline = request.form.get('headline', '').strip()
+    link_url = request.form.get('link_url', '').strip()
+    badge_label = request.form.get('badge_label', '').strip()
+    display_order = request.form.get('display_order', 0, type=int)
+
+    if not headline or len(headline) < 5:
+        flash('Headline must be at least 5 characters.', 'danger')
+        return redirect(url_for('admin.trending_news_list'))
+
+    if len(headline) > 300:
+        flash('Headline must be 300 characters or fewer.', 'danger')
+        return redirect(url_for('admin.trending_news_list'))
+
+    item = TrendingNews(
+        headline=headline,
+        link_url=link_url or None,
+        badge_label=badge_label or None,
+        display_order=display_order,
+        is_active=True,
+        created_by_id=session.get('user_id')
+    )
+    db.session.add(item)
+    db.session.commit()
+
+    AuditLog.create_entry(
+        user_id=session.get('user_id'),
+        username=session.get('username', 'admin'),
+        role='admin',
+        action='TRENDING_NEWS_CREATED',
+        details=json.dumps({'headline': headline, 'id': item.id})
+    )
+
+    flash('Trending news item created successfully.', 'success')
+    return redirect(url_for('admin.trending_news_list'))
+
+
+@admin_bp.route('/trending-news/<int:item_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def edit_trending_news(item_id):
+    """Edit an existing trending news item."""
+    item = db.session.get(TrendingNews, item_id)
+    if not item:
+        flash('News item not found.', 'danger')
+        return redirect(url_for('admin.trending_news_list'))
+
+    if request.method == 'POST':
+        headline = request.form.get('headline', '').strip()
+        link_url = request.form.get('link_url', '').strip()
+        badge_label = request.form.get('badge_label', '').strip()
+        display_order = request.form.get('display_order', 0, type=int)
+
+        if not headline or len(headline) < 5:
+            flash('Headline must be at least 5 characters.', 'danger')
+            return redirect(url_for('admin.edit_trending_news', item_id=item_id))
+
+        old_headline = item.headline
+        item.headline = headline
+        item.link_url = link_url or None
+        item.badge_label = badge_label or None
+        item.display_order = display_order
+        db.session.commit()
+
+        AuditLog.create_entry(
+            user_id=session.get('user_id'),
+            username=session.get('username', 'admin'),
+            role='admin',
+            action='TRENDING_NEWS_UPDATED',
+            details=json.dumps({'id': item_id, 'old_headline': old_headline, 'new_headline': headline})
+        )
+
+        flash('News item updated.', 'success')
+        return redirect(url_for('admin.trending_news_list'))
+
+    return render_template('admin/trending_news_edit.html', item=item)
+
+
+@admin_bp.route('/trending-news/<int:item_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_trending_news(item_id):
+    """Toggle active/inactive for a trending news item."""
+    item = db.session.get(TrendingNews, item_id)
+    if not item:
+        flash('News item not found.', 'danger')
+        return redirect(url_for('admin.trending_news_list'))
+
+    item.is_active = not item.is_active
+    db.session.commit()
+
+    AuditLog.create_entry(
+        user_id=session.get('user_id'),
+        username=session.get('username', 'admin'),
+        role='admin',
+        action='TRENDING_NEWS_TOGGLED',
+        details=json.dumps({'id': item_id, 'is_active': item.is_active, 'headline': item.headline})
+    )
+
+    status = 'activated' if item.is_active else 'deactivated'
+    flash(f'News item {status}.', 'success')
+    return redirect(url_for('admin.trending_news_list'))
+
+
+@admin_bp.route('/trending-news/<int:item_id>/delete', methods=['POST'])
+@admin_required
+def delete_trending_news(item_id):
+    """Permanently delete a trending news item."""
+    item = db.session.get(TrendingNews, item_id)
+    if not item:
+        flash('News item not found.', 'danger')
+        return redirect(url_for('admin.trending_news_list'))
+
+    headline = item.headline
+    db.session.delete(item)
+    db.session.commit()
+
+    AuditLog.create_entry(
+        user_id=session.get('user_id'),
+        username=session.get('username', 'admin'),
+        role='admin',
+        action='TRENDING_NEWS_DELETED',
+        details=json.dumps({'id': item_id, 'headline': headline})
+    )
+
+    flash('News item deleted.', 'warning')
+    return redirect(url_for('admin.trending_news_list'))
+
+
+@admin_bp.route('/api/trending-news')
+def api_trending_news():
+    """Public JSON API — returns active trending news items for the ticker."""
+    items = TrendingNews.query.filter_by(is_active=True).order_by(
+        TrendingNews.display_order.asc(),
+        TrendingNews.created_at.desc()
+    ).all()
+    return jsonify([item.to_dict() for item in items])
 
 
 # =============================================================================

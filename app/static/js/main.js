@@ -694,3 +694,13 @@ function initAccessibilityControls() {
     // Initial theme load
     applyTheme(savedTheme);
 }
+
+// Dynamic speed adjustment for Trending News Ticker
+document.addEventListener('DOMContentLoaded', function () {
+  const track = document.getElementById('newsTicker');
+  if (!track) return;
+  // Adjust animation duration based on content width (approx. 100px per second)
+  const totalWidth = track.scrollWidth;
+  const duration = Math.max(15, totalWidth / 100);
+  track.style.animationDuration = duration + 's';
+});

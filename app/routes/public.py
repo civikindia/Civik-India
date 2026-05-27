@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 
 from app import db, csrf
 from app.clock import utc_now
-from app.models import Department, Service, Complaint, AuditLog, EvidenceFile
+from app.models import Department, Service, Complaint, AuditLog, EvidenceFile, TrendingNews
 from app.utils import (
     generate_tracking_id, save_uploaded_file,
     validate_tracking_id, normalize_tracking_id, log_action,
@@ -732,9 +732,14 @@ def index():
     stats, _, _ = _cached_public_payload('page_home_stats', lambda: Complaint.get_stats(public=True))
     departments = Department.query.all()
     
+    trending_items = TrendingNews.query.filter_by(is_active=True).order_by(
+        TrendingNews.display_order.asc(),
+        TrendingNews.created_at.desc()
+    ).all()
     return render_template('public/index.html', 
                           stats=stats, 
-                          departments=departments)
+                          departments=departments,
+                          trending_items=trending_items)
 
 
 @public_bp.route('/about')
@@ -1571,6 +1576,10 @@ def public_dashboard():
         Complaint.submitted_at >= thirty_days_ago
     ).order_by(Complaint.submitted_at.desc()).limit(10).all()
     
+    trending_items = TrendingNews.query.filter_by(is_active=True).order_by(
+        TrendingNews.display_order.asc(),
+        TrendingNews.created_at.desc()
+    ).all()
     return render_template('public/dashboard.html',
                           stats=stats,
                           dept_stats=dept_stats,
@@ -1578,7 +1587,8 @@ def public_dashboard():
                           best_department=best_department,
                           worst_department=worst_department,
                           recent_complaints=recent_complaints,
-                          status_options=DASHBOARD_STATUSES)
+                          status_options=DASHBOARD_STATUSES,
+                          trending_items=trending_items)
 
 
 # =============================================================================

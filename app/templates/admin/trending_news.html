@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}Trending News Manager{% endblock %}
+
+{% block content %}
+<div class="py-4 admin-dashboard-v2 dashboard-shell">
+  <div class="container">
+    <div class="dashboard-page-header mb-4">
+      <div>
+        <h1><i class="bi bi-megaphone"></i> Trending News</h1>
+        <p>Create and manage ticker items shown on public pages.</p>
+      </div>
+      <div class="dashboard-header-actions">
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-gov-secondary btn-sm">
+          <i class="bi bi-arrow-left me-1"></i>Dashboard
+        </a>
+      </div>
+    </div>
+
+    <!-- CREATE FORM -->
+    <div class="mibsp-card mb-4">
+      <div class="table-card-header"><h2><i class="bi bi-plus-circle"></i> Add New Item</h2></div>
+      <form method="POST" action="{{ url_for('admin.create_trending_news') }}" class="p-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="tn_headline">Headline <span class="text-danger">*</span></label>
+            <input type="text" id="tn_headline" name="headline" class="form-control"
+                   placeholder="e.g. New complaint portal launched in Maharashtra"
+                   maxlength="300" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold" for="tn_badge">Badge Label</label>
+            <input type="text" id="tn_badge" name="badge_label" class="form-control"
+                   placeholder="BREAKING / UPDATE / NOTICE" maxlength="40">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold" for="tn_order">Display Order</label>
+            <input type="number" id="tn_order" name="display_order" class="form-control"
+                   value="0" min="0" max="999">
+          </div>
+          <div class="col-md-9">
+            <label class="form-label fw-semibold" for="tn_link">Link URL (optional)</label>
+            <input type="url" id="tn_link" name="link_url" class="form-control"
+                   placeholder="https://civikindia.online/...">
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-gov-primary w-100">
+              <i class="bi bi-plus-circle me-1"></i> Add Item
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- PREVIEW TICKER -->
+    {% if items %}
+    <div class="mibsp-card mb-4 p-3">
+      <h2 class="mb-2" style="font-size:1rem;"><i class="bi bi-eye"></i> Live Preview</h2>
+      <div class="news-ticker-wrap" aria-label="Trending news ticker preview">
+        <span class="ticker-label"><i class="bi bi-broadcast-pin"></i> TRENDING</span>
+        <div class="ticker-track-outer">
+          <div class="ticker-track" id="previewTrack">
+            {% for item in items %}
+            {% if item.is_active %}
+            <span class="ticker-item">
+              {% if item.badge_label %}<span class="ticker-badge">{{ item.badge_label }}</span>{% endif %}
+              {% if item.link_url %}
+                <a href="{{ item.link_url }}" target="_blank" rel="noopener noreferrer">{{ item.headline }}</a>
+              {% else %}
+                {{ item.headline }}
+              {% endif %}
+            </span>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ITEMS TABLE -->
+    <div class="mibsp-card">
+      <div class="table-card-header"><h2><i class="bi bi-list-ul"></i> All Items</h2></div>
+      {% if not items %}
+      <div class="p-4 text-center text-muted">No trending news items yet. Create one above.</div>
+      {% else %}
+      <div class="table-responsive">
+        <table class="mibsp-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Order</th>
+              <th>Badge</th>
+              <th>Headline</th>
+              <th>Link</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for item in items %}
+          <tr class="{{ 'opacity-50' if not item.is_active else '' }}">
+            <td>{{ item.id }}</td>
+            <td>{{ item.display_order }}</td>
+            <td>
+              {% if item.badge_label %}
+                <span class="ticker-badge">{{ item.badge_label }}</span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td style="max-width:340px;">{{ item.headline }}</td>
+            <td>
+              {% if item.link_url %}
+                <a href="{{ item.link_url }}" target="_blank" rel="noopener" class="small">
+                  <i class="bi bi-box-arrow-up-right"></i> Link
+                </a>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if item.is_active %}
+                <span class="badge-status badge-resolved">Active</span>
+              {% else %}
+                <span class="badge-status badge-delayed">Inactive</span>
+              {% endif %}
+            </td>
+            <td><small class="text-muted">{{ item.created_at|format_datetime('%d %b %Y') }}</small></td>
+            <td>
+              <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('admin.edit_trending_news', item_id=item.id) }}"
+                   class="btn btn-gov-secondary btn-sm">
+                  <i class="bi bi-pencil"></i> Edit
+                </a>
+                <form method="POST" action="{{ url_for('admin.toggle_trending_news', item_id=item.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm {{ 'btn-warning' if item.is_active else 'btn-gov-primary' }}">
+                    <i class="bi {{ 'bi-toggle-on' if item.is_active else 'bi-toggle-off' }}"></i>
+                    {{ 'Deactivate' if item.is_active else 'Activate' }}
+                  </button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.delete_trending_news', item_id=item.id) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('Delete this news item permanently?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
