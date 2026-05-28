@@ -1166,6 +1166,334 @@ def get_system_stats():
     })
 
 
+# =============================================================================
+# SYSTEM HEALTH PAGE
+# =============================================================================
+
+def _check_database():
+    """Verify database connectivity and return latency."""
+    import time
+    from sqlalchemy import text
+    try:
+        start = time.monotonic()
+        db.session.execute(text('SELECT 1'))
+        latency_ms = round((time.monotonic() - start) * 1000, 1)
+        total_complaints = Complaint.query.count()
+        total_users = User.query.count()
+        db_url = str(db.engine.url)
+        # Mask password
+        import re as _re
+        db_url = _re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', db_url)
+        return {
+            'status': 'ok',
+            'latency_ms': latency_ms,
+            'engine': db.engine.name,
+            'url_masked': db_url,
+            'total_complaints': total_complaints,
+            'total_users': total_users,
+        }
+    except Exception as exc:
+        return {'status': 'error', 'error': str(exc)[:200]}
+
+
+def _check_redis():
+    """Ping Redis and return latency."""
+    import time
+    try:
+        import redis as redis_lib
+        url = current_app.config.get('REDIS_URL') or 'redis://localhost:6379/0'
+        start = time.monotonic()
+        r = redis_lib.from_url(url, socket_connect_timeout=3, socket_timeout=3)
+        r.ping()
+        latency_ms = round((time.monotonic() - start) * 1000, 1)
+        info = r.info('server')
+        return {
+            'status': 'ok',
+            'latency_ms': latency_ms,
+            'redis_version': info.get('redis_version', 'unknown'),
+            'connected_clients': info.get('connected_clients', '?'),
+            'used_memory_human': info.get('used_memory_human', '?'),
+        }
+    except Exception as exc:
+        return {'status': 'error', 'error': str(exc)[:200]}
+
+
+def _check_celery():
+    """Check if any Celery workers are alive."""
+    import time
+    try:
+        from app import celery as celery_app
+        start = time.monotonic()
+        inspector = celery_app.control.inspect(timeout=2.0)
+        ping_result = inspector.ping() or {}
+        latency_ms = round((time.monotonic() - start) * 1000, 1)
+        active_workers = list(ping_result.keys())
+        return {
+            'status': 'ok' if active_workers else 'warning',
+            'latency_ms': latency_ms,
+            'active_workers': active_workers,
+            'worker_count': len(active_workers),
+            'note': 'No workers running — tasks queue but do not execute.' if not active_workers else None,
+        }
+    except Exception as exc:
+        return {'status': 'warning', 'error': str(exc)[:200],
+                'note': 'Celery check failed — workers may not be configured on this plan.'}
+
+
+def _check_r2_storage():
+    """Verify R2 / S3 object storage connectivity."""
+    import time
+    try:
+        account_id  = current_app.config.get('R2_ACCOUNT_ID')
+        access_key  = current_app.config.get('R2_ACCESS_KEY_ID')
+        secret_key  = current_app.config.get('R2_SECRET_ACCESS_KEY')
+        bucket_name = current_app.config.get('R2_BUCKET_NAME')
+        endpoint    = current_app.config.get('R2_ENDPOINT_URL')
+        provider    = current_app.config.get('EVIDENCE_STORAGE_PROVIDER', 'local')
+
+        if provider == 'local':
+            return {'status': 'info', 'provider': 'local',
+                    'note': 'Evidence stored locally — R2 not configured.'}
+
+        if not all([access_key, secret_key, bucket_name, endpoint]):
+            return {'status': 'warning', 'provider': 'r2',
+                    'note': 'R2 credentials incomplete.'}
+
+        import boto3, botocore.exceptions
+        start = time.monotonic()
+        s3 = boto3.client(
+            's3',
+            endpoint_url=endpoint,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name='auto',
+        )
+        resp = s3.list_objects_v2(Bucket=bucket_name, MaxKeys=1)
+        latency_ms = round((time.monotonic() - start) * 1000, 1)
+        return {
+            'status': 'ok',
+            'provider': 'r2',
+            'latency_ms': latency_ms,
+            'bucket': bucket_name,
+            'object_count_sample': resp.get('KeyCount', '?'),
+        }
+    except Exception as exc:
+        return {'status': 'error', 'provider': 'r2', 'error': str(exc)[:200]}
+
+
+def _check_email():
+    """Verify SMTP configuration and optionally test a connection."""
+    import smtplib, ssl, time
+    server   = current_app.config.get('MAIL_SERVER', '')
+    port     = current_app.config.get('MAIL_PORT', 587)
+    username = current_app.config.get('MAIL_USERNAME', '')
+    use_tls  = current_app.config.get('MAIL_USE_TLS', True)
+    suppressed = current_app.config.get('MAIL_SUPPRESS_SEND', False)
+
+    if not server or not username:
+        return {'status': 'warning',
+                'note': 'MAIL_SERVER or MAIL_USERNAME not configured.'}
+
+    if suppressed:
+        return {'status': 'info',
+                'note': 'MAIL_SUPPRESS_SEND=true — emails silently dropped.',
+                'server': server, 'port': port}
+
+    try:
+        start = time.monotonic()
+        ctx = ssl.create_default_context()
+        with smtplib.SMTP(server, port, timeout=5) as smtp:
+            if use_tls:
+                smtp.starttls(context=ctx)
+            smtp.ehlo()
+        latency_ms = round((time.monotonic() - start) * 1000, 1)
+        return {'status': 'ok', 'server': server, 'port': port, 'latency_ms': latency_ms}
+    except Exception as exc:
+        return {'status': 'error', 'server': server, 'port': port, 'error': str(exc)[:200]}
+
+
+def _check_disk():
+    """Check disk space on the upload folder."""
+    import shutil
+    try:
+        upload_path = current_app.config.get('UPLOAD_FOLDER', '/tmp')
+        usage = shutil.disk_usage(upload_path)
+        total_gb  = round(usage.total / (1024 ** 3), 2)
+        used_gb   = round(usage.used  / (1024 ** 3), 2)
+        free_gb   = round(usage.free  / (1024 ** 3), 2)
+        pct_used  = round(usage.used / usage.total * 100, 1)
+        status = 'error' if pct_used > 90 else ('warning' if pct_used > 75 else 'ok')
+        return {
+            'status': status,
+            'path': str(upload_path),
+            'total_gb': total_gb,
+            'used_gb': used_gb,
+            'free_gb': free_gb,
+            'pct_used': pct_used,
+        }
+    except Exception as exc:
+        return {'status': 'warning', 'error': str(exc)[:200]}
+
+
+def _check_environment():
+    """Check required production environment variables are set."""
+    required = [
+        'SECRET_KEY', 'DATABASE_URL', 'EVIDENCE_ENCRYPTION_KEY',
+        'AUDIT_HMAC_SECRET', 'DEFAULT_ADMIN_PASSWORD', 'DEFAULT_OFFICER_PASSWORD',
+        'R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY',
+        'R2_BUCKET_NAME', 'R2_ENDPOINT_URL',
+    ]
+    optional = [
+        'MAIL_SERVER', 'MAIL_USERNAME', 'MAIL_PASSWORD',
+        'OPENAI_API_KEY', 'SMS_ENABLED', 'RECAPTCHA_SITE_KEY',
+        'GOOGLE_DRIVE_BACKUP_ENABLED',
+    ]
+    import os
+    missing_required = [v for v in required if not os.environ.get(v)]
+    missing_optional = [v for v in optional if not os.environ.get(v)]
+    status = 'error' if missing_required else ('warning' if missing_optional else 'ok')
+    return {
+        'status': status,
+        'required_total': len(required),
+        'missing_required': missing_required,
+        'optional_total': len(optional),
+        'missing_optional': missing_optional,
+    }
+
+
+def _check_complaint_pipeline():
+    """Check the complaint processing pipeline health."""
+    from datetime import timedelta
+    now = utc_now()
+    stats = Complaint.get_stats()
+
+    # Oldest unreviewed complaint
+    oldest = Complaint.query.filter_by(status='Awaiting Review').order_by(
+        Complaint.submitted_at.asc()
+    ).first()
+    oldest_hours = None
+    if oldest and oldest.submitted_at:
+        oldest_hours = round((now - oldest.submitted_at).total_seconds() / 3600, 1)
+
+    # SLA-breached complaints
+    sla_breached = Complaint.query.filter(
+        Complaint.sla_due_at < now,
+        Complaint.status.notin_(['Closed', 'Rejected'])
+    ).count()
+
+    # Complaints submitted in last 24h
+    last_24h = Complaint.query.filter(
+        Complaint.submitted_at >= now - timedelta(hours=24)
+    ).count()
+
+    pipeline_ok = stats.get('awaiting_review', 0) < 50 and sla_breached < 20
+    status = 'ok' if pipeline_ok else 'warning'
+
+    return {
+        'status': status,
+        'awaiting_review': stats.get('awaiting_review', 0),
+        'sla_breached': sla_breached,
+        'delayed': stats.get('delayed', 0),
+        'total': stats.get('total', 0),
+        'resolution_rate': stats.get('resolution_rate', 0),
+        'last_24h_submissions': last_24h,
+        'oldest_unreviewed_hours': oldest_hours,
+    }
+
+
+@admin_bp.route('/health')
+@admin_required
+def system_health():
+    """
+    Admin-only system health dashboard.
+    Runs all component checks and renders the health page.
+    Checks: DB, Redis, Celery, R2, Email, Disk, Env Vars, Pipeline.
+    """
+    import time
+    page_start = time.monotonic()
+
+    checks = {
+        'database':   _check_database(),
+        'redis':      _check_redis(),
+        'celery':     _check_celery(),
+        'storage':    _check_r2_storage(),
+        'email':      _check_email(),
+        'disk':       _check_disk(),
+        'environment': _check_environment(),
+        'pipeline':   _check_complaint_pipeline(),
+    }
+
+    # Overall system status
+    statuses = [c.get('status', 'unknown') for c in checks.values()]
+    if 'error' in statuses:
+        overall = 'error'
+    elif 'warning' in statuses:
+        overall = 'warning'
+    else:
+        overall = 'ok'
+
+    page_time_ms = round((time.monotonic() - page_start) * 1000, 1)
+
+    log_action('SYSTEM_HEALTH_VIEWED', details={
+        'overall': overall,
+        'page_time_ms': page_time_ms,
+    })
+
+    return render_template(
+        'admin/system_health.html',
+        checks=checks,
+        overall=overall,
+        page_time_ms=page_time_ms,
+        checked_at=utc_now(),
+    )
+
+
+@admin_bp.route('/api/health-summary')
+@admin_required
+def health_summary_api():
+    """
+    Lightweight JSON health summary for AJAX polling on the health page.
+    Only runs fast checks (DB ping, Redis ping, pipeline counts).
+    Returns in < 1s for real-time auto-refresh.
+    """
+    import time
+    from sqlalchemy import text
+    start = time.monotonic()
+    db_ok = False
+    redis_ok = False
+    try:
+        db.session.execute(text('SELECT 1'))
+        db_ok = True
+    except Exception:
+        pass
+
+    try:
+        import redis as redis_lib
+        redis_lib.from_url(
+            current_app.config.get('REDIS_URL', 'redis://localhost:6379/0'),
+            socket_connect_timeout=1, socket_timeout=1
+        ).ping()
+        redis_ok = True
+    except Exception:
+        pass
+
+    stats = {}
+    try:
+        stats = Complaint.get_stats()
+    except Exception:
+        pass
+
+    return jsonify({
+        'db': 'ok' if db_ok else 'error',
+        'redis': 'ok' if redis_ok else 'error',
+        'awaiting_review': stats.get('awaiting_review', 0),
+        'delayed': stats.get('delayed', 0),
+        'total': stats.get('total', 0),
+        'checked_at': utc_now().isoformat(),
+        'response_ms': round((time.monotonic() - start) * 1000, 1),
+    })
+
+
 @admin_bp.route('/api/analytics/sentiment')
 @admin_required
 def get_sentiment_analytics():

@@ -38,6 +38,16 @@
             <span class="stat-chip success"><i class="bi bi-speedometer2"></i>SLA: {{ stats.sla_compliance }}% compliant</span>
         </div>
 
+        <!-- System health quick-status — pulls from API, updates every 60s -->
+        <div class="d-flex align-items-center gap-3 mb-3 px-1 flex-wrap" id="dashHealthBar" style="font-size:13px; display:none!important;">
+          <span class="text-muted"><i class="bi bi-activity me-1"></i>System:</span>
+          <span>DB <span id="dh-db" class="fw-bold">—</span></span>
+          <span>Redis <span id="dh-redis" class="fw-bold">—</span></span>
+          <a href="{{ url_for('admin.system_health') }}" class="btn btn-outline-secondary btn-sm py-0 ms-auto">
+            <i class="bi bi-shield-check me-1"></i>Full Health Report
+          </a>
+        </div>
+
         {% if stats.total == 0 and stats.pending == 0 and stats.closed == 0 %}
         <div class="admin-zero-stats-callout" role="status">
             <h2><i class="bi bi-database me-2" aria-hidden="true"></i>No complaint data yet</h2>
@@ -82,6 +92,11 @@
               <i class="bi bi-bell"></i>
               <strong>Notification Logs</strong>
               <span>Delivery records</span>
+            </a>
+            <a href="{{ url_for('admin.system_health') }}">
+              <i class="bi bi-activity"></i>
+              <strong>System Health</strong>
+              <span>Live diagnostics</span>
             </a>
         </div>
 
@@ -428,6 +443,25 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(updateRefreshLabel, 5000);
     setInterval(refreshAdminKPIs, 60000);
 });
+</script>
+
+<script>
+(function() {
+  function refreshDashHealth() {
+    fetch('/admin/api/health-summary')
+      .then(r => r.json())
+      .then(d => {
+        var bar = document.getElementById('dashHealthBar');
+        if (bar) bar.style.display = 'flex';
+        var dbEl = document.getElementById('dh-db');
+        var rdEl = document.getElementById('dh-redis');
+        if (dbEl) { dbEl.textContent = d.db; dbEl.style.color = d.db === 'ok' ? '#22c55e' : '#ef4444'; }
+        if (rdEl) { rdEl.textContent = d.redis; rdEl.style.color = d.redis === 'ok' ? '#22c55e' : '#ef4444'; }
+      }).catch(() => {});
+  }
+  refreshDashHealth();
+  setInterval(refreshDashHealth, 60000);
+})();
 </script>
 {% endblock %}
 
