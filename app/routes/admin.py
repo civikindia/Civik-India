@@ -454,6 +454,155 @@ def admin_kpi_stats():
     })
 
 
+@admin_bp.route('/api/batch-action', methods=['POST'])
+@admin_required
+def batch_action():
+    """
+    Perform a bulk action on multiple complaints simultaneously.
+    Actions:
+      - change_status: transitions each complaint to new_status (if valid)
+      - assign_officer: assigns officer_id to each complaint
+      - add_note: appends note text to resolution_notes of each complaint
+
+    Returns JSON: { success: N, skipped: N, errors: [...] }
+    """
+    data = request.get_json(silent=True) or {}
+    action = data.get('action')
+    complaint_ids = data.get('complaint_ids', [])
+    admin_username = session.get('username', 'admin')
+    admin_user_id = session.get('user_id')
+
+    if not action or not complaint_ids:
+        return jsonify({'error': 'Missing action or complaint_ids'}), 400
+
+    if not isinstance(complaint_ids, list) or len(complaint_ids) > 200:
+        return jsonify({'error': 'complaint_ids must be a list of up to 200 IDs'}), 400
+
+    success_count = 0
+    skipped_count = 0
+    errors = []
+
+    if action == 'change_status':
+        new_status = data.get('new_status', '').strip()
+        allowed_batch_statuses = ['Under Review', 'Action Taken', 'Closed', 'Pending']
+        if new_status not in allowed_batch_statuses:
+            return jsonify({'error': f'Batch status change only supports: {", ".join(allowed_batch_statuses)}'}), 400
+
+        for cid in complaint_ids:
+            complaint = db.session.get(Complaint, int(cid)) if str(cid).isdigit() else None
+            if not complaint:
+                skipped_count += 1
+                continue
+            if not complaint.can_transition_to(new_status):
+                skipped_count += 1
+                errors.append(f'{complaint.tracking_id}: cannot transition from {complaint.status} to {new_status}')
+                continue
+            old_status = complaint.status
+            ok, msg = complaint.update_status(new_status)
+            if ok:
+                AuditLog.create_entry(
+                    user_id=admin_user_id,
+                    username=admin_username,
+                    role='admin',
+                    action='BATCH_STATUS_UPDATE',
+                    details=json.dumps({
+                        'tracking_id': complaint.tracking_id,
+                        'old_status': old_status,
+                        'new_status': new_status
+                    })
+                )
+                success_count += 1
+            else:
+                skipped_count += 1
+                errors.append(f'{complaint.tracking_id}: {msg}')
+
+    elif action == 'assign_officer':
+        officer_id = data.get('officer_id')
+        if not officer_id:
+            return jsonify({'error': 'officer_id required for assign_officer action'}), 400
+        officer = db.session.get(User, int(officer_id))
+        if not officer or officer.role not in ['officer', 'zonal_officer', 'commissioner']:
+            return jsonify({'error': 'Invalid officer selected'}), 400
+
+        for cid in complaint_ids:
+            complaint = db.session.get(Complaint, int(cid)) if str(cid).isdigit() else None
+            if not complaint:
+                skipped_count += 1
+                continue
+            complaint.assigned_to = officer.id
+            if complaint.status == 'Pending':
+                complaint.status = 'Under Review'
+            AuditLog.create_entry(
+                user_id=admin_user_id,
+                username=admin_username,
+                role='admin',
+                action='BATCH_ASSIGN_OFFICER',
+                details=json.dumps({
+                    'tracking_id': complaint.tracking_id,
+                    'assigned_to': officer.username
+                })
+            )
+            success_count += 1
+
+    elif action == 'add_note':
+        note_text = (data.get('note') or '').strip()
+        if len(note_text) < 5:
+            return jsonify({'error': 'Note must be at least 5 characters'}), 400
+        if len(note_text) > 2000:
+            return jsonify({'error': 'Note must be under 2000 characters'}), 400
+
+        for cid in complaint_ids:
+            complaint = db.session.get(Complaint, int(cid)) if str(cid).isdigit() else None
+            if not complaint:
+                skipped_count += 1
+                continue
+            stamped = f'[{admin_username}] {note_text}'
+            if complaint.resolution_notes:
+                complaint.resolution_notes += f'\n\n{stamped}'
+            else:
+                complaint.resolution_notes = stamped
+            complaint.updated_at = utc_now()
+            AuditLog.create_entry(
+                user_id=admin_user_id,
+                username=admin_username,
+                role='admin',
+                action='BATCH_ADD_NOTE',
+                details=json.dumps({'tracking_id': complaint.tracking_id})
+            )
+            success_count += 1
+
+    else:
+        return jsonify({'error': f'Unknown action: {action}'}), 400
+
+    try:
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.error('Batch action DB error: %s', exc)
+        return jsonify({'error': 'Database error during batch action', 'detail': str(exc)}), 500
+
+    return jsonify({
+        'success': success_count,
+        'skipped': skipped_count,
+        'errors': errors[:20],  # cap error list size
+    })
+
+
+@admin_bp.route('/api/officers-list')
+@admin_required
+def officers_list_api():
+    """Return active officers as JSON for batch-action officer dropdown."""
+    officers = User.query.filter(
+        User.role.in_(['officer', 'zonal_officer', 'commissioner']),
+        User.is_active.is_(True)
+    ).order_by(User.username.asc()).all()
+    return jsonify({
+        'officers': [
+            {'id': o.id, 'username': o.username, 'role': o.role}
+            for o in officers
+        ]
+    })
+
 
 @admin_bp.route('/complaints')
 @admin_required

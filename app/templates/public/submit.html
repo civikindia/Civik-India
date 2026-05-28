@@ -2,6 +2,29 @@
 
 {% block title %}{{ _('Submit Complaint') }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+#locationMapWrap {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+}
+#locationMapWrap.map-open {
+    max-height: 380px;
+}
+#locationMap {
+    height: 340px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-color, #dde0e8);
+    margin-top: 10px;
+    z-index: 1;
+}
+.leaflet-attribution-flag { display: none !important; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="submit-page-shell py-5">
     <div class="container">
@@ -269,6 +292,17 @@
                                 </div>
                                 <div class="form-text">{{ _('You can optionally attach approximate coordinates for faster field action.') }}</div>
                                 <div id="locationStatus" class="alert alert-permanent py-2 px-3 small mt-2 d-none" role="status" aria-live="polite"></div>
+
+                                <!-- Map pin picker -->
+                                <div class="d-flex align-items-center gap-2 mt-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="mapToggleBtn" aria-expanded="false" aria-controls="locationMapWrap">
+                                        <i class="bi bi-map me-1"></i>{{ _('Pick on Map') }}
+                                    </button>
+                                    <span class="text-muted small" id="mapPinLabel"></span>
+                                </div>
+                                <div id="locationMapWrap">
+                                    <div id="locationMap" aria-label="Interactive map to pick complaint location"></div>
+                                </div>
                             </section>
 
                             <section class="submit-block mb-4" data-reveal>
@@ -990,4 +1024,156 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endif %}
+
+<!-- Leaflet Map Pin Picker -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPeE=" crossorigin=""></script>
+<script>
+(function() {
+    'use strict';
+    const mapWrap   = document.getElementById('locationMapWrap');
+    const mapToggleBtn = document.getElementById('mapToggleBtn');
+    const mapPinLabel  = document.getElementById('mapPinLabel');
+    const latInput  = document.getElementById('location_lat');
+    const lngInput  = document.getElementById('location_lng');
+    const cityInp   = document.getElementById('city');
+    const districtInp = document.getElementById('district');
+    const stateInp  = document.getElementById('state');
+    if (!mapWrap || !mapToggleBtn) return;
+
+    let mapInstance = null;
+    let mapMarker   = null;
+    let mapReady    = false;
+    let geocodeTimer = null;
+
+    // Default map center: India
+    const DEFAULT_LAT = 20.5937, DEFAULT_LNG = 78.9629, DEFAULT_ZOOM = 5;
+
+    function initMap() {
+        if (mapInstance) return;
+        mapInstance = L.map('locationMap').setView(
+            [parseFloat(latInput.value) || DEFAULT_LAT,
+             parseFloat(lngInput.value) || DEFAULT_LNG],
+            latInput.value ? 13 : DEFAULT_ZOOM
+        );
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
+        }).addTo(mapInstance);
+
+        // If coordinates already filled, show existing pin
+        if (latInput.value && lngInput.value) {
+            placePin(parseFloat(latInput.value), parseFloat(lngInput.value), false);
+        }
+
+        mapInstance.on('click', function(e) {
+            placePin(e.latlng.lat, e.latlng.lng, true);
+        });
+
+        mapReady = true;
+        // Invalidate map size after CSS transition
+        setTimeout(function() { mapInstance.invalidateSize(); }, 360);
+    }
+
+    function placePin(lat, lng, doGeocode) {
+        const latlng = L.latLng(lat, lng);
+        if (mapMarker) {
+            mapMarker.setLatLng(latlng);
+        } else {
+            mapMarker = L.marker(latlng, { draggable: true }).addTo(mapInstance);
+            mapMarker.on('dragend', function(e) {
+                const pos = e.target.getLatLng();
+                fillCoords(pos.lat, pos.lng);
+                triggerGeocode(pos.lat, pos.lng);
+            });
+        }
+        fillCoords(lat, lng);
+        if (doGeocode) {
+            triggerGeocode(lat, lng);
+        }
+    }
+
+    function fillCoords(lat, lng) {
+        latInput.value = lat.toFixed(6);
+        lngInput.value = lng.toFixed(6);
+        // Update sidebar summary if available
+        if (typeof updateSubmissionSummary === 'function') updateSubmissionSummary();
+        if (mapPinLabel) mapPinLabel.textContent = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+
+    function triggerGeocode(lat, lng) {
+        clearTimeout(geocodeTimer);
+        geocodeTimer = setTimeout(function() { reverseGeocode(lat, lng); }, 600);
+    }
+
+    function reverseGeocode(lat, lng) {
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+        fetch(url, { headers: { 'Accept-Language': 'en' } })
+            .then(r => r.json())
+            .then(data => {
+                if (!data || !data.address) return;
+                const a = data.address;
+                // Fill only if the field is empty (don't override user input)
+                if (cityInp && !cityInp.value)    cityInp.value = a.city || a.town || a.village || '';
+                if (districtInp && !districtInp.value) districtInp.value = a.county || a.district || a.state_district || '';
+                if (stateInp && !stateInp.value)  stateInp.value = a.state || '';
+                if (typeof updateSubmissionSummary === 'function') updateSubmissionSummary();
+                const label = [cityInp?.value, stateInp?.value].filter(Boolean).join(', ');
+                if (mapPinLabel && label) mapPinLabel.textContent = `📍 ${label}`;
+            })
+            .catch(function() {}); // silently ignore — user can fill manually
+    }
+
+    // ── Toggle button ────────────────────────────────────────────
+    mapToggleBtn.addEventListener('click', function() {
+        const isOpen = mapWrap.classList.toggle('map-open');
+        mapToggleBtn.setAttribute('aria-expanded', isOpen);
+        mapToggleBtn.innerHTML = isOpen
+            ? '<i class="bi bi-x-circle me-1"></i>Hide Map'
+            : '<i class="bi bi-map me-1"></i>Pick on Map';
+        if (isOpen) {
+            initMap();
+        }
+    });
+
+    // ── Wire existing Locate Me button to also move map pin ──────
+    const locateBtn = document.getElementById('locateBtn');
+    if (locateBtn) {
+        // Patch: after the original locateBtn handler fires, sync the map pin
+        document.addEventListener('locationCaptured', function(e) {
+            if (!mapReady || !mapInstance) return;
+            const lat = parseFloat(latInput.value);
+            const lng = parseFloat(lngInput.value);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                mapInstance.setView([lat, lng], 14);
+                placePin(lat, lng, false);
+            }
+        });
+    }
+
+    // After existing applyLocationCoordinates() sets coords, fire a custom event so the map syncs
+    const origApplyLoc = window.applyLocationCoordinates;
+    if (typeof origApplyLoc === 'function') {
+        window.applyLocationCoordinates = function(location, message, type) {
+            const result = origApplyLoc(location, message, type);
+            document.dispatchEvent(new CustomEvent('locationCaptured'));
+            return result;
+        };
+    }
+
+    // ── Sync map if lat/lng typed manually ───────────────────────
+    [latInput, lngInput].forEach(function(inp) {
+        if (!inp) return;
+        inp.addEventListener('change', function() {
+            if (!mapReady || !mapInstance) return;
+            const lat = parseFloat(latInput.value);
+            const lng = parseFloat(lngInput.value);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                mapInstance.setView([lat, lng], 14);
+                placePin(lat, lng, false);
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}

@@ -131,20 +131,40 @@ def create_app(config_name=None):
 
     @app.after_request
     def add_security_headers(response):
-        """Add baseline security headers."""
+        """Add security headers including CSP, framing, MIME sniffing, referrer, and permissions."""
         if 'X-Frame-Options' not in response.headers:
             response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=(self)'
-        # Basic CSP, allowing inline styles for Bootstrap/Charts, reCAPTCHA v3, etc.
+        # CSP: allows Bootstrap/Chart.js/Leaflet from CDN, reCAPTCHA v3, OSM tiles, Nominatim reverse geocode.
         csp = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
-            "img-src 'self' data: https://*.basemaps.cartocdn.com https://*.stadiamaps.com; "
-            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
-            "frame-src https://www.google.com;"
+            "script-src 'self' 'unsafe-inline' "
+                "https://cdn.jsdelivr.net "
+                "https://unpkg.com "
+                "https://www.google.com "
+                "https://www.gstatic.com; "
+            "style-src 'self' 'unsafe-inline' "
+                "https://cdn.jsdelivr.net "
+                "https://unpkg.com "
+                "https://fonts.googleapis.com "
+                "https://cdnjs.cloudflare.com; "
+            "img-src 'self' data: blob: "
+                "https://*.basemaps.cartocdn.com "
+                "https://*.stadiamaps.com "
+                "https://*.tile.openstreetmap.org "
+                "https://tile.openstreetmap.org; "
+            "font-src 'self' "
+                "https://fonts.gstatic.com "
+                "https://cdnjs.cloudflare.com "
+                "https://cdn.jsdelivr.net "
+                "https://unpkg.com; "
+            "connect-src 'self' "
+                "https://nominatim.openstreetmap.org; "
+            "frame-src https://www.google.com; "
+            "object-src 'none'; "
+            "base-uri 'self';"
         )
         response.headers['Content-Security-Policy'] = csp
         return response
@@ -261,6 +281,47 @@ def register_cli(app):
             f"success={summary.get('success')} "
             f"failed={summary.get('failed')}"
         )
+
+
+def _ensure_new_tables(app, existing_tables):
+    """
+    Create brand-new tables that don't exist yet in the live schema.
+    Called from ensure_schema_compatibility() after ALTER TABLE column patches.
+    Uses CREATE TABLE IF NOT EXISTS so it is safe to run on every startup.
+    """
+    dialect = db.engine.url.get_backend_name()
+    new_table_sqls = {
+        'complaint_status_history': (
+            # SQLite / MySQL / PostgreSQL compatible DDL
+            "CREATE TABLE IF NOT EXISTS complaint_status_history ("
+            "  id INTEGER PRIMARY KEY {autoincrement},"
+            "  complaint_id INTEGER NOT NULL REFERENCES complaints(id),"
+            "  from_status VARCHAR(30),"
+            "  to_status VARCHAR(30) NOT NULL,"
+            "  notes TEXT,"
+            "  changed_by VARCHAR(64) NOT NULL DEFAULT 'system',"
+            "  changed_at TIMESTAMP NOT NULL"
+            ")"
+        ),
+    }
+    for table_name, sql_template in new_table_sqls.items():
+        if table_name in existing_tables:
+            continue
+        autoincrement = 'AUTOINCREMENT' if dialect == 'sqlite' else (
+            'AUTO_INCREMENT' if dialect == 'mysql' else ''
+        )
+        sql = sql_template.format(autoincrement=autoincrement)
+        try:
+            db.session.execute(text(sql))
+            db.session.commit()
+            app.logger.warning('Created new table: %s', table_name)
+        except Exception as exc:
+            db.session.rollback()
+            error_text = str(exc).lower()
+            if 'already exists' in error_text or 'duplicate' in error_text:
+                app.logger.info('Table already present: %s', table_name)
+            else:
+                app.logger.exception('Failed to create table %s: %s', table_name, exc)
 
 
 def ensure_schema_compatibility(app, run_create_all=False):
@@ -441,6 +502,9 @@ def ensure_schema_compatibility(app, run_create_all=False):
                 continue
             app.logger.exception('Schema index patch failed: %s', index_name)
             raise
+
+    # Create any brand-new tables (e.g. complaint_status_history)
+    _ensure_new_tables(app, existing_tables)
 
     db.session.commit()
 

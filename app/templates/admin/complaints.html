@@ -12,7 +12,7 @@
                 <li class="breadcrumb-item active">All Complaints</li>
             </ol>
         </nav>
-        
+
         <!-- Header -->
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4 page-admin-header">
             <div>
@@ -20,7 +20,7 @@
                 <p class="text-muted mb-0">Scan, filter, and open municipal complaint records.</p>
             </div>
         </div>
-        
+
         <!-- Filters -->
         {% set has_filters = filters.status or filters.department_id or filters.search %}
         <div class="filter-toolbar mb-4">
@@ -51,7 +51,7 @@
                         </div>
                         <div class="col-12 col-md-4">
                             <label class="form-label" for="complaintSearchFilter">Search</label>
-                            <input type="text" class="form-control" id="complaintSearchFilter" name="search" 
+                            <input type="text" class="form-control" id="complaintSearchFilter" name="search"
                                    placeholder="Tracking ID or description..."
                                    value="{{ filters.search or '' }}">
                         </div>
@@ -63,15 +63,21 @@
                     </form>
             </div>
         </div>
-        
+
         <!-- Complaints Table -->
         <div class="mibsp-card">
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="mibsp-table mobile-data-table">
+                    <table class="mibsp-table mobile-data-table" id="complaintsTable">
                         <caption class="visually-hidden">Filtered complaint records for administrative review</caption>
                         <thead class="table-light">
                             <tr>
+                                <th scope="col" style="width:38px;">
+                                    <input type="checkbox" id="selectAllComplaints"
+                                           class="form-check-input"
+                                           aria-label="Select all complaints on this page"
+                                           title="Select all">
+                                </th>
                                 <th scope="col" class="sortable">Tracking ID</th>
                                 <th scope="col" class="sortable">Department</th>
                                 <th scope="col" class="d-none d-md-table-cell">Service</th>
@@ -85,7 +91,13 @@
                         </thead>
                         <tbody>
                             {% for complaint in complaints %}
-                            <tr>
+                            <tr data-complaint-id="{{ complaint.id }}" data-complaint-status="{{ complaint.status }}">
+                                <td data-label="">
+                                    <input type="checkbox"
+                                           class="form-check-input complaint-checkbox"
+                                           value="{{ complaint.id }}"
+                                           aria-label="Select complaint {{ complaint.tracking_id }}">
+                                </td>
                                 <td data-label="Tracking ID"><code class="tracking-id">{{ complaint.tracking_id }}</code></td>
                                 <td data-label="Department">{{ complaint.department.name }}</td>
                                 <td data-label="Service" class="d-none d-md-table-cell">{{ complaint.service.name }}</td>
@@ -113,7 +125,7 @@
                                     {% endif %}
                                 </td>
                                 <td data-label="Action">
-                                    <a href="{{ url_for('admin.complaint_detail', tracking_id=complaint.tracking_id) }}" 
+                                    <a href="{{ url_for('admin.complaint_detail', tracking_id=complaint.tracking_id) }}"
                                        class="btn-icon" title="View Complaint">
                                         <i class="bi bi-eye" aria-hidden="true"></i>
                                         <span class="visually-hidden">complaint {{ complaint.tracking_id }}</span>
@@ -122,7 +134,7 @@
                             </tr>
                             {% else %}
                             <tr class="table-empty-state">
-                                <td colspan="9" class="text-center py-5">
+                                <td colspan="10" class="text-center py-5">
                                     <div class="empty-state">
                                         <div class="empty-state-icon"><i class="bi bi-inbox"></i></div>
                                         <div class="empty-state-title">No complaints found</div>
@@ -135,7 +147,7 @@
                     </table>
                 </div>
             </div>
-            
+
             <!-- Pagination -->
             {% if pagination.pages > 1 %}
             <div class="card-footer bg-white">
@@ -146,7 +158,7 @@
                             <a class="page-link" href="{{ url_for('admin.complaints', page=pagination.prev_num, **filters) }}">Previous</a>
                         </li>
                         {% endif %}
-                        
+
                         {% for page_num in pagination.iter_pages() %}
                             {% if page_num %}
                                 {% if page_num == pagination.page %}
@@ -162,7 +174,7 @@
                             <li class="page-item disabled"><span class="page-link">...</span></li>
                             {% endif %}
                         {% endfor %}
-                        
+
                         {% if pagination.has_next %}
                         <li class="page-item">
                             <a class="page-link" href="{{ url_for('admin.complaints', page=pagination.next_num, **filters) }}">Next</a>
@@ -175,4 +187,302 @@
         </div>
     </div>
 </div>
+
+<!-- ══════════════════════════════════════
+     Batch Action Floating Bar
+     ══════════════════════════════════════ -->
+<div id="batchActionBar" class="batch-action-bar d-none" role="region" aria-label="Batch actions">
+    <div class="batch-action-inner">
+        <span class="batch-count-label">
+            <i class="bi bi-check2-square me-1"></i>
+            <strong id="batchCount">0</strong> selected
+        </span>
+        <div class="batch-action-btns">
+            <button type="button" class="btn btn-sm btn-outline-light"
+                    id="batchChangeStatusBtn" title="Change Status">
+                <i class="bi bi-arrow-repeat me-1"></i>Change Status
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-light"
+                    id="batchAssignOfficerBtn" title="Assign Officer">
+                <i class="bi bi-person-check me-1"></i>Assign Officer
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-light"
+                    id="batchAddNoteBtn" title="Add Note">
+                <i class="bi bi-sticky me-1"></i>Add Note
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    id="batchClearBtn" title="Clear selection">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Batch Action Confirmation Modal -->
+<div class="modal fade" id="batchConfirmModal" tabindex="-1" aria-labelledby="batchConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="batchConfirmModalLabel">Confirm Batch Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="batchConfirmBody">
+                <!-- Dynamic content injected by JS -->
+
+                <!-- Change Status sub-form -->
+                <div id="batchStatusForm" class="d-none">
+                    <label for="batchNewStatus" class="form-label fw-semibold">New Status</label>
+                    <select class="form-select" id="batchNewStatus">
+                        <option value="Under Review">Under Review</option>
+                        <option value="Action Taken">Action Taken</option>
+                        <option value="Closed">Closed</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                    <div class="form-text text-warning mt-1">⚠ Only valid transitions will be applied. Invalid ones are skipped.</div>
+                </div>
+
+                <!-- Assign Officer sub-form -->
+                <div id="batchOfficerForm" class="d-none">
+                    <label for="batchOfficerId" class="form-label fw-semibold">Select Officer</label>
+                    <select class="form-select" id="batchOfficerId">
+                        <option value="">-- Loading officers... --</option>
+                    </select>
+                </div>
+
+                <!-- Add Note sub-form -->
+                <div id="batchNoteForm" class="d-none">
+                    <label for="batchNoteText" class="form-label fw-semibold">Note</label>
+                    <textarea class="form-control" id="batchNoteText" rows="3"
+                              maxlength="2000" placeholder="Enter note to append to selected complaints…"></textarea>
+                    <div class="form-text">Appended to resolution notes of all selected complaints.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-gov-primary" id="batchConfirmExecuteBtn">
+                    <span id="batchConfirmBtnSpinner" class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>
+                    Execute
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Batch Action Floating Bar ────────────────────────────── */
+.batch-action-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 1050;
+    background: linear-gradient(135deg, #0f2057 0%, #1a3a8f 100%);
+    color: #fff;
+    padding: 12px 20px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
+    animation: slideUpBar 0.25s ease;
+}
+@keyframes slideUpBar {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+}
+.batch-action-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.batch-count-label {
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.batch-action-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const batchActionBar = document.getElementById('batchActionBar');
+    const batchCount = document.getElementById('batchCount');
+    const selectAllCheckbox = document.getElementById('selectAllComplaints');
+    const batchConfirmModal = new bootstrap.Modal(document.getElementById('batchConfirmModal'));
+    const batchConfirmExecuteBtn = document.getElementById('batchConfirmExecuteBtn');
+    const batchConfirmBtnSpinner = document.getElementById('batchConfirmBtnSpinner');
+
+    let currentBatchAction = null;
+
+    // ── Officers cache for assign dropdown ──────────────────────
+    let officersLoaded = false;
+    function loadOfficers() {
+        if (officersLoaded) return;
+        officersLoaded = true;
+        fetch('/admin/api/officers-list', { headers: { 'X-CSRFToken': csrfToken } })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+                const sel = document.getElementById('batchOfficerId');
+                sel.innerHTML = '';
+                (data.officers || []).forEach(o => {
+                    const opt = document.createElement('option');
+                    opt.value = o.id;
+                    opt.textContent = `${o.username} (${o.role})`;
+                    sel.appendChild(opt);
+                });
+            })
+            .catch(() => {
+                document.getElementById('batchOfficerId').innerHTML =
+                    '<option value="">— Unable to load officers —</option>';
+            });
+    }
+
+    // ── Get selected complaint IDs ───────────────────────────────
+    function getSelectedIds() {
+        return Array.from(document.querySelectorAll('.complaint-checkbox:checked'))
+            .map(cb => parseInt(cb.value));
+    }
+
+    // ── Update bar visibility ────────────────────────────────────
+    function updateBatchBar() {
+        const ids = getSelectedIds();
+        if (ids.length > 0) {
+            batchCount.textContent = ids.length;
+            batchActionBar.classList.remove('d-none');
+        } else {
+            batchActionBar.classList.add('d-none');
+        }
+        // Sync header checkbox state
+        const allBoxes = document.querySelectorAll('.complaint-checkbox');
+        selectAllCheckbox.checked = allBoxes.length > 0 && ids.length === allBoxes.length;
+        selectAllCheckbox.indeterminate = ids.length > 0 && ids.length < allBoxes.length;
+    }
+
+    // ── Individual checkbox change ───────────────────────────────
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('complaint-checkbox') ||
+            e.target.id === 'selectAllComplaints') {
+            if (e.target.id === 'selectAllComplaints') {
+                document.querySelectorAll('.complaint-checkbox').forEach(cb => {
+                    cb.checked = e.target.checked;
+                });
+            }
+            updateBatchBar();
+        }
+    });
+
+    // ── Clear selection ──────────────────────────────────────────
+    document.getElementById('batchClearBtn').addEventListener('click', function() {
+        document.querySelectorAll('.complaint-checkbox').forEach(cb => cb.checked = false);
+        selectAllCheckbox.checked = false;
+        updateBatchBar();
+    });
+
+    // ── Show modal for each action ───────────────────────────────
+    function openBatchModal(action) {
+        currentBatchAction = action;
+        const ids = getSelectedIds();
+        const intro = document.getElementById('batchConfirmBody');
+
+        // Reset sub-forms
+        ['batchStatusForm', 'batchOfficerForm', 'batchNoteForm'].forEach(id => {
+            document.getElementById(id).classList.add('d-none');
+        });
+
+        let introHtml = `<p class="mb-3">You are about to apply <strong>${action.replace('_', ' ')}</strong> to <strong>${ids.length}</strong> complaint(s).</p>`;
+
+        if (action === 'change_status') {
+            introHtml += '';
+            document.getElementById('batchStatusForm').classList.remove('d-none');
+        } else if (action === 'assign_officer') {
+            document.getElementById('batchOfficerForm').classList.remove('d-none');
+            loadOfficers();
+        } else if (action === 'add_note') {
+            document.getElementById('batchNoteForm').classList.remove('d-none');
+            document.getElementById('batchNoteText').value = '';
+        }
+
+        // Insert intro before sub-forms
+        const firstSubForm = intro.querySelector('#batchStatusForm');
+        let introEl = intro.querySelector('#batchIntroEl');
+        if (!introEl) {
+            introEl = document.createElement('div');
+            introEl.id = 'batchIntroEl';
+            intro.insertBefore(introEl, firstSubForm);
+        }
+        introEl.innerHTML = introHtml;
+
+        batchConfirmModal.show();
+    }
+
+    document.getElementById('batchChangeStatusBtn').addEventListener('click', () => openBatchModal('change_status'));
+    document.getElementById('batchAssignOfficerBtn').addEventListener('click', () => openBatchModal('assign_officer'));
+    document.getElementById('batchAddNoteBtn').addEventListener('click', () => openBatchModal('add_note'));
+
+    // ── Execute batch action ─────────────────────────────────────
+    batchConfirmExecuteBtn.addEventListener('click', async function() {
+        const ids = getSelectedIds();
+        if (!ids.length || !currentBatchAction) return;
+
+        const payload = { action: currentBatchAction, complaint_ids: ids };
+
+        if (currentBatchAction === 'change_status') {
+            payload.new_status = document.getElementById('batchNewStatus').value;
+        } else if (currentBatchAction === 'assign_officer') {
+            const officerId = document.getElementById('batchOfficerId').value;
+            if (!officerId) { alert('Please select an officer.'); return; }
+            payload.officer_id = parseInt(officerId);
+        } else if (currentBatchAction === 'add_note') {
+            const note = document.getElementById('batchNoteText').value.trim();
+            if (note.length < 5) { alert('Note must be at least 5 characters.'); return; }
+            payload.note = note;
+        }
+
+        // Show spinner
+        batchConfirmExecuteBtn.disabled = true;
+        batchConfirmBtnSpinner.classList.remove('d-none');
+
+        try {
+            const resp = await fetch('/admin/api/batch-action', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(payload)
+            });
+            const result = await resp.json();
+
+            batchConfirmModal.hide();
+
+            if (resp.ok) {
+                let msg = `✅ Batch action complete: ${result.success} updated`;
+                if (result.skipped) msg += `, ${result.skipped} skipped`;
+                if (result.errors && result.errors.length) {
+                    msg += `\n\nSkipped:\n${result.errors.slice(0, 5).join('\n')}`;
+                }
+                alert(msg);
+                // Reload to show updated data
+                window.location.reload();
+            } else {
+                alert('Error: ' + (result.error || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('Network error. Please try again.');
+        } finally {
+            batchConfirmExecuteBtn.disabled = false;
+            batchConfirmBtnSpinner.classList.add('d-none');
+        }
+    });
+})();
+</script>
 {% endblock %}

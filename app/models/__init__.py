@@ -525,6 +525,18 @@ class Complaint(db.Model):
         if notes:
             self.resolution_notes = notes
         
+        # Record status history entry
+        actor = user.username if user else 'officer'
+        history_entry = ComplaintStatusHistory(
+            complaint_id=self.id,
+            from_status=old_status,
+            to_status=new_status,
+            notes=notes,
+            changed_by=actor,
+            changed_at=self.updated_at
+        )
+        db.session.add(history_entry)
+        
         return True, f"Status updated from '{old_status}' to '{new_status}'"
     
     def get_resolution_time(self):
@@ -560,6 +572,7 @@ class Complaint(db.Model):
         if len(reason) < 10:
             return False, 'Please provide at least 10 characters explaining why to reopen.'
 
+        old_status = self.status
         self.status = 'Reopened'
         self.updated_at = utc_now()
         self.resolved_at = None
@@ -575,6 +588,18 @@ class Complaint(db.Model):
             self.resolution_notes = note
 
         self.assign_by_escalation_hierarchy()
+
+        # Record status history entry
+        history_entry = ComplaintStatusHistory(
+            complaint_id=self.id,
+            from_status=old_status,
+            to_status='Reopened',
+            notes=note,
+            changed_by='citizen',
+            changed_at=self.updated_at
+        )
+        db.session.add(history_entry)
+
         return True, 'Complaint reopened successfully.'
     
     def to_dict(self, include_details=False):
@@ -967,3 +992,37 @@ class Announcement(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
+
+class ComplaintStatusHistory(db.Model):
+    """
+    Immutable log of every status transition for a complaint.
+    Created automatically by Complaint.update_status() and Complaint.reopen().
+    Enables citizens to see a real timeline on the /track page.
+    """
+    __tablename__ = 'complaint_status_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    complaint_id = db.Column(db.Integer, db.ForeignKey('complaints.id'), nullable=False, index=True)
+    from_status = db.Column(db.String(30), nullable=True)   # NULL for initial 'Submitted' entry
+    to_status = db.Column(db.String(30), nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    changed_by = db.Column(db.String(64), nullable=False, default='system')
+    changed_at = db.Column(db.DateTime, nullable=False, default=utc_now, index=True)
+
+    complaint = db.relationship('Complaint', backref=db.backref(
+        'status_history', lazy='dynamic',
+        order_by='ComplaintStatusHistory.changed_at'
+    ))
+
+    def __repr__(self):
+        return f'<StatusHistory {self.complaint_id}: {self.from_status} -> {self.to_status}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'from_status': self.from_status,
+            'to_status': self.to_status,
+            'notes': self.notes,
+            'changed_by': self.changed_by,
+            'changed_at': self.changed_at.isoformat() if self.changed_at else None,
+        }

@@ -2,6 +2,100 @@
 
 {% block title %}{{ _('Track Complaint') }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ── Status Timeline (dynamic, vertical) ─────────────────── */
+.civik-timeline {
+    position: relative;
+    padding-left: 36px;
+    margin: 0 0 24px;
+}
+.civik-timeline::before {
+    content: '';
+    position: absolute;
+    left: 13px; top: 0; bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--gov-navy, #0f2057) 0%, #e2e8f0 100%);
+    border-radius: 2px;
+}
+.civik-tl-item {
+    position: relative;
+    padding: 0 0 24px 20px;
+    animation: tlFadeIn 0.4s ease both;
+}
+.civik-tl-item:last-child { padding-bottom: 0; }
+@keyframes tlFadeIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+.civik-tl-dot {
+    position: absolute;
+    left: -22px; top: 4px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--gov-navy, #0f2057);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px var(--gov-navy, #0f2057);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; color: #fff;
+}
+.civik-tl-item.is-synthetic .civik-tl-dot {
+    background: #94a3b8;
+    box-shadow: 0 0 0 2px #94a3b8;
+}
+.civik-tl-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--gov-navy, #0f2057);
+    color: #fff;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+}
+.civik-tl-badge.tl-closed    { background: #22c55e; }
+.civik-tl-badge.tl-delayed   { background: #f97316; }
+.civik-tl-badge.tl-rejected  { background: #ef4444; }
+.civik-tl-badge.tl-reopened  { background: #8b5cf6; }
+.civik-tl-badge.tl-review    { background: #3b82f6; }
+.civik-tl-badge.tl-action    { background: #10b981; }
+.civik-tl-meta {
+    font-size: 12px;
+    color: #718096;
+    margin-bottom: 4px;
+}
+.civik-tl-notes {
+    font-size: 12px;
+    color: #4a5568;
+    background: #f8faff;
+    border-left: 3px solid #cbd5e0;
+    padding: 6px 10px;
+    border-radius: 0 4px 4px 0;
+    margin-top: 6px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+#timelineSkeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-left: 36px;
+}
+.tl-skeleton-row {
+    height: 48px;
+    background: linear-gradient(90deg, #f0f2f5 25%, #e2e8f0 50%, #f0f2f5 75%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 8px;
+}
+@keyframes shimmer {
+    0%   { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="py-5 track-page">
     <div class="container">
@@ -102,16 +196,12 @@
                         </div>
                         {% endif %}
 
-                        <div class="status-timeline mb-4" aria-label="{{ _('Complaint status timeline') }}">
-                            {% set status_steps = [('Submitted', 25), ('Assigned', 45), ('In Progress', 70), ('Resolved', 100)] %}
-                            {% for label, threshold in status_steps %}
-                            <div class="status-node {% if progress >= threshold %}is-complete{% endif %}">
-                                <span></span>
-                                <strong>{{ _(label) }}</strong>
-                                <small>{% if progress >= threshold %}{{ complaint.updated_at|format_datetime('%d %b') }}{% else %}{{ _('Pending') }}{% endif %}</small>
-                            </div>
-                            {% endfor %}
+                        <div id="timelineSkeleton">
+                            <div class="tl-skeleton-row"></div>
+                            <div class="tl-skeleton-row"></div>
+                            <div class="tl-skeleton-row"></div>
                         </div>
+                        <div id="complaintTimeline" class="civik-timeline d-none" aria-label="{{ _('Complaint status history') }}"></div>
 
                         <div class="sla-bar mb-2" style="--sla-progress: {{ progress }}%"><span class="sla-bar-fill"></span></div>
                         <p class="small text-muted mb-4">{{ progress }}% {{ _('workflow progress based on current status') }}</p>
@@ -241,4 +331,113 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+{% if complaint %}
+<script>
+(function() {
+    'use strict';
+
+    const TRACKING_ID = {{ complaint.tracking_id | tojson }};
+    const skeleton  = document.getElementById('timelineSkeleton');
+    const container = document.getElementById('complaintTimeline');
+    if (!container) return;
+
+    // ── Status → CSS class and icon map ──────────────────────────
+    const STATUS_CLASS = {
+        'Awaiting Review': 'tl-review',
+        'Pending':         '',
+        'Under Review':    'tl-review',
+        'Action Taken':    'tl-action',
+        'Delayed':         'tl-delayed',
+        'Reopened':        'tl-reopened',
+        'Closed':          'tl-closed',
+        'Rejected':        'tl-rejected',
+    };
+    const STATUS_ICON = {
+        'Awaiting Review': '📋',
+        'Pending':         '🕐',
+        'Under Review':    '🔍',
+        'Action Taken':    '🔧',
+        'Delayed':         '⚠️',
+        'Reopened':        '🔄',
+        'Closed':          '✅',
+        'Rejected':        '✗',
+    };
+    const ACTOR_LABEL = {
+        'citizen': 'Citizen',
+        'officer': 'Officer',
+        'system':  'System',
+    };
+
+    function formatDate(iso) {
+        if (!iso) return '';
+        try {
+            const d = new Date(iso);
+            return d.toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: true
+            });
+        } catch (_) { return iso; }
+    }
+
+    function buildItem(entry, index) {
+        const status   = entry.to_status || 'Unknown';
+        const cls      = STATUS_CLASS[status] || '';
+        const icon     = STATUS_ICON[status]  || '●';
+        const actor    = ACTOR_LABEL[entry.changed_by] || entry.changed_by || 'System';
+        const dateStr  = formatDate(entry.changed_at);
+        const synthetic = entry.synthetic ? ' is-synthetic' : '';
+
+        const item = document.createElement('div');
+        item.className = `civik-tl-item${synthetic}`;
+        item.style.animationDelay = `${index * 0.07}s`;
+
+        let notesHtml = '';
+        if (entry.notes) {
+            const escaped = entry.notes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            notesHtml = `<div class="civik-tl-notes">${escaped}</div>`;
+        }
+
+        item.innerHTML = `
+            <div class="civik-tl-dot" aria-hidden="true">${icon}</div>
+            <span class="civik-tl-badge ${cls}">${status}</span>
+            <div class="civik-tl-meta">
+                <span>${dateStr}</span>
+                ${entry.from_status ? `<span class="mx-1">·</span><span>${entry.from_status} → ${status}</span>` : ''}
+                <span class="mx-1">·</span><span>${actor}</span>
+                ${entry.synthetic ? '<span class="ms-1 text-muted fst-italic">(estimated)</span>' : ''}
+            </div>
+            ${notesHtml}
+        `;
+        return item;
+    }
+
+    function renderTimeline(data) {
+        container.innerHTML = '';
+        const history = data.history || [];
+
+        if (!history.length) {
+            container.innerHTML = '<p class="text-muted small">No status history available yet.</p>';
+        } else {
+            history.forEach(function(entry, i) {
+                container.appendChild(buildItem(entry, i));
+            });
+        }
+
+        if (skeleton) skeleton.classList.add('d-none');
+        container.classList.remove('d-none');
+    }
+
+    function renderError() {
+        if (skeleton) skeleton.innerHTML =
+            '<p class="text-muted small ps-0"><i class="bi bi-exclamation-circle me-1"></i>Could not load history. Please try refreshing.</p>';
+    }
+
+    fetch(`/api/complaint/${encodeURIComponent(TRACKING_ID)}/history`)
+        .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(renderTimeline)
+        .catch(renderError);
+})();
+</script>
+{% endif %}
 {% endblock %}

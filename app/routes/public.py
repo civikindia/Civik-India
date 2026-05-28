@@ -1672,6 +1672,77 @@ def submit_feedback(tracking_id):
     return redirect(url_for('public.track_complaint', tracking_id=tracking_id))
 
 
+@public_bp.route('/api/complaint/<path:tracking_id>/history')
+def complaint_status_history(tracking_id):
+    """
+    Return JSON array of status transitions for a complaint.
+    Public endpoint — no PII exposed (officer usernames shown only as 'Officer').
+    Synthesizes an initial 'Submitted' entry if no history rows exist yet.
+    """
+    tracking_id = normalize_tracking_id(tracking_id)
+    if not validate_tracking_id(tracking_id):
+        return jsonify({'error': 'Invalid tracking ID'}), 400
+
+    complaint = Complaint.query.filter_by(tracking_id=tracking_id).first()
+    if not complaint:
+        return jsonify({'error': 'Complaint not found'}), 404
+
+    from app.models import ComplaintStatusHistory
+
+    raw_history = complaint.status_history.all()
+
+    # Build the timeline entries
+    entries = []
+
+    # Synthesize the initial "Submitted" entry (always shown)
+    entries.append({
+        'from_status': None,
+        'to_status': 'Awaiting Review',
+        'notes': 'Complaint submitted anonymously.',
+        'changed_by': 'citizen',
+        'changed_at': complaint.submitted_at.isoformat() if complaint.submitted_at else None,
+        'synthetic': True,
+    })
+
+    # Add real history rows, masking officer names
+    for row in raw_history:
+        changed_by = row.changed_by or 'system'
+        if changed_by not in ('citizen', 'system'):
+            changed_by = 'officer'
+        entries.append({
+            'from_status': row.from_status,
+            'to_status': row.to_status,
+            'notes': row.notes,
+            'changed_by': changed_by,
+            'changed_at': row.changed_at.isoformat() if row.changed_at else None,
+            'synthetic': False,
+        })
+
+    # If history table is empty (complaint pre-dates this feature), synthesize from timestamps
+    if not raw_history:
+        if complaint.reviewed_at:
+            entries.append({
+                'from_status': 'Awaiting Review',
+                'to_status': 'Pending',
+                'notes': None,
+                'changed_by': 'officer',
+                'changed_at': complaint.reviewed_at.isoformat(),
+                'synthetic': True,
+            })
+        if complaint.updated_at and complaint.updated_at != complaint.submitted_at:
+            if complaint.status not in ('Awaiting Review', 'Pending'):
+                entries.append({
+                    'from_status': 'Pending',
+                    'to_status': complaint.status,
+                    'notes': complaint.resolution_notes[:200] if complaint.resolution_notes else None,
+                    'changed_by': 'officer',
+                    'changed_at': complaint.updated_at.isoformat(),
+                    'synthetic': True,
+                })
+
+    return jsonify({'tracking_id': tracking_id, 'history': entries})
+
+
 # =============================================================================
 # PUBLIC DASHBOARD
 # =============================================================================
