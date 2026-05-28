@@ -119,6 +119,7 @@
                                 <li><a class="{% if request.endpoint == 'admin.rti_compliance_report' %}active{% endif %}" href="{{ url_for('admin.rti_compliance_report') }}"><i class="bi bi-file-earmark-bar-graph"></i>{{ _('RTI Report') }}</a></li>
                                 <li><a class="{% if request.endpoint == 'admin.trending_news_list' %}active{% endif %}" href="{{ url_for('admin.trending_news_list') }}"><i class="bi bi-megaphone"></i>{{ _('Trending News') }}</a></li>
                                 <li><a class="{% if request.endpoint == 'admin.announcements' %}active{% endif %}" href="{{ url_for('admin.announcements') }}"><i class="bi bi-megaphone-fill"></i>{{ _('Notice Board') }}</a></li>
+                                <li><a class="{% if request.endpoint == 'admin.system_health' %}active{% endif %}" href="{{ url_for('admin.system_health') }}"><i class="bi bi-activity"></i>{{ _('Health') }}</a></li>
                             {% else %}
                                 <li><a class="{% if request.endpoint and request.endpoint.startswith('officer.') %}active{% endif %}" href="{{ url_for('officer.dashboard') }}"><i class="bi bi-speedometer2"></i>{{ _('Staff Dashboard') }}</a></li>
                             {% endif %}
