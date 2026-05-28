@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 
 from app import db, csrf
 from app.clock import utc_now
-from app.models import Department, Service, Complaint, AuditLog, EvidenceFile, TrendingNews
+from app.models import Department, Service, Complaint, AuditLog, EvidenceFile, TrendingNews, Announcement
 from app.utils import (
     generate_tracking_id, save_uploaded_file,
     validate_tracking_id, normalize_tracking_id, log_action,
@@ -736,10 +736,25 @@ def index():
         TrendingNews.display_order.asc(),
         TrendingNews.created_at.desc()
     ).all()
+
+    # Homepage announcements widget
+    now = utc_now()
+    home_announcements = Announcement.query.filter(
+        Announcement.is_active.is_(True),
+        Announcement.show_on_home.is_(True),
+        db.or_(Announcement.published_at.is_(None), Announcement.published_at <= now),
+        db.or_(Announcement.expires_at.is_(None),   Announcement.expires_at >= now),
+    ).order_by(
+        Announcement.is_pinned.desc(),
+        Announcement.published_at.desc()
+    ).limit(3).all()
+
     return render_template('public/index.html', 
                           stats=stats, 
                           departments=departments,
-                          trending_items=trending_items)
+                          trending_items=trending_items,
+                          home_announcements=home_announcements)
+
 
 
 @public_bp.route('/about')
@@ -967,6 +982,7 @@ def sitemap_xml():
         ('public.track_complaint', 0.9, 'daily'),
         ('public.public_dashboard', 0.9, 'daily'),
         ('public.geo_heatmap', 0.8, 'daily'),
+        ('public.notice_board', 0.7, 'daily'),
         ('public.help_page', 0.7, 'monthly'),
         ('public.privacy', 0.3, 'yearly'),
         ('public.terms', 0.3, 'yearly'),
@@ -1048,6 +1064,45 @@ def geo_heatmap():
     stats, _, _ = _cached_public_payload('page_geo_stats', Complaint.get_stats)
     departments = Department.query.order_by(Department.name.asc()).all()
     return render_template('public/geo_heatmap.html', stats=stats, departments=departments)
+
+
+@public_bp.route('/notices')
+def notice_board():
+    """
+    Public notice board — shows all active, non-expired Announcement records.
+    Pinned items appear first. Citizens can filter by category.
+    """
+    category_filter = request.args.get('category', '').strip()
+    now = utc_now()
+
+    query = Announcement.query.filter(
+        Announcement.is_active.is_(True),
+        db.or_(Announcement.published_at.is_(None),
+               Announcement.published_at <= now),
+        db.or_(Announcement.expires_at.is_(None),
+               Announcement.expires_at >= now),
+    )
+
+    if category_filter:
+        query = query.filter(Announcement.category == category_filter)
+
+    notices = query.order_by(
+        Announcement.is_pinned.desc(),
+        Announcement.published_at.desc()
+    ).all()
+
+    categories = db.session.query(Announcement.category).filter(
+        Announcement.is_active.is_(True)
+    ).distinct().order_by(Announcement.category).all()
+    categories = [c[0] for c in categories]
+
+    return render_template(
+        'public/notice_board.html',
+        notices=notices,
+        categories=categories,
+        category_filter=category_filter,
+        now=now,
+    )
 
 
 # =============================================================================

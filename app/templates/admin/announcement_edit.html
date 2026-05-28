@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}{% if item %}Edit{% else %}New{% endif %} Announcement — Admin{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width: 780px;">
+
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('admin.announcements') }}">Announcements</a></li>
+      <li class="breadcrumb-item active">{% if item %}Edit{% else %}New{% endif %}</li>
+    </ol>
+  </nav>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-header py-3">
+      <h1 class="h4 mb-0">
+        <i class="bi bi-megaphone me-2"></i>
+        {% if item %}Edit Announcement{% else %}Create Announcement{% endif %}
+      </h1>
+    </div>
+    <div class="card-body p-4">
+      <form method="POST"
+            action="{{ url_for('admin.edit_announcement', item_id=item.id) if item else url_for('admin.new_announcement') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Title -->
+        <div class="mb-3">
+          <label for="title" class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="title" name="title" maxlength="200" required
+                 value="{{ form_data.get('title', item.title if item else '') }}"
+                 placeholder="e.g. System maintenance on Saturday 7 PM">
+          <div class="form-text">5–200 characters. This appears as the notice heading.</div>
+        </div>
+
+        <!-- Body -->
+        <div class="mb-3">
+          <label for="body" class="form-label fw-semibold">Body Text <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="body" name="body" rows="5" required minlength="10"
+                    placeholder="Full announcement text. Citizens will read this in full on the notice board."
+          >{{ form_data.get('body', item.body if item else '') }}</textarea>
+          <div class="form-text">Write the full notice content. Line breaks are preserved.</div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <!-- Category -->
+          <div class="col-md-6">
+            <label for="category" class="form-label fw-semibold">Category</label>
+            <select class="form-select" id="category" name="category">
+              {% for cat in categories %}
+              <option value="{{ cat }}"
+                {% if form_data.get('category', item.category if item else 'General') == cat %}selected{% endif %}>
+                {{ cat }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Priority -->
+          <div class="col-md-6">
+            <label for="priority" class="form-label fw-semibold">Priority / Colour</label>
+            <select class="form-select" id="priority" name="priority">
+              <option value="info"     {% if form_data.get('priority', item.priority if item else 'info') == 'info' %}selected{% endif %}>ℹ Info (Blue)</option>
+              <option value="warning"  {% if form_data.get('priority', item.priority if item else 'info') == 'warning' %}selected{% endif %}>⚠ Warning (Yellow)</option>
+              <option value="alert"    {% if form_data.get('priority', item.priority if item else 'info') == 'alert' %}selected{% endif %}>🟠 Alert (Orange)</option>
+              <option value="critical" {% if form_data.get('priority', item.priority if item else 'info') == 'critical' %}selected{% endif %}>🔴 Critical (Red)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <!-- Publish Date -->
+          <div class="col-md-6">
+            <label for="published_at" class="form-label fw-semibold">Publish Date (optional)</label>
+            <input type="datetime-local" class="form-control" id="published_at" name="published_at"
+                   value="{{ form_data.get('published_at', item.published_at.strftime('%Y-%m-%dT%H:%M') if item and item.published_at else '') }}">
+            <div class="form-text">Leave blank to publish immediately. Set a future date to schedule.</div>
+          </div>
+
+          <!-- Expiry Date -->
+          <div class="col-md-6">
+            <label for="expires_at" class="form-label fw-semibold">Expiry Date (optional)</label>
+            <input type="datetime-local" class="form-control" id="expires_at" name="expires_at"
+                   value="{{ form_data.get('expires_at', item.expires_at.strftime('%Y-%m-%dT%H:%M') if item and item.expires_at else '') }}">
+            <div class="form-text">Leave blank to never expire. Past this date the notice hides automatically.</div>
+          </div>
+        </div>
+
+        <!-- Toggles -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="is_pinned" name="is_pinned" value="1"
+                     {% if form_data.get('is_pinned') == '1' or (not form_data and item and item.is_pinned) %}checked{% endif %}>
+              <label class="form-check-label" for="is_pinned">
+                <i class="bi bi-pin-fill text-warning me-1"></i>Pin to top
+              </label>
+            </div>
+            <div class="form-text">Pinned notices appear above all others on the notice board.</div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="show_on_home" name="show_on_home" value="1"
+                     {% if form_data.get('show_on_home') == '1' or (not form_data and item and item.show_on_home) %}checked{% endif %}>
+              <label class="form-check-label" for="show_on_home">
+                <i class="bi bi-house me-1"></i>Show on Homepage
+              </label>
+            </div>
+            <div class="form-text">Appears in the homepage announcement widget.</div>
+          </div>
+          {% if item %}
+          <div class="col-md-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1"
+                     {% if form_data.get('is_active') == '1' or (not form_data and item and item.is_active) %}checked{% endif %}>
+              <label class="form-check-label" for="is_active">
+                <i class="bi bi-eye me-1"></i>Active / Visible
+              </label>
+            </div>
+            <div class="form-text">Uncheck to hide without deleting.</div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Live preview -->
+        <div class="mb-4" id="previewBlock">
+          <div class="form-label fw-semibold text-muted small text-uppercase">Live Preview</div>
+          <div id="announcementPreview" class="p-3 rounded border-start border-4 border-info bg-info-subtle">
+            <div class="fw-bold mb-1" id="previewTitle">Preview Title</div>
+            <div class="small" id="previewBody">Preview body text will appear here.</div>
+            <div class="mt-2"><span class="badge bg-secondary" id="previewCategory">General</span></div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary" id="saveAnnouncementBtn">
+            <i class="bi bi-check-lg me-1"></i>{% if item %}Save Changes{% else %}Create Announcement{% endif %}
+          </button>
+          <a href="{{ url_for('admin.announcements') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const titleEl    = document.getElementById('title');
+  const bodyEl     = document.getElementById('body');
+  const priorityEl = document.getElementById('priority');
+  const categoryEl = document.getElementById('category');
+  const prevTitle  = document.getElementById('previewTitle');
+  const prevBody   = document.getElementById('previewBody');
+  const prevCat    = document.getElementById('previewCategory');
+  const prevBlock  = document.getElementById('announcementPreview');
+
+  const PRIORITY_CLASSES = {
+    'info':     'border-info bg-info-subtle',
+    'warning':  'border-warning bg-warning-subtle',
+    'alert':    'border-warning bg-warning-subtle',
+    'critical': 'border-danger bg-danger-subtle',
+  };
+
+  function updatePreview() {
+    prevTitle.textContent = titleEl.value || 'Preview Title';
+    prevBody.textContent  = bodyEl.value || 'Preview body text will appear here.';
+    prevCat.textContent   = categoryEl.value || 'General';
+
+    // Remove all known border/bg classes
+    Object.values(PRIORITY_CLASSES).forEach(function(cls) {
+      cls.split(' ').forEach(function(c) { prevBlock.classList.remove(c); });
+    });
+    const p = priorityEl.value || 'info';
+    (PRIORITY_CLASSES[p] || PRIORITY_CLASSES['info']).split(' ').forEach(function(c) {
+      prevBlock.classList.add(c);
+    });
+  }
+
+  titleEl.addEventListener('input', updatePreview);
+  bodyEl.addEventListener('input', updatePreview);
+  priorityEl.addEventListener('change', updatePreview);
+  categoryEl.addEventListener('change', updatePreview);
+  updatePreview();
+});
+</script>
+{% endblock %}

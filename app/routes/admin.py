@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from app import db
 from app.clock import utc_now
-from app.models import User, Department, Service, Complaint, AuditLog, EscalationContact, TrendingNews
+from app.models import User, Department, Service, Complaint, AuditLog, EscalationContact, TrendingNews, Announcement
 from app.utils import admin_required, log_action, maybe_run_sla_escalations
 from app.tasks import send_officer_welcome_notification, send_status_update_notification
 
@@ -1573,6 +1573,279 @@ def api_trending_news():
         TrendingNews.created_at.desc()
     ).all()
     return jsonify([item.to_dict() for item in items])
+
+
+# =============================================================================
+# ANNOUNCEMENTS / NOTICE BOARD
+# =============================================================================
+
+@admin_bp.route('/announcements')
+@admin_required
+def announcements():
+    """List all announcements with filter."""
+    category_filter = request.args.get('category', '')
+    priority_filter = request.args.get('priority', '')
+    show_expired    = request.args.get('expired', '') == '1'
+
+    query = Announcement.query
+    if category_filter:
+        query = query.filter(Announcement.category == category_filter)
+    if priority_filter:
+        query = query.filter(Announcement.priority == priority_filter)
+    if not show_expired:
+        # hide items that are past their expiry date
+        query = query.filter(
+            db.or_(Announcement.expires_at.is_(None),
+                   Announcement.expires_at >= utc_now())
+        )
+
+    items = query.order_by(
+        Announcement.is_pinned.desc(),
+        Announcement.created_at.desc()
+    ).all()
+
+    return render_template(
+        'admin/announcements.html',
+        items=items,
+        categories=Announcement.CATEGORIES,
+        priorities=Announcement.PRIORITIES,
+        category_filter=category_filter,
+        priority_filter=priority_filter,
+        show_expired=show_expired,
+        now=utc_now(),
+    )
+
+
+@admin_bp.route('/announcements/new', methods=['GET', 'POST'])
+@admin_required
+def new_announcement():
+    """Create a new announcement."""
+    if request.method == 'POST':
+        title    = request.form.get('title', '').strip()
+        body     = request.form.get('body', '').strip()
+        category = request.form.get('category', 'General').strip()
+        priority = request.form.get('priority', 'info').strip()
+        is_pinned    = request.form.get('is_pinned') == '1'
+        show_on_home = request.form.get('show_on_home') == '1'
+
+        expires_at_str   = request.form.get('expires_at', '').strip()
+        published_at_str = request.form.get('published_at', '').strip()
+
+        errors = []
+        if not title or len(title) < 5:
+            errors.append('Title must be at least 5 characters.')
+        if len(title) > 200:
+            errors.append('Title must be 200 characters or fewer.')
+        if not body or len(body) < 10:
+            errors.append('Body must be at least 10 characters.')
+        if category not in Announcement.CATEGORIES:
+            errors.append('Invalid category.')
+        if priority not in Announcement.PRIORITIES:
+            errors.append('Invalid priority.')
+
+        expires_at = None
+        if expires_at_str:
+            try:
+                expires_at = datetime.strptime(expires_at_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                try:
+                    expires_at = datetime.strptime(expires_at_str, '%Y-%m-%d')
+                except ValueError:
+                    errors.append('Invalid expiry date format.')
+
+        published_at = utc_now()
+        if published_at_str:
+            try:
+                published_at = datetime.strptime(published_at_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                try:
+                    published_at = datetime.strptime(published_at_str, '%Y-%m-%d')
+                except ValueError:
+                    errors.append('Invalid publish date format.')
+
+        if errors:
+            for e in errors:
+                flash(e, 'danger')
+            return render_template(
+                'admin/announcement_edit.html',
+                item=None,
+                categories=Announcement.CATEGORIES,
+                priorities=Announcement.PRIORITIES,
+                form_data=request.form
+            )
+
+        item = Announcement(
+            title=title,
+            body=body,
+            category=category,
+            priority=priority,
+            is_pinned=is_pinned,
+            show_on_home=show_on_home,
+            expires_at=expires_at,
+            published_at=published_at,
+            created_by_id=session.get('user_id'),
+        )
+        db.session.add(item)
+        db.session.commit()
+
+        log_action('ANNOUNCEMENT_CREATED', details={
+            'id': item.id, 'title': item.title, 'priority': item.priority
+        })
+        flash(f'Announcement "{item.title}" created.', 'success')
+        return redirect(url_for('admin.announcements'))
+
+    return render_template(
+        'admin/announcement_edit.html',
+        item=None,
+        categories=Announcement.CATEGORIES,
+        priorities=Announcement.PRIORITIES,
+        form_data={}
+    )
+
+
+@admin_bp.route('/announcements/<int:item_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def edit_announcement(item_id):
+    """Edit an existing announcement."""
+    item = db.session.get(Announcement, item_id)
+    if not item:
+        flash('Announcement not found.', 'danger')
+        return redirect(url_for('admin.announcements'))
+
+    if request.method == 'POST':
+        title    = request.form.get('title', '').strip()
+        body     = request.form.get('body', '').strip()
+        category = request.form.get('category', 'General').strip()
+        priority = request.form.get('priority', 'info').strip()
+        is_pinned    = request.form.get('is_pinned') == '1'
+        show_on_home = request.form.get('show_on_home') == '1'
+        is_active    = request.form.get('is_active') == '1'
+
+        expires_at_str   = request.form.get('expires_at', '').strip()
+        published_at_str = request.form.get('published_at', '').strip()
+
+        errors = []
+        if not title or len(title) < 5:
+            errors.append('Title must be at least 5 characters.')
+        if len(title) > 200:
+            errors.append('Title must be 200 characters or fewer.')
+        if not body or len(body) < 10:
+            errors.append('Body must be at least 10 characters.')
+        if category not in Announcement.CATEGORIES:
+            errors.append('Invalid category.')
+        if priority not in Announcement.PRIORITIES:
+            errors.append('Invalid priority.')
+
+        expires_at = item.expires_at
+        if expires_at_str:
+            try:
+                expires_at = datetime.strptime(expires_at_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                try:
+                    expires_at = datetime.strptime(expires_at_str, '%Y-%m-%d')
+                except ValueError:
+                    errors.append('Invalid expiry date format.')
+        elif 'expires_at' in request.form and not expires_at_str:
+            expires_at = None  # user cleared the field
+
+        published_at = item.published_at
+        if published_at_str:
+            try:
+                published_at = datetime.strptime(published_at_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                try:
+                    published_at = datetime.strptime(published_at_str, '%Y-%m-%d')
+                except ValueError:
+                    errors.append('Invalid publish date format.')
+
+        if errors:
+            for e in errors:
+                flash(e, 'danger')
+            return render_template(
+                'admin/announcement_edit.html',
+                item=item,
+                categories=Announcement.CATEGORIES,
+                priorities=Announcement.PRIORITIES,
+                form_data=request.form
+            )
+
+        item.title       = title
+        item.body        = body
+        item.category    = category
+        item.priority    = priority
+        item.is_pinned   = is_pinned
+        item.show_on_home = show_on_home
+        item.is_active   = is_active
+        item.expires_at  = expires_at
+        item.published_at = published_at
+        db.session.commit()
+
+        log_action('ANNOUNCEMENT_UPDATED', details={
+            'id': item.id, 'title': item.title
+        })
+        flash('Announcement updated.', 'success')
+        return redirect(url_for('admin.announcements'))
+
+    return render_template(
+        'admin/announcement_edit.html',
+        item=item,
+        categories=Announcement.CATEGORIES,
+        priorities=Announcement.PRIORITIES,
+        form_data={}
+    )
+
+
+@admin_bp.route('/announcements/<int:item_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_announcement(item_id):
+    """Toggle is_active on an announcement."""
+    item = db.session.get(Announcement, item_id)
+    if not item:
+        flash('Announcement not found.', 'danger')
+        return redirect(url_for('admin.announcements'))
+
+    item.is_active = not item.is_active
+    db.session.commit()
+    log_action('ANNOUNCEMENT_TOGGLED', details={
+        'id': item.id, 'is_active': item.is_active, 'title': item.title
+    })
+    flash(f'Announcement {"activated" if item.is_active else "deactivated"}.', 'success')
+    return redirect(url_for('admin.announcements'))
+
+
+@admin_bp.route('/announcements/<int:item_id>/pin', methods=['POST'])
+@admin_required
+def pin_announcement(item_id):
+    """Toggle is_pinned on an announcement."""
+    item = db.session.get(Announcement, item_id)
+    if not item:
+        flash('Announcement not found.', 'danger')
+        return redirect(url_for('admin.announcements'))
+
+    item.is_pinned = not item.is_pinned
+    db.session.commit()
+    log_action('ANNOUNCEMENT_PINNED', details={
+        'id': item.id, 'is_pinned': item.is_pinned, 'title': item.title
+    })
+    flash(f'Announcement {"pinned" if item.is_pinned else "unpinned"}.', 'success')
+    return redirect(url_for('admin.announcements'))
+
+
+@admin_bp.route('/announcements/<int:item_id>/delete', methods=['POST'])
+@admin_required
+def delete_announcement(item_id):
+    """Permanently delete an announcement."""
+    item = db.session.get(Announcement, item_id)
+    if not item:
+        flash('Announcement not found.', 'danger')
+        return redirect(url_for('admin.announcements'))
+
+    title = item.title
+    db.session.delete(item)
+    db.session.commit()
+    log_action('ANNOUNCEMENT_DELETED', details={'id': item_id, 'title': title})
+    flash('Announcement deleted.', 'warning')
+    return redirect(url_for('admin.announcements'))
 
 
 # =============================================================================

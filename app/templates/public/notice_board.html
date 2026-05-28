@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}Notice Board | Civik India{% endblock %}
+{% block meta_description %}Official notices, announcements, and alerts from Civik India.{% endblock %}
+
+{% block extra_css %}
+<style>
+  .notice-board-header {
+    position: relative;
+    padding-top: 15px;
+    overflow: hidden;
+  }
+  .tricolor-stripe {
+    height: 4px;
+    width: 100%;
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .tricolor-saffron { background-color: #FF9933; flex: 1; }
+  .tricolor-white { background-color: #FFFFFF; flex: 1; }
+  .tricolor-green { background-color: #128807; flex: 1; }
+
+  /* Custom Alert styles since Bootstrap has no orange utility */
+  .border-orange {
+    border-color: #fd7e14 !important;
+  }
+  .bg-orange-subtle {
+    background-color: rgba(253, 126, 20, 0.1) !important;
+  }
+  .text-orange {
+    color: #fd7e14 !important;
+  }
+
+  /* Premium notice cards */
+  .notice-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .notice-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+  }
+  .notice-card-pinned {
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.1) !important;
+    background-color: #fffdf6 !important;
+  }
+  
+  .notice-body {
+    font-size: 1.05rem;
+    color: #4a5568;
+  }
+  
+  .category-pill {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-5 notice-board-page">
+  <div class="container">
+
+    <!-- Tricolor Accented Header -->
+    <div class="card border-0 shadow-sm mb-5 notice-board-header" data-reveal>
+      <div class="tricolor-stripe">
+        <div class="tricolor-saffron"></div>
+        <div class="tricolor-white"></div>
+        <div class="tricolor-green"></div>
+      </div>
+      <div class="card-body p-4 p-md-5">
+        <div class="row align-items-center">
+          <div class="col-lg-8">
+            <span class="badge bg-primary-subtle text-primary mb-3 px-3 py-2 text-uppercase fw-bold letter-spacing-1">
+              <i class="bi bi-megaphone me-2"></i>Official Information Portal
+            </span>
+            <h1 class="fw-bold display-5 mb-2">Notice Board</h1>
+            <p class="text-muted fs-5 mb-0">
+              Stay informed with verified notifications, maintenance schedules, helpline contacts, and policy updates issued by Civik India administration.
+            </p>
+          </div>
+          <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+            <div class="d-inline-flex flex-column align-items-lg-end">
+              <span class="fs-2 fw-bold text-primary">{{ notices|length }}</span>
+              <span class="text-uppercase text-muted fw-bold small letter-spacing-1">Active Notice{{ 's' if notices|length != 1 else '' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category filter pills -->
+    {% if categories or category_filter %}
+    <div class="mb-4">
+      <h3 class="h6 text-uppercase fw-bold text-muted mb-3 letter-spacing-1">Filter by Category</h3>
+      <div class="d-flex gap-2 flex-wrap" role="navigation" aria-label="Filter notices by category">
+        <a href="{{ url_for('public.notice_board') }}"
+           class="btn btn-sm px-3 rounded-pill {% if not category_filter %}btn-primary{% else %}btn-outline-secondary bg-white{% endif %}">
+          All Notices
+        </a>
+        {% for cat in categories %}
+        <a href="{{ url_for('public.notice_board', category=cat) }}"
+           class="btn btn-sm px-3 rounded-pill {% if category_filter == cat %}btn-primary{% else %}btn-outline-secondary bg-white{% endif %}">
+          {{ cat }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- No notices state -->
+    {% if not notices %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-megaphone display-3 text-muted opacity-25 d-block mb-3"></i>
+        <h2 class="h5 fw-bold text-secondary mb-2">No active notices found</h2>
+        <p class="text-muted mb-4">There are currently no active notices posted in this category. Please check back later.</p>
+        <a href="{{ url_for('public.index') }}" class="btn btn-primary px-4 rounded-pill">
+          <i class="bi bi-arrow-left me-2"></i>Back to Home
+        </a>
+      </div>
+    </div>
+
+    {% else %}
+    <!-- Notice cards -->
+    <div class="row g-4">
+      {% for notice in notices %}
+      {% set priority_map = {
+        'info':     ('border-info',    'bg-info-subtle',    'text-info',    'bi-info-circle-fill',   'Info'),
+        'warning':  ('border-warning', 'bg-warning-subtle', 'text-warning', 'bi-exclamation-triangle-fill', 'Warning'),
+        'alert':    ('border-orange',  'bg-orange-subtle',  'text-orange',  'bi-exclamation-octagon-fill',  'Alert'),
+        'critical': ('border-danger',  'bg-danger-subtle',  'text-danger',  'bi-x-octagon-fill',     'Critical'),
+      } %}
+      {% set pm = priority_map.get(notice.priority, priority_map['info']) %}
+
+      <div class="col-12" data-reveal>
+        <article class="card border-0 shadow-sm border-start border-4 {{ pm[0] }} notice-card
+                        {% if notice.is_pinned %}notice-card-pinned{% endif %}"
+                 id="notice-{{ notice.id }}">
+          <div class="card-body p-4">
+            
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+              <div class="d-flex align-items-center gap-2">
+                {% if notice.is_pinned %}
+                <span class="badge bg-warning text-dark px-2.5 py-1 rounded-pill me-1 text-uppercase fw-bold small" style="font-size:0.7rem;">
+                  <i class="bi bi-pin-fill me-1"></i>Pinned
+                </span>
+                {% endif %}
+                <i class="bi {{ pm[3] }} {{ pm[2] }} fs-5"></i>
+                <h2 class="h5 mb-0 fw-bold text-dark">{{ notice.title }}</h2>
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1 category-pill">{{ notice.category }}</span>
+                <span class="badge {{ 'bg-danger-subtle text-danger' if notice.priority == 'critical'
+                  else ('bg-warning-subtle text-dark' if notice.priority == 'warning'
+                  else ('bg-orange-subtle text-orange' if notice.priority == 'alert'
+                  else 'bg-info-subtle text-info')) }} rounded-pill px-2.5 py-1 category-pill">
+                  {{ pm[4] }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Preserves formatting & spacing -->
+            <div class="notice-body text-secondary mb-4" style="white-space: pre-line; line-height: 1.75;">{{ notice.body }}</div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2">
+              <small class="text-muted">
+                <i class="bi bi-calendar3 me-1"></i>
+                Published {{ notice.published_at.strftime('%d %b %Y') if notice.published_at else 'N/A' }}
+                {% if notice.expires_at %}
+                  · Expires {{ notice.expires_at.strftime('%d %b %Y') }}
+                {% endif %}
+              </small>
+              <a href="#notice-{{ notice.id }}" class="text-muted small text-decoration-none hover-primary">
+                <i class="bi bi-link-45deg me-1"></i>Link #{{ notice.id }}
+              </a>
+            </div>
+            
+          </div>
+        </article>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Back link -->
+    <div class="text-center mt-5">
+      <a href="{{ url_for('public.index') }}" class="btn btn-outline-secondary px-4 rounded-pill">
+        <i class="bi bi-house-door me-2"></i>Back to Home
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

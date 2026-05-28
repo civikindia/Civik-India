@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% block title %}Announcements — Admin | Civik India{% endblock %}
+{% block content %}
+<div class="container py-4 dashboard-shell">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h1 class="h2 mb-1"><i class="bi bi-megaphone me-2"></i>Notice Board</h1>
+      <p class="text-muted mb-0">Create and manage public announcements shown at <strong>/notices</strong> and the homepage widget.</p>
+    </div>
+    <a href="{{ url_for('admin.new_announcement') }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>New Announcement
+    </a>
+  </div>
+
+  <!-- Filters -->
+  <form class="row g-2 mb-4 align-items-end" method="GET">
+    <div class="col-auto">
+      <label class="form-label small">Category</label>
+      <select name="category" class="form-select form-select-sm">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label small">Priority</label>
+      <select name="priority" class="form-select form-select-sm">
+        <option value="">All Priorities</option>
+        {% for p in priorities %}
+        <option value="{{ p }}" {% if priority_filter == p %}selected{% endif %}>{{ p|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <div class="form-check mt-4">
+        <input class="form-check-input" type="checkbox" name="expired" value="1" id="showExpired"
+               {% if show_expired %}checked{% endif %}>
+        <label class="form-check-label small" for="showExpired">Show expired</label>
+      </div>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="{{ url_for('admin.announcements') }}" class="btn btn-outline-secondary btn-sm ms-1">Reset</a>
+    </div>
+  </form>
+
+  {% if not items %}
+  <div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5 text-muted">
+      <i class="bi bi-megaphone display-4 d-block mb-3 opacity-25"></i>
+      <p class="mb-3">No announcements found. Create your first one.</p>
+      <a href="{{ url_for('admin.new_announcement') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Create Announcement
+      </a>
+    </div>
+  </div>
+  {% else %}
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:40px"></th>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Priority</th>
+            <th>Home</th>
+            <th>Status</th>
+            <th>Expires</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          {% set expired = item.is_expired %}
+          {% set visible = item.is_visible %}
+          <tr class="{% if expired %}opacity-50{% endif %}">
+            <td class="text-center">
+              {% if item.is_pinned %}
+              <i class="bi bi-pin-fill text-warning" title="Pinned"></i>
+              {% endif %}
+            </td>
+            <td>
+              <strong class="d-block">{{ item.title }}</strong>
+              <small class="text-muted">{{ item.body[:80] }}{% if item.body|length > 80 %}…{% endif %}</small>
+            </td>
+            <td>
+              <span class="badge bg-secondary rounded-pill">{{ item.category }}</span>
+            </td>
+            <td>
+              {% if item.priority == 'critical' %}
+                <span class="badge bg-danger">🔴 Critical</span>
+              {% elif item.priority == 'alert' %}
+                <span class="badge bg-warning text-dark">🟠 Alert</span>
+              {% elif item.priority == 'warning' %}
+                <span class="badge bg-warning text-dark">⚠ Warning</span>
+              {% else %}
+                <span class="badge bg-info text-dark">ℹ Info</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if item.show_on_home %}
+                <i class="bi bi-house-check-fill text-success" title="Shown on homepage"></i>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if expired %}
+                <span class="badge bg-secondary">Expired</span>
+              {% elif not item.is_active %}
+                <span class="badge bg-secondary">Inactive</span>
+              {% elif item.published_at and item.published_at > now %}
+                <span class="badge bg-info text-dark">Scheduled</span>
+              {% else %}
+                <span class="badge bg-success">Live</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small text-nowrap">
+              {% if item.expires_at %}
+                {{ item.expires_at.strftime('%d %b %Y') }}
+              {% else %}
+                Never
+              {% endif %}
+            </td>
+            <td class="text-nowrap">
+              <a href="{{ url_for('admin.edit_announcement', item_id=item.id) }}"
+                 class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil"></i>
+              </a>
+
+              <form method="POST" action="{{ url_for('admin.toggle_announcement', item_id=item.id) }}"
+                    class="d-inline" onsubmit="return confirm('Toggle visibility?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-secondary btn-sm"
+                        title="{{ 'Deactivate' if item.is_active else 'Activate' }}">
+                  <i class="bi bi-{{ 'eye-slash' if item.is_active else 'eye' }}"></i>
+                </button>
+              </form>
+
+              <form method="POST" action="{{ url_for('admin.pin_announcement', item_id=item.id) }}"
+                    class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-warning btn-sm"
+                        title="{{ 'Unpin' if item.is_pinned else 'Pin to top' }}">
+                  <i class="bi bi-pin{{ '-fill' if item.is_pinned else '' }}"></i>
+                </button>
+              </form>
+
+              <form method="POST" action="{{ url_for('admin.delete_announcement', item_id=item.id) }}"
+                    class="d-inline" onsubmit="return confirm('Permanently delete this announcement?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

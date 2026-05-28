@@ -901,3 +901,69 @@ class TrendingNews(db.Model):
             'display_order': self.display_order,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class Announcement(db.Model):
+    """
+    Admin-created public notice board items.
+    Shown on the public /notices page and as a homepage widget.
+    Distinct from TrendingNews ticker — these are full-text notices with categories and expiry.
+    """
+    __tablename__ = 'announcements'
+
+    CATEGORIES = ['General', 'Maintenance', 'Alert', 'Policy Update', 'Event', 'Helpline']
+    PRIORITIES = ['info', 'warning', 'alert', 'critical']
+
+    id            = db.Column(db.Integer, primary_key=True)
+    title         = db.Column(db.String(200), nullable=False)
+    body          = db.Column(db.Text, nullable=False)
+    category      = db.Column(db.String(50), nullable=False, default='General')
+    priority      = db.Column(db.String(20), nullable=False, default='info')   # info | warning | alert | critical
+    is_active     = db.Column(db.Boolean, default=True, nullable=False)
+    is_pinned     = db.Column(db.Boolean, default=False, nullable=False)       # pinned items float to top
+    show_on_home  = db.Column(db.Boolean, default=False, nullable=False)       # appear in homepage widget
+    expires_at    = db.Column(db.DateTime, nullable=True)                      # NULL = never expires
+    published_at  = db.Column(db.DateTime, nullable=True, default=utc_now)    # scheduled publish date
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at    = db.Column(db.DateTime, default=utc_now)
+    updated_at    = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
+
+    created_by = db.relationship('User', foreign_keys=[created_by_id])
+
+    def __repr__(self):
+        return f'<Announcement {self.id}: {self.title[:40]}>'
+
+    @property
+    def is_visible(self):
+        """True if active, published, and not expired."""
+        now = utc_now()
+        if not self.is_active:
+            return False
+        if self.published_at and self.published_at > now:
+            return False   # scheduled for future
+        if self.expires_at and self.expires_at < now:
+            return False   # expired
+        return True
+
+    @property
+    def is_expired(self):
+        """True if expiry date is set and has passed."""
+        if not self.expires_at:
+            return False
+        return self.expires_at < utc_now()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'body': self.body,
+            'category': self.category,
+            'priority': self.priority,
+            'is_active': self.is_active,
+            'is_pinned': self.is_pinned,
+            'show_on_home': self.show_on_home,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'published_at': self.published_at.isoformat() if self.published_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
