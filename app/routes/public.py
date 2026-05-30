@@ -597,44 +597,118 @@ def _predict_department_and_service(description):
 
 
 def _compute_dashboard_stats(filters):
-    """Compute aggregate dashboard stats for current filter set."""
+    """Compute aggregate dashboard stats for current filter set using efficient SQL."""
+    from sqlalchemy import case, extract
+
     base_query = _apply_dashboard_filters(Complaint.query, filters, include_time_window=True)
 
-    total = base_query.count()
-    pending = base_query.filter(Complaint.status == 'Pending').count()
-    under_review = base_query.filter(Complaint.status == 'Under Review').count()
-    action_taken = base_query.filter(Complaint.status == 'Action Taken').count()
-    delayed = base_query.filter(Complaint.status == 'Delayed').count()
-    reopened = base_query.filter(Complaint.status == 'Reopened').count()
-    closed = base_query.filter(Complaint.status == 'Closed').count()
-    high_priority = base_query.filter(
-        Complaint.priority.in_(['High', 'Urgent']),
-        Complaint.status.in_(Complaint.ACTIVE_STATUSES)
-    ).count()
+    # Single aggregate query for all counts
+    row = db.session.query(
+        func.count(Complaint.id).label('total'),
+        func.count(case((Complaint.status == 'Pending', 1))).label('pending'),
+        func.count(case((Complaint.status == 'Under Review', 1))).label('under_review'),
+        func.count(case((Complaint.status == 'Action Taken', 1))).label('action_taken'),
+        func.count(case((Complaint.status == 'Delayed', 1))).label('delayed'),
+        func.count(case((Complaint.status == 'Reopened', 1))).label('reopened'),
+        func.count(case((Complaint.status == 'Closed', 1))).label('closed'),
+        func.count(case((
+            db.and_(
+                Complaint.priority.in_(['High', 'Urgent']),
+                Complaint.status.in_(Complaint.ACTIVE_STATUSES)
+            ), 1
+        ))).label('high_priority'),
+        func.count(case((Complaint.ai_sentiment == 'negative', 1))).label('negative'),
+        func.count(case((Complaint.reopen_count > 0, 1))).label('repeated'),
+        # SLA compliance: closed complaints resolved within SLA
+        func.count(case((
+            db.and_(
+                Complaint.status == 'Closed',
+                Complaint.resolved_at.isnot(None),
+                Complaint.sla_due_at.isnot(None),
+                Complaint.resolved_at <= Complaint.sla_due_at
+            ), 1
+        ))).label('within_sla'),
+        # Feedback stats
+        func.count(case((
+            db.and_(
+                Complaint.status == 'Closed',
+                Complaint.citizen_rating.isnot(None)
+            ), 1
+        ))).label('closed_with_feedback'),
+    ).filter(
+        *base_query.whereclause.clauses if hasattr(base_query.whereclause, 'clauses') else [base_query.whereclause]
+    ) if hasattr(base_query, 'whereclause') and base_query.whereclause is not None else None
 
-    closed_items = base_query.filter(Complaint.status == 'Closed').all()
-    within_sla = sum(
-        1 for item in closed_items
-        if item.sla_due_at and item.resolved_at and item.resolved_at <= item.sla_due_at
+    # Build the query properly from base_query filters
+    q = base_query.with_entities(
+        func.count(Complaint.id).label('total'),
+        func.count(case((Complaint.status == 'Pending', 1))).label('pending'),
+        func.count(case((Complaint.status == 'Under Review', 1))).label('under_review'),
+        func.count(case((Complaint.status == 'Action Taken', 1))).label('action_taken'),
+        func.count(case((Complaint.status == 'Delayed', 1))).label('delayed'),
+        func.count(case((Complaint.status == 'Reopened', 1))).label('reopened'),
+        func.count(case((Complaint.status == 'Closed', 1))).label('closed'),
+        func.count(case((
+            db.and_(
+                Complaint.priority.in_(['High', 'Urgent']),
+                Complaint.status.in_(Complaint.ACTIVE_STATUSES)
+            ), 1
+        ))).label('high_priority'),
+        func.count(case((Complaint.ai_sentiment == 'negative', 1))).label('negative'),
+        func.count(case((Complaint.reopen_count > 0, 1))).label('repeated'),
+        func.count(case((
+            db.and_(
+                Complaint.status == 'Closed',
+                Complaint.resolved_at.isnot(None),
+                Complaint.sla_due_at.isnot(None),
+                Complaint.resolved_at <= Complaint.sla_due_at
+            ), 1
+        ))).label('within_sla'),
+        func.count(case((
+            db.and_(
+                Complaint.status == 'Closed',
+                Complaint.citizen_rating.isnot(None)
+            ), 1
+        ))).label('closed_with_feedback'),
     )
-    sla_compliance = round((within_sla / len(closed_items) * 100), 2) if closed_items else 0
+    row = q.one()
+
+    total = row.total or 0
+    closed = row.closed or 0
+    pending = row.pending or 0
+    under_review = row.under_review or 0
+    action_taken = row.action_taken or 0
+    delayed = row.delayed or 0
+    reopened = row.reopened or 0
+    high_priority = row.high_priority or 0
+
+    within_sla = row.within_sla or 0
+    sla_compliance = round((within_sla / closed * 100), 2) if closed > 0 else 0
     resolution_rate = round((closed / total * 100), 2) if total > 0 else 0
     in_progress = under_review + action_taken + delayed + reopened
     backlog_rate = round(((pending + in_progress) / total * 100), 2) if total > 0 else 0
 
-    negative = base_query.filter(Complaint.ai_sentiment == 'negative').count()
-    urgent = high_priority
-    repeated = base_query.filter(Complaint.reopen_count > 0).count()
-    closed_with_feedback = sum(1 for complaint in closed_items if complaint.citizen_rating is not None)
-    avg_resolution_hours = (
-        round(sum(
-            complaint.get_resolution_time()
-            for complaint in closed_items
-            if complaint.get_resolution_time()
-        ) / len(closed_items), 2)
-        if closed_items else 0
-    )
-    closed_feedback_rate = round((closed_with_feedback / len(closed_items) * 100), 2) if closed_items else 0
+    negative = row.negative or 0
+    repeated = row.repeated or 0
+    closed_with_feedback = row.closed_with_feedback or 0
+
+    # Avg resolution hours: use SQL to avoid loading objects
+    avg_resolution_hours = 0
+    if closed > 0:
+        avg_row = base_query.filter(
+            Complaint.status == 'Closed',
+            Complaint.resolved_at.isnot(None),
+            Complaint.submitted_at.isnot(None),
+        ).with_entities(
+            func.avg(
+                extract('epoch', Complaint.resolved_at) - extract('epoch', Complaint.submitted_at)
+            ).label('avg_seconds')
+        ).one()
+        avg_seconds = avg_row.avg_seconds
+        if avg_seconds:
+            avg_resolution_hours = round(avg_seconds / 3600, 2)
+
+    closed_feedback_rate = round((closed_with_feedback / closed * 100), 2) if closed > 0 else 0
 
     return {
         'total': total,
@@ -650,7 +724,7 @@ def _compute_dashboard_stats(filters):
         'in_progress': in_progress,
         'backlog_rate': backlog_rate,
         'negative_percent': round((negative / total * 100), 2) if total > 0 else 0,
-        'urgent_percent': round((urgent / total * 100), 2) if total > 0 else 0,
+        'urgent_percent': round((high_priority / total * 100), 2) if total > 0 else 0,
         'repeated_percent': round((repeated / total * 100), 2) if total > 0 else 0,
         'avg_resolution_hours': avg_resolution_hours,
         'feedback_rate': closed_feedback_rate
@@ -658,7 +732,27 @@ def _compute_dashboard_stats(filters):
 
 
 def _compute_department_stats(filters):
-    """Compute per-department stats for scoreboard and ranking."""
+    """Compute per-department stats for scoreboard and ranking using a single GROUP BY query."""
+    from sqlalchemy import case, func
+
+    # Apply filters to Complaint query
+    base_query = _apply_dashboard_filters(Complaint.query, filters, include_time_window=True)
+    
+    # Query database for all stats grouped by department
+    stats_query = base_query.with_entities(
+        Complaint.department_id,
+        func.count(Complaint.id).label('total'),
+        func.count(case((Complaint.status == 'Pending', 1))).label('pending'),
+        func.count(case((Complaint.status == 'Closed', 1))).label('closed'),
+        func.count(case((Complaint.status == 'Delayed', 1))).label('delayed')
+    ).group_by(Complaint.department_id)
+    
+    # Fetch results and build a map of department_id -> stats
+    dept_stats_map = {
+        row.department_id: row for row in stats_query.all() if row.department_id is not None
+    }
+    
+    # Fetch the relevant departments (ordered by name asc)
     departments_query = Department.query.order_by(Department.name.asc())
     if filters.get('department_id'):
         departments_query = departments_query.filter(Department.id == filters['department_id'])
@@ -666,15 +760,16 @@ def _compute_department_stats(filters):
 
     dept_stats = []
     for dept in departments:
-        dept_query = _apply_dashboard_filters(
-            Complaint.query.filter(Complaint.department_id == dept.id),
-            filters,
-            include_time_window=True
-        )
-        total = dept_query.count()
-        pending = dept_query.filter(Complaint.status == 'Pending').count()
-        closed = dept_query.filter(Complaint.status == 'Closed').count()
-        delayed = dept_query.filter(Complaint.status == 'Delayed').count()
+        # Get pre-aggregated stats for this department or use default zeros
+        stats = dept_stats_map.get(dept.id)
+        if stats:
+            total = stats.total or 0
+            pending = stats.pending or 0
+            closed = stats.closed or 0
+            delayed = stats.delayed or 0
+        else:
+            total = pending = closed = delayed = 0
+
         resolution_rate = round((closed / total * 100), 1) if total > 0 else 0
         delay_penalty = round((delayed / total * 100) * 0.5, 1) if total > 0 else 0
         transparency_score = round(max(resolution_rate - delay_penalty, 0), 1)

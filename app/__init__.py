@@ -4,6 +4,8 @@ Creates and configures the Flask application with all extensions.
 """
 import importlib
 import hashlib
+import time
+import threading
 from sqlalchemy import text, inspect
 from urllib.parse import urljoin, urlparse
 from flask import Flask, render_template, redirect, url_for, request, session, current_app, has_app_context
@@ -211,16 +213,31 @@ def create_app(config_name=None):
             'recaptcha_site_key': app.config.get('RECAPTCHA_SITE_KEY', ''),
         }
     
+    # In-memory cache for pending review count (avoids DB hit on every page)
+    _pending_review_cache = {'count': 0, 'ts': 0, 'lock': threading.Lock()}
+
     @app.context_processor
     def inject_pending_review_count():
+        # Skip DB query entirely for anonymous visitors — they never see the badge
+        if 'user_id' not in session or session.get('role') not in ('admin', 'officer', 'zonal_officer', 'commissioner'):
+            return {'pending_review_count': 0}
+
+        # For staff, cache the count for 30 seconds
+        now_ts = time.time()
+        cache = _pending_review_cache
+        if now_ts - cache['ts'] < 30:
+            return {'pending_review_count': cache['count']}
+
         from app.models import Complaint
-        # We only count Awaiting Review complaints in the database
         count = 0
         try:
-            # Safely check if db and Complaint table exist (prevents errors during initial migration)
             count = Complaint.query.filter_by(status='Awaiting Review').count()
         except Exception:
             pass
+
+        with cache['lock']:
+            cache['count'] = count
+            cache['ts'] = now_ts
         return {'pending_review_count': count}
     
     # Keep DB schema aligned with current model fields across environments.

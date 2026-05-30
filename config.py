@@ -174,7 +174,7 @@ class Config:
     WHATSAPP_ENABLED = os.environ.get('WHATSAPP_ENABLED', 'false').lower() in ['true', 'on', '1']
 
     # Runtime performance guard for SLA recalculation on read-heavy pages
-    SLA_CHECK_INTERVAL_SECONDS = int(os.environ.get('SLA_CHECK_INTERVAL_SECONDS', 20))
+    SLA_CHECK_INTERVAL_SECONDS = int(os.environ.get('SLA_CHECK_INTERVAL_SECONDS', 120))
     
     @staticmethod
     def init_app(app):

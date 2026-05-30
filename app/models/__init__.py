@@ -715,40 +715,68 @@ class Complaint(db.Model):
     
     @staticmethod
     def get_stats(public=False):
-        """Get aggregate statistics for dashboard."""
+        """Get aggregate statistics for dashboard using efficient SQL counts."""
+        from sqlalchemy import case, func
+
         if public:
             public_statuses = ['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed']
-            total = Complaint.query.filter(Complaint.status.in_(public_statuses)).count()
+            base = Complaint.query.filter(Complaint.status.in_(public_statuses))
         else:
-            total = Complaint.query.count()
+            base = Complaint.query
 
-        pending = Complaint.query.filter_by(status='Pending').count()
-        under_review = Complaint.query.filter_by(status='Under Review').count()
-        action_taken = Complaint.query.filter_by(status='Action Taken').count()
-        delayed = Complaint.query.filter_by(status='Delayed').count()
-        reopened = Complaint.query.filter_by(status='Reopened').count()
-        closed = Complaint.query.filter_by(status='Closed').count()
-        awaiting_review = 0 if public else Complaint.query.filter_by(status='Awaiting Review').count()
-        rejected = 0 if public else Complaint.query.filter_by(status='Rejected').count()
+        # Single aggregate query for all status counts
+        row = db.session.query(
+            func.count(Complaint.id).label('total'),
+            func.count(case((Complaint.status == 'Pending', 1))).label('pending'),
+            func.count(case((Complaint.status == 'Under Review', 1))).label('under_review'),
+            func.count(case((Complaint.status == 'Action Taken', 1))).label('action_taken'),
+            func.count(case((Complaint.status == 'Delayed', 1))).label('delayed'),
+            func.count(case((Complaint.status == 'Reopened', 1))).label('reopened'),
+            func.count(case((Complaint.status == 'Closed', 1))).label('closed'),
+        ).filter(
+            Complaint.status.in_(
+                public_statuses if public
+                else ['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed', 'Awaiting Review', 'Rejected']
+            )
+        ).one()
+
+        total = row.total or 0
+        closed = row.closed or 0
+
+        awaiting_review = 0
+        rejected = 0
+        if not public:
+            ar_row = db.session.query(
+                func.count(case((Complaint.status == 'Awaiting Review', 1))).label('awaiting_review'),
+                func.count(case((Complaint.status == 'Rejected', 1))).label('rejected'),
+            ).one()
+            awaiting_review = ar_row.awaiting_review or 0
+            rejected = ar_row.rejected or 0
+
         high_priority = Complaint.query.filter(
             Complaint.priority.in_(['High', 'Urgent']),
             Complaint.status.in_(Complaint.ACTIVE_STATUSES)
         ).count()
 
-        closed_items = Complaint.query.filter_by(status='Closed').all()
+        # SLA compliance: count closed complaints resolved before sla_due_at
+        # Uses the pre-computed sla_due_at column to avoid loading objects
         within_sla = 0
-        for complaint in closed_items:
-            if complaint.resolved_at and complaint.initialize_sla_due() and complaint.resolved_at <= complaint.sla_due_at:
-                within_sla += 1
-        sla_compliance = round((within_sla / len(closed_items) * 100), 2) if closed_items else 0
+        if closed > 0:
+            within_sla = Complaint.query.filter(
+                Complaint.status == 'Closed',
+                Complaint.resolved_at.isnot(None),
+                Complaint.sla_due_at.isnot(None),
+                Complaint.resolved_at <= Complaint.sla_due_at
+            ).count()
+        sla_compliance = round((within_sla / closed * 100), 2) if closed > 0 else 0
         
         return {
             'total': total,
-            'pending': pending,
-            'under_review': under_review,
-            'action_taken': action_taken,
-            'delayed': delayed,
-            'reopened': reopened,
+            'pending': row.pending or 0,
+            'under_review': row.under_review or 0,
+            'action_taken': row.action_taken or 0,
+            'delayed': row.delayed or 0,
+            'reopened': row.reopened or 0,
             'closed': closed,
             'awaiting_review': awaiting_review,
             'rejected': rejected,
