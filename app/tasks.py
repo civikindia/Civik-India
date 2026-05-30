@@ -517,16 +517,259 @@ def send_complaint_submission_notification(tracking_id):
 
 @celery.task(name='app.tasks.generate_daily_report')
 def generate_daily_report():
-    """Placeholder daily report hook for scheduler integration."""
-    logger.info('[TASK] Daily report generation is not scheduled in this runtime.')
-    return {}
+    """
+    Send a nightly summary email to all admin accounts.
+    Covers: complaint pipeline status, department breakdown,
+    top SLA breaches, and yesterday's activity.
+    Runs daily via Celery beat (see __init__.py beat_schedule).
+    """
+    if not has_app_context():
+        logger.info('[TASK] Daily report skipped (no app context).')
+        return {'success': False, 'mode': 'skipped'}
+
+    from app.models import Department, AuditLog
+    from datetime import timedelta
+    from sqlalchemy import func
+
+    now = utc_now()
+    yesterday = now - timedelta(hours=24)
+
+    # ── 1. Overall pipeline stats ──────────────────────────────────────────
+    stats = Complaint.get_stats()
+
+    # ── 2. Per-department breakdown ────────────────────────────────────────
+    dept_rows = []
+    for dept in Department.query.order_by(Department.name).all():
+        q = Complaint.query.filter_by(department_id=dept.id)
+        total = q.count()
+        if total == 0:
+            continue
+        pending  = q.filter_by(status='Pending').count()
+        delayed  = q.filter_by(status='Delayed').count()
+        closed   = q.filter_by(status='Closed').count()
+        dept_rows.append({
+            'name':    dept.name,
+            'total':   total,
+            'pending': pending,
+            'delayed': delayed,
+            'closed':  closed,
+            'rate':    round(closed / total * 100, 1) if total else 0,
+        })
+
+    # ── 3. Top SLA-breached (oldest overdue active complaints) ─────────────
+    top_breached = Complaint.query.filter(
+        Complaint.status.in_(Complaint.ACTIVE_STATUSES),
+        Complaint.sla_due_at.isnot(None),
+        Complaint.sla_due_at < now,
+    ).order_by(Complaint.sla_due_at.asc()).limit(5).all()
+
+    breached_rows = []
+    for c in top_breached:
+        overdue_hours = round((now - c.sla_due_at).total_seconds() / 3600, 1)
+        breached_rows.append({
+            'tracking_id':   c.tracking_id,
+            'department':    c.department.name if c.department else 'N/A',
+            'service':       c.service.name if c.service else 'N/A',
+            'overdue_hours': overdue_hours,
+            'priority':      c.priority,
+        })
+
+    # ── 4. Yesterday's activity ────────────────────────────────────────────
+    submitted_24h = Complaint.query.filter(Complaint.submitted_at >= yesterday).count()
+    resolved_24h  = Complaint.query.filter(
+        Complaint.resolved_at >= yesterday,
+        Complaint.status == 'Closed'
+    ).count()
+
+    # ── 5. Send email ──────────────────────────────────────────────────────
+    recipients = [
+        u.email for u in User.query.filter_by(role='admin', is_active=True).all()
+        if u.email
+    ]
+    fallback = (current_app.config.get('NOTIFICATION_TO_EMAIL') or '').strip()
+    if fallback and fallback not in recipients:
+        recipients.append(fallback)
+
+    if not recipients:
+        logger.warning('[TASK] Daily report: no admin email recipients configured.')
+        return {'success': False, 'reason': 'no_recipients'}
+
+    report_date = yesterday.strftime('%d %b %Y')
+    subject = f'Civik India — Daily Report: {report_date}'
+
+    context = dict(
+        stats=stats,
+        dept_rows=dept_rows,
+        breached_rows=breached_rows,
+        submitted_24h=submitted_24h,
+        resolved_24h=resolved_24h,
+        report_date=report_date,
+        generated_at=now.strftime('%d %b %Y, %I:%M %p UTC'),
+    )
+
+    try:
+        plain_body = render_template('email/daily_report.txt', **context)
+        html_body  = render_template('email/daily_report.html', **context)
+    except Exception as exc:
+        logger.exception('[TASK] Daily report template render failed.')
+        return {'success': False, 'error': str(exc)}
+
+    sent, error = send_system_email(subject, plain_body, recipients, html_body=html_body)
+
+    # ── 6. Audit log ───────────────────────────────────────────────────────
+    import json as _json
+    AuditLog.create_entry(
+        username='system',
+        role='system',
+        action='DAILY_REPORT_SENT',
+        details=_json.dumps({
+            'report_date':   report_date,
+            'recipients':    len(recipients),
+            'total':         stats['total'],
+            'delayed':       stats['delayed'],
+            'sla_breached':  len(breached_rows),
+            'sent':          sent,
+            'error':         error,
+        })
+    )
+
+    if sent:
+        logger.info('[TASK] Daily report sent: date=%s recipients=%d', report_date, len(recipients))
+    else:
+        logger.warning('[TASK] Daily report email failed: %s', error)
+
+    return {
+        'success': sent,
+        'report_date': report_date,
+        'recipients': len(recipients),
+        'total': stats['total'],
+        'delayed': stats['delayed'],
+        'sla_breached': len(breached_rows),
+        'submitted_24h': submitted_24h,
+        'resolved_24h': resolved_24h,
+        'error': error,
+    }
 
 
 @celery.task(name='app.tasks.cleanup_old_uploads')
 def cleanup_old_uploads(days=30):
-    """Placeholder upload cleanup hook for scheduler integration."""
-    logger.info('[TASK] Upload cleanup is not scheduled in this runtime.')
-    return {}
+    """
+    Hard-delete soft-deleted EvidenceFile records older than `days` days.
+    Removes both the physical file (local disk or R2/S3) and the DB row.
+    Only processes rows where deleted_at IS NOT NULL and older than cutoff.
+
+    Args:
+        days (int): retention window in days after soft-deletion (default 30).
+    """
+    if not has_app_context():
+        logger.info('[TASK] Upload cleanup skipped (no app context).')
+        return {'success': False, 'mode': 'skipped'}
+
+    from app.models import EvidenceFile, AuditLog
+    from datetime import timedelta
+    import os, json as _json
+
+    now = utc_now()
+    cutoff = now - timedelta(days=days)
+
+    candidates = EvidenceFile.query.filter(
+        EvidenceFile.deleted_at.isnot(None),
+        EvidenceFile.deleted_at < cutoff,
+    ).all()
+
+    if not candidates:
+        logger.info('[TASK] Upload cleanup: no files to purge (cutoff=%s).', cutoff.date())
+        return {'success': True, 'purged': 0, 'errors': 0, 'cutoff': str(cutoff.date())}
+
+    purged = 0
+    errors = 0
+    error_ids = []
+
+    for ef in candidates:
+        try:
+            provider = (ef.storage_provider or 'local').lower()
+
+            # ── Physical deletion ──────────────────────────────────────────
+            if provider == 'r2':
+                _delete_r2_object(ef)
+            elif provider == 'local':
+                _delete_local_file(ef)
+            # Other providers: log and skip physical deletion but still purge row
+
+            # ── DB row deletion ────────────────────────────────────────────
+            db.session.delete(ef)
+            db.session.commit()
+            purged += 1
+            logger.debug('[TASK] Purged EvidenceFile id=%d provider=%s', ef.id, provider)
+
+        except Exception as exc:
+            db.session.rollback()
+            errors += 1
+            error_ids.append(ef.id)
+            logger.exception('[TASK] Failed to purge EvidenceFile id=%d: %s', ef.id, exc)
+
+    # ── Audit log ──────────────────────────────────────────────────────────
+    AuditLog.create_entry(
+        username='system',
+        role='system',
+        action='EVIDENCE_CLEANUP_RUN',
+        details=_json.dumps({
+            'days_retention': days,
+            'cutoff_date':    str(cutoff.date()),
+            'candidates':     len(candidates),
+            'purged':         purged,
+            'errors':         errors,
+            'error_ids':      error_ids[:20],   # cap to avoid huge log entries
+        })
+    )
+
+    logger.info(
+        '[TASK] Upload cleanup complete: candidates=%d purged=%d errors=%d cutoff=%s',
+        len(candidates), purged, errors, cutoff.date()
+    )
+    return {
+        'success': True,
+        'candidates': len(candidates),
+        'purged': purged,
+        'errors': errors,
+        'error_ids': error_ids,
+        'cutoff': str(cutoff.date()),
+    }
+
+
+def _delete_r2_object(ef: 'EvidenceFile'):
+    """Delete an object from R2/S3 storage."""
+    import boto3, botocore.exceptions
+    bucket = ef.storage_bucket or current_app.config.get('R2_BUCKET_NAME')
+    key    = ef.storage_key
+    if not bucket or not key:
+        logger.warning('[TASK] R2 delete skipped: missing bucket/key for EvidenceFile id=%d', ef.id)
+        return
+
+    s3 = boto3.client(
+        's3',
+        endpoint_url          = current_app.config.get('R2_ENDPOINT_URL'),
+        aws_access_key_id     = current_app.config.get('R2_ACCESS_KEY_ID'),
+        aws_secret_access_key = current_app.config.get('R2_SECRET_ACCESS_KEY'),
+        region_name           = 'auto',
+    )
+    s3.delete_object(Bucket=bucket, Key=key)
+    logger.debug('[TASK] R2 object deleted: bucket=%s key=%s', bucket, key)
+
+
+def _delete_local_file(ef: 'EvidenceFile'):
+    """Delete a file from local disk storage."""
+    import os
+    path = ef.evidence_path if hasattr(ef, 'evidence_path') else None
+    # Fallback: reconstruct from storage_key if available
+    if not path and ef.storage_key:
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        path = os.path.join(upload_folder, ef.storage_key)
+    if path and os.path.exists(path):
+        os.remove(path)
+        logger.debug('[TASK] Local file deleted: %s', path)
+    elif path:
+        logger.debug('[TASK] Local file not found (already gone): %s', path)
 
 
 @celery.task(name='app.tasks.check_sla_breaches')

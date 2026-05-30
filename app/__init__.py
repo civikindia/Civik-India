@@ -28,6 +28,9 @@ mail = Mail()
 
 def select_locale():
     """Resolve the active UI locale from session, then browser preferences."""
+    from flask import has_request_context
+    if not has_request_context():
+        return current_app.config.get('BABEL_DEFAULT_LOCALE', 'en')
     supported = current_app.config.get('BABEL_SUPPORTED_LOCALES', ['en'])
     selected = session.get('lang')
     if selected in supported:
@@ -281,6 +284,23 @@ def register_cli(app):
             f"success={summary.get('success')} "
             f"failed={summary.get('failed')}"
         )
+
+    @app.cli.command('run-daily-report')
+    def run_daily_report():
+        """Manually trigger the daily report task (for testing/backfill)."""
+        from app.tasks import generate_daily_report
+        click.echo('Running daily report task...')
+        result = generate_daily_report()
+        click.echo(f"Result: {result}")
+
+    @app.cli.command('run-cleanup-uploads')
+    @click.option('--days', default=30, show_default=True, help='Days retention after soft-delete.')
+    def run_cleanup_uploads(days):
+        """Manually trigger the upload cleanup task."""
+        from app.tasks import cleanup_old_uploads
+        click.echo(f'Running upload cleanup (retention={days}d)...')
+        result = cleanup_old_uploads(days)
+        click.echo(f"Result: {result}")
 
 
 def _ensure_new_tables(app, existing_tables):

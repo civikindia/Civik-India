@@ -1,0 +1,39 @@
+Civik India — Daily Report: {{ report_date }}
+==============================================
+Generated: {{ generated_at }}
+
+PIPELINE SUMMARY
+----------------
+Total Complaints : {{ stats.total }}
+Awaiting Review  : {{ stats.awaiting_review }}
+Pending          : {{ stats.pending }}
+Under Review     : {{ stats.under_review }}
+Action Taken     : {{ stats.action_taken }}
+Delayed          : {{ stats.delayed }}
+Closed           : {{ stats.closed }}
+Resolution Rate  : {{ stats.resolution_rate }}%
+SLA Compliance   : {{ stats.sla_compliance }}%
+
+YESTERDAY'S ACTIVITY (Last 24h)
+--------------------------------
+New Submissions  : {{ submitted_24h }}
+Resolved         : {{ resolved_24h }}
+
+{% if breached_rows %}
+TOP SLA BREACHES (Oldest First)
+---------------------------------
+{% for b in breached_rows %}
+{{ loop.index }}. {{ b.tracking_id }} | {{ b.department }} / {{ b.service }} | Overdue {{ b.overdue_hours }}h | Priority: {{ b.priority }}
+{% endfor %}
+{% endif %}
+
+DEPARTMENT BREAKDOWN
+--------------------
+{% for d in dept_rows %}
+{{ d.name }}: Total={{ d.total }} Pending={{ d.pending }} Delayed={{ d.delayed }} Closed={{ d.closed }} ({{ d.rate }}%)
+{% endfor %}
+
+---
+Civik India — Citizen Voice Against Corruption
+https://www.civikindia.online
+This is an automated report. Do not reply to this email.

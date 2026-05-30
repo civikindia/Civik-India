@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;color:#1f2933;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f4f6f9;padding:24px 0;">
+  <tr><td align="center">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="640" style="max-width:640px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+      <!-- Tricolour stripe -->
+      <tr><td style="background:linear-gradient(to right,#ff9933 33%,#ffffff 33%,#ffffff 66%,#138808 66%);height:6px;"></td></tr>
+
+      <!-- Header -->
+      <tr>
+        <td style="background:#0f2057;padding:18px 28px;">
+          <p style="margin:0;color:#ffffff;font-size:20px;font-weight:bold;">🇮🇳 Civik India</p>
+          <p style="margin:2px 0 0;color:#a0aec0;font-size:12px;">Daily System Report — {{ report_date }}</p>
+        </td>
+      </tr>
+
+      <!-- Title -->
+      <tr>
+        <td style="padding:24px 28px 0;">
+          <h1 style="margin:0 0 4px;font-size:20px;color:#1f2933;">📊 Daily Operations Report</h1>
+          <p style="margin:0 0 20px;font-size:12px;color:#a0aec0;">Generated {{ generated_at }}</p>
+
+          <!-- Yesterday's Activity Highlight -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+            <tr>
+              <td width="50%" style="padding-right:8px;">
+                <div style="background:#ebf8ff;border-radius:8px;padding:16px;text-align:center;">
+                  <div style="font-size:32px;font-weight:bold;color:#2b6cb0;">{{ submitted_24h }}</div>
+                  <div style="font-size:12px;color:#4a5568;">New Complaints (24h)</div>
+                </div>
+              </td>
+              <td width="50%" style="padding-left:8px;">
+                <div style="background:#f0fff4;border-radius:8px;padding:16px;text-align:center;">
+                  <div style="font-size:32px;font-weight:bold;color:#276749;">{{ resolved_24h }}</div>
+                  <div style="font-size:12px;color:#4a5568;">Resolved (24h)</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Pipeline Summary Table -->
+          <h2 style="margin:0 0 10px;font-size:15px;color:#2d3748;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">Pipeline Status</h2>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                 style="background:#f7fafc;border-radius:6px;border:1px solid #e2e8f0;margin-bottom:20px;font-size:13px;">
+            {% set rows = [
+              ('Total Complaints', stats.total, '#2d3748'),
+              ('Awaiting Review', stats.awaiting_review, '#975a16'),
+              ('Pending', stats.pending, '#744210'),
+              ('Under Review', stats.under_review, '#2a4365'),
+              ('Action Taken', stats.action_taken, '#276749'),
+              ('Delayed ⚠', stats.delayed, '#c53030'),
+              ('Closed ✓', stats.closed, '#22543d'),
+            ] %}
+            {% for label, value, color in rows %}
+            <tr style="border-top:1px solid #e2e8f0;">
+              <td style="padding:8px 12px;color:#718096;">{{ label }}</td>
+              <td style="padding:8px 12px;font-weight:bold;color:{{ color }};text-align:right;">{{ value }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="border-top:2px solid #e2e8f0;background:#edf2f7;">
+              <td style="padding:8px 12px;font-weight:bold;color:#4a5568;">Resolution Rate</td>
+              <td style="padding:8px 12px;font-weight:bold;color:#276749;text-align:right;">{{ stats.resolution_rate }}%</td>
+            </tr>
+            <tr style="border-top:1px solid #e2e8f0;background:#edf2f7;">
+              <td style="padding:8px 12px;font-weight:bold;color:#4a5568;">SLA Compliance</td>
+              <td style="padding:8px 12px;font-weight:bold;
+                color:{% if stats.sla_compliance >= 80 %}#276749{% elif stats.sla_compliance >= 60 %}#744210{% else %}#c53030{% endif %};
+                text-align:right;">{{ stats.sla_compliance }}%</td>
+            </tr>
+          </table>
+
+          {% if breached_rows %}
+          <!-- SLA Breaches Alert -->
+          <h2 style="margin:0 0 10px;font-size:15px;color:#c53030;border-bottom:2px solid #fed7d7;padding-bottom:6px;">⚠ Top SLA Breaches</h2>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                 style="background:#fff5f5;border-radius:6px;border:1px solid #fed7d7;margin-bottom:20px;font-size:12px;">
+            <tr style="background:#fed7d7;">
+              <td style="padding:8px 10px;font-weight:bold;color:#742a2a;">#</td>
+              <td style="padding:8px 10px;font-weight:bold;color:#742a2a;">Tracking ID</td>
+              <td style="padding:8px 10px;font-weight:bold;color:#742a2a;">Department</td>
+              <td style="padding:8px 10px;font-weight:bold;color:#742a2a;">Overdue</td>
+              <td style="padding:8px 10px;font-weight:bold;color:#742a2a;">Priority</td>
+            </tr>
+            {% for b in breached_rows %}
+            <tr style="border-top:1px solid #fed7d7;">
+              <td style="padding:7px 10px;color:#742a2a;">{{ loop.index }}</td>
+              <td style="padding:7px 10px;font-family:monospace;color:#742a2a;font-weight:bold;">{{ b.tracking_id }}</td>
+              <td style="padding:7px 10px;color:#742a2a;">{{ b.department }}</td>
+              <td style="padding:7px 10px;color:#c53030;font-weight:bold;">{{ b.overdue_hours }}h</td>
+              <td style="padding:7px 10px;color:#742a2a;">{{ b.priority }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+          {% endif %}
+
+          {% if dept_rows %}
+          <!-- Department Breakdown -->
+          <h2 style="margin:0 0 10px;font-size:15px;color:#2d3748;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">Department Breakdown</h2>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                 style="background:#f7fafc;border-radius:6px;border:1px solid #e2e8f0;margin-bottom:24px;font-size:12px;">
+            <tr style="background:#edf2f7;">
+              <td style="padding:8px 10px;font-weight:bold;color:#4a5568;">Department</td>
+              <td style="padding:8px 10px;font-weight:bold;color:#4a5568;text-align:center;">Total</td>
+              <td style="padding:8px 10px;font-weight:bold;color:#4a5568;text-align:center;">Pending</td>
+              <td style="padding:8px 10px;font-weight:bold;color:#c53030;text-align:center;">Delayed</td>
+              <td style="padding:8px 10px;font-weight:bold;color:#276749;text-align:center;">Closed %</td>
+            </tr>
+            {% for d in dept_rows %}
+            <tr style="border-top:1px solid #e2e8f0;">
+              <td style="padding:7px 10px;color:#2d3748;font-weight:{% if d.delayed > 0 %}bold{% else %}normal{% endif %};">{{ d.name }}</td>
+              <td style="padding:7px 10px;text-align:center;color:#2d3748;">{{ d.total }}</td>
+              <td style="padding:7px 10px;text-align:center;color:#744210;">{{ d.pending }}</td>
+              <td style="padding:7px 10px;text-align:center;color:{% if d.delayed > 0 %}#c53030{% else %}#718096{% endif %};font-weight:{% if d.delayed > 0 %}bold{% else %}normal{% endif %};">{{ d.delayed }}</td>
+              <td style="padding:7px 10px;text-align:center;color:{% if d.rate >= 70 %}#276749{% elif d.rate >= 40 %}#744210{% else %}#c53030{% endif %};font-weight:bold;">{{ d.rate }}%</td>
+            </tr>
+            {% endfor %}
+          </table>
+          {% endif %}
+
+          <!-- CTA -->
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
+            <tr>
+              <td align="center">
+                <a href="https://www.civikindia.online/admin/dashboard"
+                   style="display:inline-block;padding:12px 28px;background:#0f2057;color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:bold;">
+                  📋 Open Admin Dashboard
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td style="padding:16px 28px;border-top:1px solid #e2e8f0;background:#f7fafc;">
+          <p style="margin:0;font-size:11px;color:#a0aec0;line-height:1.6;">
+            Civik India — Automated Daily Report · <a href="https://www.civikindia.online" style="color:#3182ce;">civikindia.online</a><br>
+            Do not reply to this email. Sent to admin accounts only.
+          </p>
+        </td>
+      </tr>
+
+      <!-- Bottom stripe -->
+      <tr><td style="background:linear-gradient(to right,#ff9933 33%,#ffffff 33%,#ffffff 66%,#138808 66%);height:4px;"></td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>
