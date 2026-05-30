@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 from app import db
 from app.clock import utc_now
 from app.models import User, Complaint, Department, AuditLog
-from app.utils import officer_required, log_action, maybe_run_sla_escalations
+from app.utils import officer_required, log_action, maybe_run_sla_escalations, run_async
 from app.tasks import send_status_update_notification
 
 officer_bp = Blueprint('officer', __name__)
@@ -150,7 +150,7 @@ def update_status(tracking_id):
                       }, user=user)
             
             # Trigger notification task (async)
-            send_status_update_notification(tracking_id, new_status)
+            run_async(send_status_update_notification, tracking_id, new_status)
             
             flash(f'Status updated to {new_status}.', 'success')
         else:

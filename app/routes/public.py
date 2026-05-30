@@ -21,7 +21,7 @@ from app.models import Department, Service, Complaint, AuditLog, EvidenceFile, T
 from app.utils import (
     generate_tracking_id, save_uploaded_file,
     validate_tracking_id, normalize_tracking_id, log_action,
-    analyze_complaint_text, maybe_run_sla_escalations
+    analyze_complaint_text, maybe_run_sla_escalations, run_async
 )
 from app.tasks import send_complaint_submission_notification
 
@@ -1419,7 +1419,7 @@ def submit_complaint():
             db.session.commit()
 
             # Notify internal staff channels (email/SMS) when configured.
-            send_complaint_submission_notification(complaint.tracking_id)
+            run_async(send_complaint_submission_notification, complaint.tracking_id)
             
             # Log the submission (anonymous - no user)
             log_action('COMPLAINT_SUBMITTED', 

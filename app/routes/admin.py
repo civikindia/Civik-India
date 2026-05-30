@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from app import db
 from app.clock import utc_now
 from app.models import User, Department, Service, Complaint, AuditLog, EscalationContact, TrendingNews, Announcement
-from app.utils import admin_required, log_action, maybe_run_sla_escalations
+from app.utils import admin_required, log_action, maybe_run_sla_escalations, run_async
 from app.tasks import send_officer_welcome_notification, send_status_update_notification
 
 admin_bp = Blueprint('admin', __name__)
@@ -176,7 +176,7 @@ def approve_complaint(complaint_id):
     complaint.initialize_sla_due()
     
     db.session.commit()
-    send_status_update_notification(complaint.tracking_id, complaint.status)
+    run_async(send_status_update_notification, complaint.tracking_id, complaint.status)
     
     # Log audit event
     AuditLog.create_entry(
@@ -222,7 +222,7 @@ def reject_complaint(complaint_id):
     complaint.reviewed_at = utc_now()
     
     db.session.commit()
-    send_status_update_notification(complaint.tracking_id, complaint.status)
+    run_async(send_status_update_notification, complaint.tracking_id, complaint.status)
     
     # Log audit event
     AuditLog.create_entry(
@@ -302,7 +302,7 @@ def bulk_approve_complaints():
     try:
         db.session.commit()
         for comp in approved_complaints:
-            send_status_update_notification(comp.tracking_id, comp.status)
+            run_async(send_status_update_notification, comp.tracking_id, comp.status)
     except Exception as exc:
         db.session.rollback()
         current_app.logger.error('Bulk approve error: %s', exc)
@@ -377,7 +377,7 @@ def bulk_reject_complaints():
     try:
         db.session.commit()
         for comp in rejected_complaints:
-            send_status_update_notification(comp.tracking_id, comp.status)
+            run_async(send_status_update_notification, comp.tracking_id, comp.status)
     except Exception as exc:
         db.session.rollback()
         current_app.logger.error('Bulk reject error: %s', exc)
@@ -748,7 +748,7 @@ def update_complaint_status(tracking_id):
                           'new_status': new_status
                       })
             
-            send_status_update_notification(tracking_id, new_status)
+            run_async(send_status_update_notification, tracking_id, new_status)
             
             flash('Status updated successfully.', 'success')
         else:
@@ -899,7 +899,7 @@ def create_officer():
                   })
 
         if officer.email:
-            send_officer_welcome_notification(officer.id, password)
+            run_async(send_officer_welcome_notification, officer.id, password)
         
         flash(f'Officer {username} created successfully.', 'success')
         

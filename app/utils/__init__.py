@@ -669,3 +669,35 @@ def verify_recaptcha(token):
         current_app.logger.error(f'reCAPTCHA verification error: {str(e)}')
         # Fail open to avoid blocking users if Google is unreachable
         return True, None
+
+
+def run_async(func, *args, **kwargs):
+    """Run a function in a background daemon thread with the current app and request contexts."""
+    from flask import has_app_context, has_request_context, request
+
+    if not has_app_context():
+        # Fallback to direct synchronous execution if no app context
+        return func(*args, **kwargs)
+
+    if current_app.config.get('TESTING') or current_app.testing:
+        # Run synchronously in tests so assertions work deterministically
+        return func(*args, **kwargs)
+
+    app = current_app._get_current_object()
+    environ = request.environ if has_request_context() else None
+
+    def wrapper():
+        with app.app_context():
+            if environ:
+                with app.request_context(environ):
+                    try:
+                        func(*args, **kwargs)
+                    except Exception as e:
+                        app.logger.error(f"Error in background task {func.__name__}: {e}")
+            else:
+                try:
+                    func(*args, **kwargs)
+                except Exception as e:
+                    app.logger.error(f"Error in background task {func.__name__}: {e}")
+
+    threading.Thread(target=wrapper, daemon=True).start()
