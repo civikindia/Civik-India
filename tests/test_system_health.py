@@ -37,12 +37,16 @@ class TestSystemHealthFlow:
         response = client.get('/admin/health', follow_redirects=True)
         assert b'Please log in to access this page' in response.data or response.status_code == 302
 
-        # 2. API access -> redirect/blocked
+        # 2. Summary API access -> redirect/blocked
         response = client.get('/admin/api/health-summary', follow_redirects=True)
         assert b'Please log in to access this page' in response.data or response.status_code == 302
 
+        # 3. Check API access -> redirect/blocked
+        response = client.get('/admin/api/health-check/database', follow_redirects=True)
+        assert b'Please log in to access this page' in response.data or response.status_code == 302
+
     def test_authorized_admin_health_page_success(self, client):
-        """Admins can view health dashboard and invoke checks."""
+        """Admins can view health dashboard page shell."""
         # Log in as admin
         admin = User.query.filter_by(role='admin').first()
         with client.session_transaction() as sess:
@@ -66,8 +70,7 @@ class TestSystemHealthFlow:
         audit = AuditLog.query.filter_by(action='SYSTEM_HEALTH_VIEWED').first()
         assert audit is not None
         details = json.loads(audit.details)
-        assert 'overall' in details
-        assert 'page_time_ms' in details
+        assert details.get('mode') == 'asynchronous'
 
     def test_authorized_admin_health_summary_api_success(self, client):
         """Admins can query the lightweight health summary endpoint."""
@@ -87,3 +90,30 @@ class TestSystemHealthFlow:
         assert 'total' in data
         assert 'checked_at' in data
         assert 'response_ms' in data
+
+    def test_authorized_admin_health_check_api_success(self, client):
+        """Admins can query individual diagnostics endpoints."""
+        admin = User.query.filter_by(role='admin').first()
+        with client.session_transaction() as sess:
+            sess['user_id'] = admin.id
+            sess['username'] = admin.username
+            sess['role'] = admin.role
+
+        # 1. Database check
+        response = client.get('/admin/api/health-check/database')
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert 'status' in data
+        assert 'latency_ms' in data
+
+        # 2. Redis check
+        response = client.get('/admin/api/health-check/redis')
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert 'status' in data
+
+        # 3. Invalid component
+        response = client.get('/admin/api/health-check/invalid')
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert 'error' in data

@@ -1555,46 +1555,45 @@ def _check_complaint_pipeline():
 def system_health():
     """
     Admin-only system health dashboard.
-    Runs all component checks and renders the health page.
-    Checks: DB, Redis, Celery, R2, Email, Disk, Env Vars, Pipeline.
+    Renders the page shell instantly for progressive asynchronous diagnostics.
     """
-    import time
-    page_start = time.monotonic()
-
-    checks = {
-        'database':   _check_database(),
-        'redis':      _check_redis(),
-        'celery':     _check_celery(),
-        'storage':    _check_r2_storage(),
-        'email':      _check_email(),
-        'disk':       _check_disk(),
-        'environment': _check_environment(),
-        'pipeline':   _check_complaint_pipeline(),
-    }
-
-    # Overall system status
-    statuses = [c.get('status', 'unknown') for c in checks.values()]
-    if 'error' in statuses:
-        overall = 'error'
-    elif 'warning' in statuses:
-        overall = 'warning'
-    else:
-        overall = 'ok'
-
-    page_time_ms = round((time.monotonic() - page_start) * 1000, 1)
-
-    log_action('SYSTEM_HEALTH_VIEWED', details={
-        'overall': overall,
-        'page_time_ms': page_time_ms,
-    })
-
+    log_action('SYSTEM_HEALTH_VIEWED', details={'mode': 'asynchronous'})
     return render_template(
         'admin/system_health.html',
-        checks=checks,
-        overall=overall,
-        page_time_ms=page_time_ms,
         checked_at=utc_now(),
     )
+
+
+@admin_bp.route('/api/health-check/<component>')
+@admin_required
+def system_health_check_api(component):
+    """
+    Run a single diagnostic check asynchronously.
+    """
+    import time
+    valid_components = {
+        'database': _check_database,
+        'redis': _check_redis,
+        'celery': _check_celery,
+        'storage': _check_r2_storage,
+        'email': _check_email,
+        'disk': _check_disk,
+        'environment': _check_environment,
+        'pipeline': _check_complaint_pipeline,
+    }
+
+    if component not in valid_components:
+        return jsonify({'status': 'error', 'error': f'Invalid component: {component}'}), 400
+
+    start_time = time.monotonic()
+    result = valid_components[component]()
+    duration_ms = round((time.monotonic() - start_time) * 1000, 1)
+
+    # Ensure latency_ms is in the result (some checks like disk/env/pipeline don't measure latency)
+    if 'latency_ms' not in result:
+        result['latency_ms'] = duration_ms
+
+    return jsonify(result)
 
 
 @admin_bp.route('/api/health-summary')

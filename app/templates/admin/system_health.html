@@ -64,7 +64,7 @@
     <div>
       <h1 class="h2 mb-1"><i class="bi bi-activity me-2 text-primary"></i>System Health</h1>
       <p class="text-muted mb-0 small">
-        Checked at {{ checked_at.strftime('%d %b %Y, %I:%M:%S %p UTC') }} · Page loaded in {{ page_time_ms }}ms
+        Checked at {{ checked_at.strftime('%d %b %Y, %I:%M:%S %p UTC') }} · Diagnostics resolved in <span id="diagnostics-time" class="fw-semibold text-dark">loading...</span>
       </p>
     </div>
     <div class="d-flex gap-2 align-items-center">
@@ -79,22 +79,16 @@
   </div>
 
   <!-- Overall status banner -->
-  {% set o = overall %}
-  <div class="overall-banner overall-{{ o }}">
-    <div class="overall-icon">
-      {% if o == 'ok' %}✅{% elif o == 'warning' %}⚠️{% else %}🔴{% endif %}
+  <div class="overall-banner overall-warning" id="overall-banner" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 1px solid #cbd5e1;">
+    <div class="overall-icon" id="overall-icon">
+      <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;"></div>
     </div>
     <div>
-      <div class="fw-bold fs-5">
-        {% if o == 'ok' %}All Systems Operational
-        {% elif o == 'warning' %}Some Systems Need Attention
-        {% else %}Critical Issues Detected
-        {% endif %}
+      <div class="fw-bold fs-5" id="overall-title">
+        Checking System Health...
       </div>
-      <div class="small text-muted">
-        {% set error_count   = checks.values()|selectattr('status', 'eq', 'error')  |list|length %}
-        {% set warning_count = checks.values()|selectattr('status', 'eq', 'warning')|list|length %}
-        {{ error_count }} error(s) · {{ warning_count }} warning(s) across {{ checks|length }} components
+      <div class="small text-muted" id="overall-subtitle">
+        Running diagnostics across all components. Please wait.
       </div>
     </div>
   </div>
@@ -103,190 +97,240 @@
   <div class="row g-4">
 
     <!-- ── DATABASE ── -->
-    {% set c = checks.database %}
     <div class="col-md-6 col-xl-4">
       <div class="card health-card h-100">
         <div class="card-body p-4">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="status-indicator status-{{ c.status }}"></span>
+            <span class="status-indicator" id="indicator-database" style="background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.2);"></span>
             <h2 class="h6 mb-0 fw-bold">🗄 Database</h2>
-            <span class="badge {% if c.status=='ok' %}bg-success{% elif c.status=='warning' %}bg-warning text-dark{% else %}bg-danger{% endif %} ms-auto">{{ c.status|upper }}</span>
+            <span class="badge bg-secondary ms-auto" id="badge-database">LOADING</span>
           </div>
-          {% if c.status == 'ok' %}
-          <div class="health-metric"><span class="health-metric-label">Engine</span><span class="health-metric-value">{{ c.engine }}</span></div>
-          <div class="health-metric"><span class="health-metric-label">Latency</span><span class="health-metric-value">{{ c.latency_ms }} ms</span></div>
-          <div class="health-metric"><span class="health-metric-label">Total Complaints</span><span class="health-metric-value">{{ c.total_complaints }}</span></div>
-          <div class="health-metric"><span class="health-metric-label">Total Users</span><span class="health-metric-value">{{ c.total_users }}</span></div>
-          <div class="health-metric"><span class="health-metric-label">Connection</span><span class="health-metric-value text-truncate" style="max-width:160px;" title="{{ c.url_masked }}">{{ c.url_masked }}</span></div>
-          {% else %}
-          <div class="alert alert-danger py-2 small mb-0">{{ c.error }}</div>
-          {% endif %}
+          
+          <!-- Loading state -->
+          <div class="text-center py-4" id="loading-database">
+            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            <span class="ms-2 text-muted small">Checking Database...</span>
+          </div>
+          
+          <!-- Content state -->
+          <div id="content-database" class="d-none">
+            <div id="metrics-database">
+              <div class="health-metric"><span class="health-metric-label">Engine</span><span class="health-metric-value" id="val-db-engine">—</span></div>
+              <div class="health-metric"><span class="health-metric-label">Latency</span><span class="health-metric-value" id="val-db-latency">—</span></div>
+              <div class="health-metric"><span class="health-metric-label">Total Complaints</span><span class="health-metric-value" id="val-db-complaints">—</span></div>
+              <div class="health-metric"><span class="health-metric-label">Total Users</span><span class="health-metric-value" id="val-db-users">—</span></div>
+              <div class="health-metric"><span class="health-metric-label">Connection</span><span class="health-metric-value text-truncate" style="max-width:160px;" id="val-db-connection">—</span></div>
+            </div>
+            <div class="alert alert-danger py-2 small mb-0 mt-2 d-none" id="error-database"></div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ── REDIS ── -->
-    {% set c = checks.redis %}
     <div class="col-md-6 col-xl-4">
       <div class="card health-card h-100">
         <div class="card-body p-4">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="status-indicator status-{{ c.status }}"></span>
+            <span class="status-indicator" id="indicator-redis" style="background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.2);"></span>
             <h2 class="h6 mb-0 fw-bold">⚡ Redis</h2>
-            <span class="badge {% if c.status=='ok' %}bg-success{% elif c.status=='warning' %}bg-warning text-dark{% else %}bg-danger{% endif %} ms-auto">{{ c.status|upper }}</span>
+            <span class="badge bg-secondary ms-auto" id="badge-redis">LOADING</span>
           </div>
-          {% if c.status == 'ok' %}
-          <div class="health-metric"><span class="health-metric-label">Version</span><span class="health-metric-value">{{ c.redis_version }}</span></div>
-          <div class="health-metric"><span class="health-metric-label">Latency</span><span class="health-metric-value">{{ c.latency_ms }} ms</span></div>
-          <div class="health-metric"><span class="health-metric-label">Clients</span><span class="health-metric-value">{{ c.connected_clients }}</span></div>
-          <div class="health-metric"><span class="health-metric-label">Memory Used</span><span class="health-metric-value">{{ c.used_memory_human }}</span></div>
-          {% else %}
-          <div class="alert alert-danger py-2 small mb-0">{{ c.get('error', 'Redis unreachable') }}</div>
-          {% endif %}
+          
+          <!-- Loading state -->
+          <div class="text-center py-4" id="loading-redis">
+            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            <span class="ms-2 text-muted small">Checking Redis...</span>
+          </div>
+          
+          <!-- Content state -->
+          <div id="content-redis" class="d-none">
+            <div id="metrics-redis">
+              <div class="health-metric"><span class="health-metric-label">Version</span><span class="health-metric-value" id="val-redis-version">—</span></div>
+              <div class="health-metric"><span class="health-metric-label">Latency</span><span class="health-metric-value" id="val-redis-latency">—</span></div>
+              <div class="health-metric"><span class="health-metric-label">Clients</span><span class="health-metric-value" id="val-redis-clients">—</span></div>
+              <div class="health-metric"><span class="health-metric-label">Memory Used</span><span class="health-metric-value" id="val-redis-memory">—</span></div>
+            </div>
+            <div class="alert alert-danger py-2 small mb-0 mt-2 d-none" id="error-redis"></div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ── CELERY ── -->
-    {% set c = checks.celery %}
     <div class="col-md-6 col-xl-4">
       <div class="card health-card h-100">
         <div class="card-body p-4">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="status-indicator status-{{ c.status }}"></span>
+            <span class="status-indicator" id="indicator-celery" style="background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.2);"></span>
             <h2 class="h6 mb-0 fw-bold">🔄 Celery Workers</h2>
-            <span class="badge {% if c.status=='ok' %}bg-success{% elif c.status=='warning' %}bg-warning text-dark{% else %}bg-danger{% endif %} ms-auto">{{ c.status|upper }}</span>
+            <span class="badge bg-secondary ms-auto" id="badge-celery">LOADING</span>
           </div>
-          <div class="health-metric"><span class="health-metric-label">Active Workers</span><span class="health-metric-value">{{ c.worker_count }}</span></div>
-          {% if c.get('latency_ms') %}<div class="health-metric"><span class="health-metric-label">Ping Latency</span><span class="health-metric-value">{{ c.latency_ms }} ms</span></div>{% endif %}
-          {% if c.active_workers %}
-          <div class="health-metric flex-column align-items-start">
-            <span class="health-metric-label mb-1">Workers</span>
-            {% for w in c.active_workers %}<code class="d-block small text-success">{{ w }}</code>{% endfor %}
+          
+          <!-- Loading state -->
+          <div class="text-center py-4" id="loading-celery">
+            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            <span class="ms-2 text-muted small">Checking Celery...</span>
           </div>
-          {% endif %}
-          {% if c.get('note') %}
-          <div class="alert {% if c.status=='warning' %}alert-warning{% else %}alert-danger{% endif %} py-2 small mb-0 mt-2">{{ c.note }}</div>
-          {% endif %}
+          
+          <!-- Content state -->
+          <div id="content-celery" class="d-none">
+            <div class="health-metric"><span class="health-metric-label">Active Workers</span><span class="health-metric-value" id="val-celery-count">—</span></div>
+            <div class="health-metric" id="row-celery-latency"><span class="health-metric-label">Ping Latency</span><span class="health-metric-value" id="val-celery-latency">—</span></div>
+            <div class="health-metric flex-column align-items-start d-none" id="row-celery-workers">
+              <span class="health-metric-label mb-1">Workers</span>
+              <div id="val-celery-workers-list" class="w-100"></div>
+            </div>
+            <div class="alert py-2 small mb-0 mt-2 d-none" id="note-celery"></div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ── R2 STORAGE ── -->
-    {% set c = checks.storage %}
     <div class="col-md-6 col-xl-4">
       <div class="card health-card h-100">
         <div class="card-body p-4">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="status-indicator status-{{ c.status }}"></span>
+            <span class="status-indicator" id="indicator-storage" style="background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.2);"></span>
             <h2 class="h6 mb-0 fw-bold">☁ Object Storage</h2>
-            <span class="badge {% if c.status=='ok' %}bg-success{% elif c.status in ('info','warning') %}bg-info text-dark{% else %}bg-danger{% endif %} ms-auto">{{ c.status|upper }}</span>
+            <span class="badge bg-secondary ms-auto" id="badge-storage">LOADING</span>
           </div>
-          <div class="health-metric"><span class="health-metric-label">Provider</span><span class="health-metric-value">{{ c.provider|upper if c.get('provider') else 'N/A' }}</span></div>
-          {% if c.get('bucket') %}<div class="health-metric"><span class="health-metric-label">Bucket</span><span class="health-metric-value">{{ c.bucket }}</span></div>{% endif %}
-          {% if c.get('latency_ms') %}<div class="health-metric"><span class="health-metric-label">Latency</span><span class="health-metric-value">{{ c.latency_ms }} ms</span></div>{% endif %}
-          {% if c.get('note') %}<div class="alert alert-info py-2 small mb-0 mt-2">{{ c.note }}</div>{% endif %}
-          {% if c.get('error') %}<div class="alert alert-danger py-2 small mb-0 mt-2">{{ c.error }}</div>{% endif %}
+          
+          <!-- Loading state -->
+          <div class="text-center py-4" id="loading-storage">
+            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            <span class="ms-2 text-muted small">Checking Storage...</span>
+          </div>
+          
+          <!-- Content state -->
+          <div id="content-storage" class="d-none">
+            <div class="health-metric"><span class="health-metric-label">Provider</span><span class="health-metric-value" id="val-storage-provider">—</span></div>
+            <div class="health-metric d-none" id="row-storage-bucket"><span class="health-metric-label">Bucket</span><span class="health-metric-value" id="val-storage-bucket">—</span></div>
+            <div class="health-metric d-none" id="row-storage-latency"><span class="health-metric-label">Latency</span><span class="health-metric-value" id="val-storage-latency">—</span></div>
+            <div class="alert alert-info py-2 small mb-0 mt-2 d-none" id="note-storage"></div>
+            <div class="alert alert-danger py-2 small mb-0 mt-2 d-none" id="error-storage"></div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ── EMAIL ── -->
-    {% set c = checks.email %}
     <div class="col-md-6 col-xl-4">
       <div class="card health-card h-100">
         <div class="card-body p-4">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="status-indicator status-{{ c.status }}"></span>
+            <span class="status-indicator" id="indicator-email" style="background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.2);"></span>
             <h2 class="h6 mb-0 fw-bold">📧 Email / SMTP</h2>
-            <span class="badge {% if c.status=='ok' %}bg-success{% elif c.status in ('info','warning') %}bg-warning text-dark{% else %}bg-danger{% endif %} ms-auto">{{ c.status|upper }}</span>
+            <span class="badge bg-secondary ms-auto" id="badge-email">LOADING</span>
           </div>
-          {% if c.get('server') %}<div class="health-metric"><span class="health-metric-label">Server</span><span class="health-metric-value">{{ c.server }}:{{ c.port }}</span></div>{% endif %}
-          {% if c.get('latency_ms') %}<div class="health-metric"><span class="health-metric-label">EHLO Latency</span><span class="health-metric-value">{{ c.latency_ms }} ms</span></div>{% endif %}
-          {% if c.get('note') %}<div class="alert alert-warning py-2 small mb-0 mt-2">{{ c.note }}</div>{% endif %}
-          {% if c.get('error') %}<div class="alert alert-danger py-2 small mb-0 mt-2">{{ c.error }}</div>{% endif %}
+          
+          <!-- Loading state -->
+          <div class="text-center py-4" id="loading-email">
+            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            <span class="ms-2 text-muted small">Checking Email...</span>
+          </div>
+          
+          <!-- Content state -->
+          <div id="content-email" class="d-none">
+            <div class="health-metric d-none" id="row-email-server"><span class="health-metric-label">Server</span><span class="health-metric-value" id="val-email-server">—</span></div>
+            <div class="health-metric d-none" id="row-email-latency"><span class="health-metric-label">EHLO Latency</span><span class="health-metric-value" id="val-email-latency">—</span></div>
+            <div class="alert alert-warning py-2 small mb-0 mt-2 d-none" id="note-email"></div>
+            <div class="alert alert-danger py-2 small mb-0 mt-2 d-none" id="error-email"></div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ── DISK ── -->
-    {% set c = checks.disk %}
     <div class="col-md-6 col-xl-4">
       <div class="card health-card h-100">
         <div class="card-body p-4">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="status-indicator status-{{ c.status }}"></span>
+            <span class="status-indicator" id="indicator-disk" style="background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.2);"></span>
             <h2 class="h6 mb-0 fw-bold">💾 Disk / Storage</h2>
-            <span class="badge {% if c.status=='ok' %}bg-success{% elif c.status=='warning' %}bg-warning text-dark{% else %}bg-danger{% endif %} ms-auto">{{ c.status|upper }}</span>
+            <span class="badge bg-secondary ms-auto" id="badge-disk">LOADING</span>
           </div>
-          {% if c.get('path') %}
-          <div class="health-metric"><span class="health-metric-label">Path</span><span class="health-metric-value text-truncate" style="max-width:160px;">{{ c.path }}</span></div>
-          <div class="health-metric"><span class="health-metric-label">Total</span><span class="health-metric-value">{{ c.total_gb }} GB</span></div>
-          <div class="health-metric"><span class="health-metric-label">Used</span><span class="health-metric-value">{{ c.used_gb }} GB ({{ c.pct_used }}%)</span></div>
-          <div class="health-metric"><span class="health-metric-label">Free</span><span class="health-metric-value">{{ c.free_gb }} GB</span></div>
-          <div class="mt-2">
-            <div class="pipeline-bar">
-              <div class="pipeline-bar-fill"
-                   style="width: {{ c.pct_used }}%;
-                          background: {% if c.pct_used > 90 %}#ef4444{% elif c.pct_used > 75 %}#f59e0b{% else %}#22c55e{% endif %}">
+          
+          <!-- Loading state -->
+          <div class="text-center py-4" id="loading-disk">
+            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            <span class="ms-2 text-muted small">Checking Disk...</span>
+          </div>
+          
+          <!-- Content state -->
+          <div id="content-disk" class="d-none">
+            <div id="metrics-disk">
+              <div class="health-metric"><span class="health-metric-label">Path</span><span class="health-metric-value text-truncate" style="max-width:160px;" id="val-disk-path">—</span></div>
+              <div class="health-metric"><span class="health-metric-label">Total</span><span class="health-metric-value" id="val-disk-total">—</span></div>
+              <div class="health-metric"><span class="health-metric-label">Used</span><span class="health-metric-value" id="val-disk-used">—</span></div>
+              <div class="health-metric"><span class="health-metric-label">Free</span><span class="health-metric-value" id="val-disk-free">—</span></div>
+              <div class="mt-2">
+                <div class="pipeline-bar">
+                  <div class="pipeline-bar-fill" id="val-disk-bar" style="width: 0%;"></div>
+                </div>
               </div>
             </div>
+            <div class="alert alert-warning py-2 small mb-0 mt-2 d-none" id="error-disk"></div>
           </div>
-          {% endif %}
-          {% if c.get('error') %}<div class="alert alert-warning py-2 small mb-0">{{ c.error }}</div>{% endif %}
         </div>
       </div>
     </div>
 
     <!-- ── COMPLAINT PIPELINE ── -->
-    {% set c = checks.pipeline %}
     <div class="col-md-6 col-xl-6">
       <div class="card health-card h-100">
         <div class="card-body p-4">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="status-indicator status-{{ c.status }}"></span>
+            <span class="status-indicator" id="indicator-pipeline" style="background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.2);"></span>
             <h2 class="h6 mb-0 fw-bold">📋 Complaint Pipeline</h2>
-            <span class="badge {% if c.status=='ok' %}bg-success{% else %}bg-warning text-dark{% endif %} ms-auto">{{ c.status|upper }}</span>
+            <span class="badge bg-secondary ms-auto" id="badge-pipeline">LOADING</span>
           </div>
-          <div class="row g-2 mb-3">
-            <div class="col-6 col-sm-3">
-              <div class="text-center p-2 rounded bg-light">
-                <div class="fw-bold fs-4 {{ 'text-warning' if c.awaiting_review > 10 else 'text-success' }}">{{ c.awaiting_review }}</div>
-                <div class="small text-muted">Awaiting</div>
-              </div>
-            </div>
-            <div class="col-6 col-sm-3">
-              <div class="text-center p-2 rounded bg-light">
-                <div class="fw-bold fs-4 {{ 'text-danger' if c.sla_breached > 5 else 'text-success' }}">{{ c.sla_breached }}</div>
-                <div class="small text-muted">SLA Breached</div>
-              </div>
-            </div>
-            <div class="col-6 col-sm-3">
-              <div class="text-center p-2 rounded bg-light">
-                <div class="fw-bold fs-4 {{ 'text-warning' if c.delayed > 0 else 'text-success' }}">{{ c.delayed }}</div>
-                <div class="small text-muted">Delayed</div>
-              </div>
-            </div>
-            <div class="col-6 col-sm-3">
-              <div class="text-center p-2 rounded bg-light">
-                <div class="fw-bold fs-4 text-primary">{{ c.last_24h_submissions }}</div>
-                <div class="small text-muted">Last 24h</div>
-              </div>
-            </div>
+          
+          <!-- Loading state -->
+          <div class="text-center py-4" id="loading-pipeline">
+            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            <span class="ms-2 text-muted small">Checking Pipeline...</span>
           </div>
-          <div class="health-metric"><span class="health-metric-label">Total Complaints</span><span class="health-metric-value">{{ c.total }}</span></div>
-          <div class="health-metric"><span class="health-metric-label">Resolution Rate</span><span class="health-metric-value">{{ c.resolution_rate }}%</span></div>
-          {% if c.oldest_unreviewed_hours is not none %}
-          <div class="health-metric">
-            <span class="health-metric-label">Oldest Unreviewed</span>
-            <span class="health-metric-value {{ 'text-danger' if c.oldest_unreviewed_hours > 48 else '' }}">
-              {{ c.oldest_unreviewed_hours }}h ago
-            </span>
-          </div>
-          {% endif %}
-          <div class="mt-2">
-            <div class="pipeline-bar">
-              <div class="pipeline-bar-fill" style="width: {{ c.resolution_rate }}%"></div>
+          
+          <!-- Content state -->
+          <div id="content-pipeline" class="d-none">
+            <div class="row g-2 mb-3">
+              <div class="col-6 col-sm-3">
+                <div class="text-center p-2 rounded bg-light">
+                  <div class="fw-bold fs-4" id="val-pipeline-awaiting">—</div>
+                  <div class="small text-muted">Awaiting</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="text-center p-2 rounded bg-light">
+                  <div class="fw-bold fs-4" id="val-pipeline-breached">—</div>
+                  <div class="small text-muted">SLA Breached</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="text-center p-2 rounded bg-light">
+                  <div class="fw-bold fs-4" id="val-pipeline-delayed">—</div>
+                  <div class="small text-muted">Delayed</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="text-center p-2 rounded bg-light">
+                  <div class="fw-bold fs-4 text-primary" id="val-pipeline-last24h">—</div>
+                  <div class="small text-muted">Last 24h</div>
+                </div>
+              </div>
+            </div>
+            <div class="health-metric"><span class="health-metric-label">Total Complaints</span><span class="health-metric-value" id="val-pipeline-total">—</span></div>
+            <div class="health-metric"><span class="health-metric-label">Resolution Rate</span><span class="health-metric-value" id="val-pipeline-rate">—</span></div>
+            <div class="health-metric d-none" id="row-pipeline-oldest">
+              <span class="health-metric-label">Oldest Unreviewed</span>
+              <span class="health-metric-value" id="val-pipeline-oldest">—</span>
+            </div>
+            <div class="mt-2">
+              <div class="pipeline-bar">
+                <div class="pipeline-bar-fill" id="val-pipeline-bar" style="width: 0%;"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -294,42 +338,44 @@
     </div>
 
     <!-- ── ENVIRONMENT VARIABLES ── -->
-    {% set c = checks.environment %}
     <div class="col-md-6 col-xl-6">
       <div class="card health-card h-100">
         <div class="card-body p-4">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="status-indicator status-{{ c.status }}"></span>
+            <span class="status-indicator" id="indicator-environment" style="background: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.2);"></span>
             <h2 class="h6 mb-0 fw-bold">🔐 Environment Variables</h2>
-            <span class="badge {% if c.status=='ok' %}bg-success{% elif c.status=='warning' %}bg-warning text-dark{% else %}bg-danger{% endif %} ms-auto">{{ c.status|upper }}</span>
+            <span class="badge bg-secondary ms-auto" id="badge-environment">LOADING</span>
           </div>
-          <div class="health-metric">
-            <span class="health-metric-label">Required Set</span>
-            <span class="health-metric-value">{{ c.required_total - c.missing_required|length }} / {{ c.required_total }}</span>
+          
+          <!-- Loading state -->
+          <div class="text-center py-4" id="loading-environment">
+            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+            <span class="ms-2 text-muted small">Checking Environment...</span>
           </div>
-          <div class="health-metric">
-            <span class="health-metric-label">Optional Set</span>
-            <span class="health-metric-value">{{ c.optional_total - c.missing_optional|length }} / {{ c.optional_total }}</span>
+          
+          <!-- Content state -->
+          <div id="content-environment" class="d-none">
+            <div class="health-metric">
+              <span class="health-metric-label">Required Set</span>
+              <span class="health-metric-value" id="val-env-required">—</span>
+            </div>
+            <div class="health-metric">
+              <span class="health-metric-label">Optional Set</span>
+              <span class="health-metric-value" id="val-env-optional">—</span>
+            </div>
+            
+            <div class="mt-3 d-none" id="row-env-missing-req">
+              <div class="small fw-semibold text-danger mb-2">Missing Required:</div>
+              <div id="val-env-missing-req-chips"></div>
+            </div>
+            
+            <div class="mt-2 d-none" id="row-env-missing-opt">
+              <div class="small fw-semibold text-muted mb-2">Missing Optional (features disabled):</div>
+              <div id="val-env-missing-opt-chips"></div>
+            </div>
+            
+            <div class="alert alert-success py-2 small mb-0 mt-3 d-none" id="note-env-success">All required environment variables are set. ✓</div>
           </div>
-          {% if c.missing_required %}
-          <div class="mt-3">
-            <div class="small fw-semibold text-danger mb-2">Missing Required:</div>
-            {% for var in c.missing_required %}
-            <span class="env-chip env-missing">{{ var }}</span>
-            {% endfor %}
-          </div>
-          {% endif %}
-          {% if c.missing_optional %}
-          <div class="mt-2">
-            <div class="small fw-semibold text-muted mb-2">Missing Optional (features disabled):</div>
-            {% for var in c.missing_optional %}
-            <span class="env-chip env-missing" style="background:#fef3c7;color:#92400e;">{{ var }}</span>
-            {% endfor %}
-          </div>
-          {% endif %}
-          {% if c.status == 'ok' %}
-          <div class="alert alert-success py-2 small mb-0 mt-3">All required environment variables are set. ✓</div>
-          {% endif %}
         </div>
       </div>
     </div>
@@ -354,8 +400,361 @@
 {% block extra_js %}
 <script>
 (function () {
-  const POLL_INTERVAL = 30000; // 30 seconds
+  const COMPONENTS = ['database', 'redis', 'celery', 'storage', 'email', 'disk', 'environment', 'pipeline'];
+  const pageStart = performance.now();
+  let checkResults = {};
 
+  function updateOverallStatus() {
+    const statuses = Object.values(checkResults).map(r => r.status || 'unknown');
+    let overall = 'ok';
+    if (statuses.includes('error')) {
+      overall = 'error';
+    } else if (statuses.includes('warning')) {
+      overall = 'warning';
+    }
+
+    const banner = document.getElementById('overall-banner');
+    const icon = document.getElementById('overall-icon');
+    const title = document.getElementById('overall-title');
+    const subtitle = document.getElementById('overall-subtitle');
+    const timeEl = document.getElementById('diagnostics-time');
+
+    if (banner) {
+      banner.style = ''; // Clear default styling
+      banner.className = 'overall-banner overall-' + overall;
+    }
+    if (icon) {
+      if (overall === 'ok') icon.textContent = '✅';
+      else if (overall === 'warning') icon.textContent = '⚠️';
+      else icon.textContent = '🔴';
+    }
+    if (title) {
+      if (overall === 'ok') title.textContent = 'All Systems Operational';
+      else if (overall === 'warning') title.textContent = 'Some Systems Need Attention';
+      else title.textContent = 'Critical Issues Detected';
+    }
+    if (subtitle) {
+      const errors = statuses.filter(s => s === 'error').length;
+      const warnings = statuses.filter(s => s === 'warning').length;
+      subtitle.textContent = errors + ' error(s) · ' + warnings + ' warning(s) across ' + COMPONENTS.length + ' components';
+    }
+    if (timeEl) {
+      const duration = Math.round(performance.now() - pageStart);
+      timeEl.textContent = duration + 'ms';
+    }
+  }
+
+  function fetchComponent(comp) {
+    const url = '/admin/api/health-check/' + comp;
+    fetch(url, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => {
+      if (!r.ok) {
+        throw new Error('HTTP ' + r.status);
+      }
+      return r.json();
+    })
+    .then(d => {
+      checkResults[comp] = d;
+      renderComponent(comp, d);
+    })
+    .catch(err => {
+      const errorData = { status: 'error', error: err.message };
+      checkResults[comp] = errorData;
+      renderComponent(comp, errorData);
+    })
+    .finally(() => {
+      if (Object.keys(checkResults).length === COMPONENTS.length) {
+        updateOverallStatus();
+      }
+    });
+  }
+
+  function renderComponent(comp, d) {
+    const indicator = document.getElementById('indicator-' + comp);
+    const badge = document.getElementById('badge-' + comp);
+    const loading = document.getElementById('loading-' + comp);
+    const content = document.getElementById('content-' + comp);
+
+    if (loading) loading.classList.add('d-none');
+    if (content) content.classList.remove('d-none');
+
+    // Update indicator status class
+    if (indicator) {
+      indicator.className = 'status-indicator status-' + (d.status || 'unknown');
+      indicator.style = ''; // Remove default inline gray style
+    }
+
+    // Update badge class & text
+    if (badge) {
+      badge.textContent = (d.status || 'UNKNOWN').toUpperCase();
+      badge.className = 'badge ms-auto';
+      if (d.status === 'ok') badge.classList.add('bg-success');
+      else if (d.status === 'warning') badge.classList.add('bg-warning', 'text-dark');
+      else if (d.status === 'info') badge.classList.add('bg-info', 'text-dark');
+      else badge.classList.add('bg-danger');
+    }
+
+    // Component-specific rendering
+    if (comp === 'database') {
+      const metrics = document.getElementById('metrics-database');
+      const errEl = document.getElementById('error-database');
+      if (d.status === 'ok') {
+        if (metrics) metrics.classList.remove('d-none');
+        if (errEl) errEl.classList.add('d-none');
+        document.getElementById('val-db-engine').textContent = d.engine || '—';
+        document.getElementById('val-db-latency').textContent = d.latency_ms + ' ms';
+        document.getElementById('val-db-complaints').textContent = d.total_complaints || 0;
+        document.getElementById('val-db-users').textContent = d.total_users || 0;
+        const connEl = document.getElementById('val-db-connection');
+        if (connEl) {
+          connEl.textContent = d.url_masked || '—';
+          connEl.title = d.url_masked || '';
+        }
+      } else {
+        if (metrics) metrics.classList.add('d-none');
+        if (errEl) {
+          errEl.classList.remove('d-none');
+          errEl.textContent = d.error || 'Database connection error';
+        }
+      }
+    }
+    else if (comp === 'redis') {
+      const metrics = document.getElementById('metrics-redis');
+      const errEl = document.getElementById('error-redis');
+      if (d.status === 'ok') {
+        if (metrics) metrics.classList.remove('d-none');
+        if (errEl) errEl.classList.add('d-none');
+        document.getElementById('val-redis-version').textContent = d.redis_version || '—';
+        document.getElementById('val-redis-latency').textContent = d.latency_ms + ' ms';
+        document.getElementById('val-redis-clients').textContent = d.connected_clients || 0;
+        document.getElementById('val-redis-memory').textContent = d.used_memory_human || '—';
+      } else {
+        if (metrics) metrics.classList.add('d-none');
+        if (errEl) {
+          errEl.classList.remove('d-none');
+          errEl.textContent = d.error || 'Redis unreachable';
+        }
+      }
+    }
+    else if (comp === 'celery') {
+      document.getElementById('val-celery-count').textContent = d.worker_count !== undefined ? d.worker_count : 0;
+      const latRow = document.getElementById('row-celery-latency');
+      if (d.latency_ms) {
+        if (latRow) latRow.classList.remove('d-none');
+        document.getElementById('val-celery-latency').textContent = d.latency_ms + ' ms';
+      } else {
+        if (latRow) latRow.classList.add('d-none');
+      }
+
+      const workersRow = document.getElementById('row-celery-workers');
+      const listEl = document.getElementById('val-celery-workers-list');
+      if (d.active_workers && d.active_workers.length > 0) {
+        if (workersRow) workersRow.classList.remove('d-none');
+        if (listEl) {
+          listEl.innerHTML = d.active_workers.map(w => '<code class="d-block small text-success">' + w + '</code>').join('');
+        }
+      } else {
+        if (workersRow) workersRow.classList.add('d-none');
+      }
+
+      const noteEl = document.getElementById('note-celery');
+      if (d.note) {
+        if (noteEl) {
+          noteEl.classList.remove('d-none');
+          noteEl.textContent = d.note;
+          noteEl.className = 'alert py-2 small mb-0 mt-2 ' + (d.status === 'warning' ? 'alert-warning' : 'alert-danger');
+        }
+      } else {
+        if (noteEl) noteEl.classList.add('d-none');
+      }
+    }
+    else if (comp === 'storage') {
+      document.getElementById('val-storage-provider').textContent = (d.provider || 'N/A').toUpperCase();
+      const buckRow = document.getElementById('row-storage-bucket');
+      if (d.bucket) {
+        if (buckRow) buckRow.classList.remove('d-none');
+        document.getElementById('val-storage-bucket').textContent = d.bucket;
+      } else {
+        if (buckRow) buckRow.classList.add('d-none');
+      }
+
+      const latRow = document.getElementById('row-storage-latency');
+      if (d.latency_ms) {
+        if (latRow) latRow.classList.remove('d-none');
+        document.getElementById('val-storage-latency').textContent = d.latency_ms + ' ms';
+      } else {
+        if (latRow) latRow.classList.add('d-none');
+      }
+
+      const noteEl = document.getElementById('note-storage');
+      if (d.note) {
+        if (noteEl) {
+          noteEl.classList.remove('d-none');
+          noteEl.textContent = d.note;
+        }
+      } else {
+        if (noteEl) noteEl.classList.add('d-none');
+      }
+
+      const errEl = document.getElementById('error-storage');
+      if (d.error) {
+        if (errEl) {
+          errEl.classList.remove('d-none');
+          errEl.textContent = d.error;
+        }
+      } else {
+        if (errEl) errEl.classList.add('d-none');
+      }
+    }
+    else if (comp === 'email') {
+      const srvRow = document.getElementById('row-email-server');
+      if (d.server) {
+        if (srvRow) srvRow.classList.remove('d-none');
+        document.getElementById('val-email-server').textContent = d.server + ':' + d.port;
+      } else {
+        if (srvRow) srvRow.classList.add('d-none');
+      }
+
+      const latRow = document.getElementById('row-email-latency');
+      if (d.latency_ms) {
+        if (latRow) latRow.classList.remove('d-none');
+        document.getElementById('val-email-latency').textContent = d.latency_ms + ' ms';
+      } else {
+        if (latRow) latRow.classList.add('d-none');
+      }
+
+      const noteEl = document.getElementById('note-email');
+      if (d.note) {
+        if (noteEl) {
+          noteEl.classList.remove('d-none');
+          noteEl.textContent = d.note;
+        }
+      } else {
+        if (noteEl) noteEl.classList.add('d-none');
+      }
+
+      const errEl = document.getElementById('error-email');
+      if (d.error) {
+        if (errEl) {
+          errEl.classList.remove('d-none');
+          errEl.textContent = d.error;
+        }
+      } else {
+        if (errEl) errEl.classList.add('d-none');
+      }
+    }
+    else if (comp === 'disk') {
+      const metrics = document.getElementById('metrics-disk');
+      const errEl = document.getElementById('error-disk');
+      if (metrics) metrics.classList.remove('d-none');
+      if (d.path) {
+        document.getElementById('val-disk-path').textContent = d.path;
+        document.getElementById('val-disk-total').textContent = d.total_gb + ' GB';
+        document.getElementById('val-disk-used').textContent = d.used_gb + ' GB (' + d.pct_used + '%)';
+        document.getElementById('val-disk-free').textContent = d.free_gb + ' GB';
+        const bar = document.getElementById('val-disk-bar');
+        if (bar) {
+          bar.style.width = d.pct_used + '%';
+          bar.style.background = d.pct_used > 90 ? '#ef4444' : (d.pct_used > 75 ? '#f59e0b' : '#22c55e');
+        }
+      }
+      if (d.error) {
+        if (errEl) {
+          errEl.classList.remove('d-none');
+          errEl.textContent = d.error;
+        }
+      } else {
+        if (errEl) errEl.classList.add('d-none');
+      }
+    }
+    else if (comp === 'pipeline') {
+      const awEl = document.getElementById('val-pipeline-awaiting');
+      const brEl = document.getElementById('val-pipeline-breached');
+      const dlEl = document.getElementById('val-pipeline-delayed');
+      const l24El = document.getElementById('val-pipeline-last24h');
+
+      if (awEl) {
+        awEl.textContent = d.awaiting_review !== undefined ? d.awaiting_review : 0;
+        awEl.style.color = d.awaiting_review > 10 ? '#f59e0b' : '#22c55e';
+      }
+      if (brEl) {
+        brEl.textContent = d.sla_breached !== undefined ? d.sla_breached : 0;
+        brEl.style.color = d.sla_breached > 5 ? '#ef4444' : '#22c55e';
+      }
+      if (dlEl) {
+        dlEl.textContent = d.delayed !== undefined ? d.delayed : 0;
+        dlEl.style.color = d.delayed > 0 ? '#f59e0b' : '#22c55e';
+      }
+      if (l24El) {
+        l24El.textContent = d.last_24h_submissions !== undefined ? d.last_24h_submissions : 0;
+      }
+
+      document.getElementById('val-pipeline-total').textContent = d.total !== undefined ? d.total : 0;
+      document.getElementById('val-pipeline-rate').textContent = (d.resolution_rate !== undefined ? d.resolution_rate : 0) + '%';
+
+      const oldestRow = document.getElementById('row-pipeline-oldest');
+      const oldestVal = document.getElementById('val-pipeline-oldest');
+      if (d.oldest_unreviewed_hours !== null && d.oldest_unreviewed_hours !== undefined) {
+        if (oldestRow) oldestRow.classList.remove('d-none');
+        if (oldestVal) {
+          oldestVal.textContent = d.oldest_unreviewed_hours + 'h ago';
+          if (d.oldest_unreviewed_hours > 48) {
+            oldestVal.classList.add('text-danger');
+          } else {
+            oldestVal.classList.remove('text-danger');
+          }
+        }
+      } else {
+        if (oldestRow) oldestRow.classList.add('d-none');
+      }
+
+      const bar = document.getElementById('val-pipeline-bar');
+      if (bar) {
+        bar.style.width = (d.resolution_rate !== undefined ? d.resolution_rate : 0) + '%';
+      }
+    }
+    else if (comp === 'environment') {
+      document.getElementById('val-env-required').textContent = (d.required_total - d.missing_required.length) + ' / ' + d.required_total;
+      document.getElementById('val-env-optional').textContent = (d.optional_total - d.missing_optional.length) + ' / ' + d.optional_total;
+
+      const reqRow = document.getElementById('row-env-missing-req');
+      const reqChips = document.getElementById('val-env-missing-req-chips');
+      if (d.missing_required && d.missing_required.length > 0) {
+        if (reqRow) reqRow.classList.remove('d-none');
+        if (reqChips) {
+          reqChips.innerHTML = d.missing_required.map(v => '<span class="env-chip env-missing">' + v + '</span>').join('');
+        }
+      } else {
+        if (reqRow) reqRow.classList.add('d-none');
+      }
+
+      const optRow = document.getElementById('row-env-missing-opt');
+      const optChips = document.getElementById('val-env-missing-opt-chips');
+      if (d.missing_optional && d.missing_optional.length > 0) {
+        if (optRow) optRow.classList.remove('d-none');
+        if (optChips) {
+          optChips.innerHTML = d.missing_optional.map(v => '<span class="env-chip env-missing" style="background:#fef3c7;color:#92400e;">' + v + '</span>').join('');
+        }
+      } else {
+        if (optRow) optRow.classList.add('d-none');
+      }
+
+      const successEl = document.getElementById('note-env-success');
+      if (d.status === 'ok') {
+        if (successEl) successEl.classList.remove('d-none');
+      } else {
+        if (successEl) successEl.classList.add('d-none');
+      }
+    }
+  }
+
+  // Kick off concurrent loads
+  COMPONENTS.forEach(fetchComponent);
+
+  // Poll lightweight endpoint
+  const POLL_INTERVAL = 30000;
   function colorStatus(val) {
     if (val === 'ok')    return 'color:#22c55e';
     if (val === 'error') return 'color:#ef4444';
