@@ -5639,6 +5639,377 @@ html[data-theme="contrast"] .btn-suggestion {
 }
 
 
+/* ==========================================================================
+   17 — DARK / HIGH-CONTRAST THEME  [data-theme="contrast"]
+   Applied to <html> by initAccessibilityControls() in main.js
+   Covers every component so NO text is ever hidden on dark backgrounds.
+   ========================================================================== */
+
+/* ── 17.0 Global CSS variable overrides ──────────────────────────────────── */
+html[data-theme="contrast"] {
+    --bg-page:         #0d1117;
+    --bg-surface:      #161b22;
+    --bg-surface-alt:  #1c2128;
+    --text-900:        #e6edf3;
+    --text-700:        #c9d1d9;
+    --text-500:        #8b949e;
+    --border-soft:     #30363d;
+    --neutral-900: #e6edf3;
+    --neutral-700: #c9d1d9;
+    --neutral-500: #8b949e;
+    --neutral-300: #30363d;
+    --neutral-100: #1c2128;
+    --neutral-50:  #161b22;
+    --white:       #161b22;
+    --gov-green-light: #122820;
+    --status-pending-bg:  #2a1e00;
+    --status-resolved-bg: #0d2818;
+    --status-delayed-bg:  #2a0d0d;
+    --status-normal-bg:   #0d1a2a;
+}
+
+/* ── 17.1 HTML / Body ────────────────────────────────────────────────────── */
+html[data-theme="contrast"],
+html[data-theme="contrast"] body {
+    background-color: #0d1117 !important;
+    color: #e6edf3 !important;
+}
+
+/* ── 17.2 Typography ─────────────────────────────────────────────────────── */
+html[data-theme="contrast"] h1,
+html[data-theme="contrast"] h2,
+html[data-theme="contrast"] h3,
+html[data-theme="contrast"] h4,
+html[data-theme="contrast"] h5,
+html[data-theme="contrast"] h6,
+html[data-theme="contrast"] .h1,
+html[data-theme="contrast"] .h2,
+html[data-theme="contrast"] .h3,
+html[data-theme="contrast"] .h4,
+html[data-theme="contrast"] .h5,
+html[data-theme="contrast"] .h6 {
+    color: #e6edf3 !important;
+}
+html[data-theme="contrast"] p,
+html[data-theme="contrast"] li,
+html[data-theme="contrast"] label,
+html[data-theme="contrast"] small,
+html[data-theme="contrast"] .text-muted,
+html[data-theme="contrast"] .text-secondary {
+    color: #c9d1d9 !important;
+}
+html[data-theme="contrast"] .text-success { color: #56d364 !important; }
+html[data-theme="contrast"] .text-danger  { color: #f85149 !important; }
+html[data-theme="contrast"] .text-warning { color: #e3b341 !important; }
+html[data-theme="contrast"] .text-info    { color: #58a6ff !important; }
+html[data-theme="contrast"] .text-dark,
+html[data-theme="contrast"] .text-black   { color: #e6edf3 !important; }
+html[data-theme="contrast"] a            { color: #58a6ff; }
+html[data-theme="contrast"] a:hover      { color: #79c0ff; }
+
+/* ── 17.3 Surfaces ───────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .mibsp-card,
+html[data-theme="contrast"] .kpi-card,
+html[data-theme="contrast"] .form-section,
+html[data-theme="contrast"] .card,
+html[data-theme="contrast"] .modal-content,
+html[data-theme="contrast"] .dropdown-menu,
+html[data-theme="contrast"] .stat-item,
+html[data-theme="contrast"] .trust-band-item,
+html[data-theme="contrast"] .hero-panel,
+html[data-theme="contrast"] .home-ai-card,
+html[data-theme="contrast"] .home-ai-chat,
+html[data-theme="contrast"] .submit-hero-card,
+html[data-theme="contrast"] .track-card,
+html[data-theme="contrast"] .complaint-status-card,
+html[data-theme="contrast"] .review-card,
+html[data-theme="contrast"] .list-group-item,
+html[data-theme="contrast"] .accordion-item,
+html[data-theme="contrast"] .accordion-body,
+html[data-theme="contrast"] .accordion-header {
+    background-color: #161b22 !important;
+    border-color: #30363d !important;
+    color: #e6edf3 !important;
+}
+html[data-theme="contrast"] .card-body,
+html[data-theme="contrast"] .card-header,
+html[data-theme="contrast"] .card-footer,
+html[data-theme="contrast"] .card-title,
+html[data-theme="contrast"] .card-text {
+    background-color: #161b22 !important;
+    border-color: #30363d !important;
+    color: #e6edf3 !important;
+}
+html[data-theme="contrast"] .modal-header,
+html[data-theme="contrast"] .modal-body,
+html[data-theme="contrast"] .modal-footer,
+html[data-theme="contrast"] .modal-title {
+    background-color: #161b22 !important;
+    border-color: #30363d !important;
+    color: #e6edf3 !important;
+}
+html[data-theme="contrast"] .bg-white,
+html[data-theme="contrast"] .bg-light { background-color: #161b22 !important; color: #e6edf3 !important; }
+html[data-theme="contrast"] .bg-body  { background-color: #0d1117 !important; }
+
+/* ── 17.4 Navigation ─────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .gov-header,
+html[data-theme="contrast"] .gov-brand-strip,
+html[data-theme="contrast"] .gov-topbar { background-color: #161b22 !important; border-color: #30363d !important; }
+html[data-theme="contrast"] .gov-topbar-item,
+html[data-theme="contrast"] .gov-topbar-link { color: #c9d1d9 !important; }
+html[data-theme="contrast"] .gov-brand-title { color: #e6edf3 !important; }
+html[data-theme="contrast"] .gov-brand-subtitle { color: #8b949e !important; }
+html[data-theme="contrast"] .gov-helpline-panel {
+    background: #1c2128 !important;
+    border-color: #30363d !important;
+    border-left-color: #ff9933 !important;
+    color: #c9d1d9 !important;
+}
+html[data-theme="contrast"] .gov-helpline-summary { color: #c9d1d9 !important; }
+html[data-theme="contrast"] .site-nav { background: #010409 !important; }
+html[data-theme="contrast"] .dropdown-menu { background-color: #1c2128 !important; border-color: #30363d !important; }
+html[data-theme="contrast"] .dropdown-item { color: #c9d1d9 !important; }
+html[data-theme="contrast"] .dropdown-item:hover,
+html[data-theme="contrast"] .dropdown-item:focus { background-color: #2d333b !important; color: #e6edf3 !important; }
+html[data-theme="contrast"] .dropdown-divider { border-color: #30363d !important; }
+
+/* ── 17.5 Footer ─────────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .site-footer,
+html[data-theme="contrast"] .gov-footer,
+html[data-theme="contrast"] .gov-footer-top,
+html[data-theme="contrast"] .gov-footer-links,
+html[data-theme="contrast"] .gov-footer-bottom {
+    background-color: #010409 !important;
+    border-color: #30363d !important;
+    color: #8b949e !important;
+}
+html[data-theme="contrast"] .gov-footer-top h2,
+html[data-theme="contrast"] .gov-footer-top h3,
+html[data-theme="contrast"] .gov-footer-links h3 { color: #e6edf3 !important; }
+html[data-theme="contrast"] .gov-footer-top p,
+html[data-theme="contrast"] .gov-footer-links ul li { color: #8b949e !important; }
+html[data-theme="contrast"] .gov-footer-top a,
+html[data-theme="contrast"] .gov-footer-links a { color: #58a6ff !important; }
+html[data-theme="contrast"] .footer-helpline span { color: #8b949e !important; }
+html[data-theme="contrast"] .footer-helpline strong { color: #e6edf3 !important; }
+html[data-theme="contrast"] .footer-disclaimer { color: #6e7681 !important; }
+
+/* ── 17.6 Forms ──────────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .form-control,
+html[data-theme="contrast"] .form-select,
+html[data-theme="contrast"] .input-group-text,
+html[data-theme="contrast"] textarea,
+html[data-theme="contrast"] input[type="text"],
+html[data-theme="contrast"] input[type="email"],
+html[data-theme="contrast"] input[type="password"],
+html[data-theme="contrast"] input[type="number"],
+html[data-theme="contrast"] input[type="date"],
+html[data-theme="contrast"] input[type="search"] {
+    background-color: #0d1117 !important;
+    border-color: #30363d !important;
+    color: #e6edf3 !important;
+}
+html[data-theme="contrast"] .form-control:focus,
+html[data-theme="contrast"] .form-select:focus,
+html[data-theme="contrast"] textarea:focus {
+    background-color: #0d1117 !important;
+    border-color: #388bfd !important;
+    color: #e6edf3 !important;
+    box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.25) !important;
+}
+html[data-theme="contrast"] .form-control::placeholder,
+html[data-theme="contrast"] textarea::placeholder,
+html[data-theme="contrast"] input::placeholder { color: #6e7681 !important; }
+html[data-theme="contrast"] .form-label,
+html[data-theme="contrast"] .form-text,
+html[data-theme="contrast"] .col-form-label,
+html[data-theme="contrast"] .form-check-label { color: #c9d1d9 !important; }
+html[data-theme="contrast"] .form-check-input { background-color: #0d1117 !important; border-color: #30363d !important; }
+html[data-theme="contrast"] .form-check-input:checked { background-color: #388bfd !important; border-color: #388bfd !important; }
+html[data-theme="contrast"] .form-section-header { color: #58d68d !important; border-bottom-color: #122820 !important; }
+html[data-theme="contrast"] .input-group-text { background-color: #1c2128 !important; color: #c9d1d9 !important; }
+html[data-theme="contrast"] .escalation-form-card .form-section .form-control,
+html[data-theme="contrast"] .escalation-form-card .form-section .form-select {
+    background-color: #0d1117 !important;
+    border-color: #30363d !important;
+    color: #e6edf3 !important;
+}
+html[data-theme="contrast"] select option { background-color: #1c2128; color: #e6edf3; }
+
+/* ── 17.7 Tables ─────────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .mibsp-table thead { background: #010409 !important; }
+html[data-theme="contrast"] .mibsp-table thead th { color: #e6edf3 !important; }
+html[data-theme="contrast"] .mibsp-table tbody tr { border-bottom-color: #21262d !important; }
+html[data-theme="contrast"] .mibsp-table tbody tr:hover { background: #1c2128 !important; }
+html[data-theme="contrast"] .mibsp-table tbody td { color: #c9d1d9 !important; }
+html[data-theme="contrast"] .table,
+html[data-theme="contrast"] .table td,
+html[data-theme="contrast"] .table th {
+    background-color: #161b22 !important;
+    color: #c9d1d9 !important;
+    border-color: #30363d !important;
+}
+html[data-theme="contrast"] .table-striped > tbody > tr:nth-of-type(odd) > * { background-color: #1c2128 !important; }
+html[data-theme="contrast"] .table-hover > tbody > tr:hover > * { background-color: #21262d !important; }
+
+/* ── 17.8 Buttons ────────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .btn-gov-secondary {
+    color: #58d68d !important;
+    border-color: #58d68d !important;
+    background-color: transparent !important;
+}
+html[data-theme="contrast"] .btn-gov-secondary:hover { background-color: #122820 !important; }
+html[data-theme="contrast"] .btn-outline-secondary { color: #c9d1d9 !important; border-color: #30363d !important; }
+html[data-theme="contrast"] .btn-outline-secondary:hover { background-color: #30363d !important; color: #e6edf3 !important; }
+html[data-theme="contrast"] .btn-outline-primary { color: #58a6ff !important; border-color: #388bfd !important; }
+html[data-theme="contrast"] .btn-outline-primary:hover { background-color: #0d2340 !important; color: #79c0ff !important; }
+html[data-theme="contrast"] .btn-outline-danger { color: #f85149 !important; border-color: #f85149 !important; }
+html[data-theme="contrast"] .btn-outline-success { color: #56d364 !important; border-color: #56d364 !important; }
+html[data-theme="contrast"] .btn-outline-warning { color: #e3b341 !important; border-color: #e3b341 !important; }
+html[data-theme="contrast"] .btn-icon { background-color: #1c2128 !important; border-color: #30363d !important; color: #58d68d !important; }
+html[data-theme="contrast"] .btn-icon:hover { background-color: #122820 !important; }
+html[data-theme="contrast"] .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+html[data-theme="contrast"] .btn-light,
+html[data-theme="contrast"] .btn-secondary { background-color: #21262d !important; border-color: #30363d !important; color: #c9d1d9 !important; }
+
+/* ── 17.9 Badges / Status Pills ──────────────────────────────────────────── */
+html[data-theme="contrast"] .badge-pending,
+html[data-theme="contrast"] .badge-review { background: #2a1e00 !important; color: #e3b341 !important; }
+html[data-theme="contrast"] .badge-resolved,
+html[data-theme="contrast"] .badge-action,
+html[data-theme="contrast"] .badge-closed { background: #0d2818 !important; color: #56d364 !important; }
+html[data-theme="contrast"] .badge-delayed,
+html[data-theme="contrast"] .badge-reopened { background: #2a0d0d !important; color: #f85149 !important; }
+html[data-theme="contrast"] .badge-assigned { background: #0d1a2a !important; color: #58a6ff !important; }
+html[data-theme="contrast"] .tracking-id { background: #1c2128 !important; color: #79c0ff !important; }
+html[data-theme="contrast"] .stat-chip.neutral { background: #1c2128 !important; color: #c9d1d9 !important; border-color: #30363d !important; }
+html[data-theme="contrast"] .stat-chip.success { background: #0d2818 !important; color: #56d364 !important; border-color: #1b5e37 !important; }
+html[data-theme="contrast"] .stat-chip.warning { background: #2a1e00 !important; color: #e3b341 !important; border-color: #6e4f00 !important; }
+html[data-theme="contrast"] .stat-chip.danger  { background: #2a0d0d !important; color: #f85149 !important; border-color: #6e1414 !important; }
+html[data-theme="contrast"] .badge.bg-success { background-color: #1b5e37 !important; color: #56d364 !important; }
+html[data-theme="contrast"] .badge.bg-danger  { background-color: #6e1414 !important; color: #f85149 !important; }
+html[data-theme="contrast"] .badge.bg-warning { background-color: #6e4f00 !important; color: #e3b341 !important; }
+html[data-theme="contrast"] .badge.bg-info    { background-color: #0d2340 !important; color: #58a6ff !important; }
+html[data-theme="contrast"] .badge.bg-primary { background-color: #0d2340 !important; color: #58a6ff !important; }
+html[data-theme="contrast"] .badge.bg-secondary { background-color: #21262d !important; color: #c9d1d9 !important; }
+html[data-theme="contrast"] .badge.bg-light  { background-color: #21262d !important; color: #e6edf3 !important; }
+html[data-theme="contrast"] .badge.text-dark { color: #e6edf3 !important; }
+
+/* ── 17.10 Breadcrumbs ───────────────────────────────────────────────────── */
+html[data-theme="contrast"] .gov-breadcrumb { background: #0d1117 !important; border-color: #30363d !important; }
+html[data-theme="contrast"] .gov-breadcrumb a { color: #58a6ff !important; }
+html[data-theme="contrast"] .gov-breadcrumb .breadcrumb-item.active { color: #e6edf3 !important; }
+html[data-theme="contrast"] .breadcrumb-item + .breadcrumb-item::before { color: #8b949e !important; }
+
+/* ── 17.11 Alerts ────────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .alert-success { background-color: #0d2818 !important; border-color: #1b5e37 !important; color: #56d364 !important; }
+html[data-theme="contrast"] .alert-danger  { background-color: #2a0d0d !important; border-color: #6e1414 !important; color: #f85149 !important; }
+html[data-theme="contrast"] .alert-warning { background-color: #2a1e00 !important; border-color: #6e4f00 !important; color: #e3b341 !important; }
+html[data-theme="contrast"] .alert-info    { background-color: #0d1a2a !important; border-color: #0d2340 !important; color: #58a6ff !important; }
+html[data-theme="contrast"] .alert-primary { background-color: #0d1a2a !important; border-color: #0d2340 !important; color: #58a6ff !important; }
+
+/* ── 17.12 KPI Cards ─────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .kpi-value { color: #e6edf3 !important; }
+html[data-theme="contrast"] .kpi-label,
+html[data-theme="contrast"] .kpi-sub { color: #8b949e !important; }
+
+/* ── 17.13 Tabs / Pills ──────────────────────────────────────────────────── */
+html[data-theme="contrast"] .nav-tabs { border-color: #30363d !important; }
+html[data-theme="contrast"] .nav-tabs .nav-link { color: #8b949e !important; border-color: transparent !important; }
+html[data-theme="contrast"] .nav-tabs .nav-link:hover { color: #c9d1d9 !important; border-color: #30363d !important; }
+html[data-theme="contrast"] .nav-tabs .nav-link.active {
+    background-color: #161b22 !important;
+    border-color: #30363d #30363d #161b22 !important;
+    color: #e6edf3 !important;
+}
+html[data-theme="contrast"] .nav-pills .nav-link { color: #c9d1d9 !important; }
+html[data-theme="contrast"] .nav-pills .nav-link.active { background-color: #122820 !important; color: #56d364 !important; }
+
+/* ── 17.14 Accordions ────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .accordion-button { background-color: #1c2128 !important; color: #e6edf3 !important; border-color: #30363d !important; box-shadow: none !important; }
+html[data-theme="contrast"] .accordion-button::after { filter: invert(1); }
+html[data-theme="contrast"] .accordion-button:not(.collapsed) { background-color: #122820 !important; color: #56d364 !important; }
+html[data-theme="contrast"] .accordion-collapse { border-color: #30363d !important; }
+
+/* ── 17.15 Progress / SLA Bars ───────────────────────────────────────────── */
+html[data-theme="contrast"] .sla-bar,
+html[data-theme="contrast"] .progress { background-color: #21262d !important; }
+
+/* ── 17.16 Empty State ───────────────────────────────────────────────────── */
+html[data-theme="contrast"] .empty-state { color: #8b949e !important; }
+html[data-theme="contrast"] .empty-state-title { color: #c9d1d9 !important; }
+
+/* ── 17.17 Timeline ──────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .timeline-item::before { background: #30363d !important; }
+html[data-theme="contrast"] .civik-tl-notes { background: #0d1117 !important; border-left-color: #30363d !important; color: #c9d1d9 !important; }
+html[data-theme="contrast"] .civik-tl-meta { color: #8b949e !important; }
+
+/* ── 17.18 Hero / Landing ────────────────────────────────────────────────── */
+html[data-theme="contrast"] .hero-pill { background: rgba(56,139,253,.15) !important; border-color: rgba(56,139,253,.35) !important; color: #58a6ff !important; }
+html[data-theme="contrast"] .trust-chip { background: #1c2128 !important; border-color: #30363d !important; color: #c9d1d9 !important; }
+html[data-theme="contrast"] .trust-band { background: #161b22 !important; border-color: #30363d !important; }
+html[data-theme="contrast"] .trust-band-item { background: #1c2128 !important; border-color: #30363d !important; color: #c9d1d9 !important; }
+html[data-theme="contrast"] .submit-page-shell { background: #0d1117 !important; }
+html[data-theme="contrast"] .home-ai-msg-assistant .home-ai-bubble { background: #1c2128 !important; border-color: #30363d !important; color: #c9d1d9 !important; }
+html[data-theme="contrast"] .home-ai-kicker,
+html[data-theme="contrast"] .submit-hero-kicker { background: rgba(56,139,253,.12) !important; border-color: rgba(56,139,253,.28) !important; color: #58a6ff !important; }
+html[data-theme="contrast"] .home-ai-form .form-control { background: #0d1117 !important; color: #e6edf3 !important; }
+
+/* ── 17.19 Tracking page ─────────────────────────────────────────────────── */
+html[data-theme="contrast"] .track-card-header { background: #010409 !important; }
+html[data-theme="contrast"] .track-card-header h1,
+html[data-theme="contrast"] .track-card-header p { color: #e6edf3 !important; }
+
+/* ── 17.20 Admin portal ──────────────────────────────────────────────────── */
+html[data-theme="contrast"] .admin-sidebar,
+html[data-theme="contrast"] .portal-sidebar,
+html[data-theme="contrast"] .admin-topbar,
+html[data-theme="contrast"] .portal-topbar { background-color: #010409 !important; border-color: #30363d !important; color: #c9d1d9 !important; }
+html[data-theme="contrast"] .portal-nav-list a { color: #c9d1d9 !important; }
+html[data-theme="contrast"] .portal-nav-list a:hover,
+html[data-theme="contrast"] .portal-nav-list a.active { background-color: #1c2128 !important; color: #e6edf3 !important; }
+html[data-theme="contrast"] .login-right-panel,
+html[data-theme="contrast"] .login-left-panel { background-color: #161b22 !important; color: #e6edf3 !important; }
+html[data-theme="contrast"] .portal-shield { background: #1c2128 !important; border-color: #30363d !important; color: #58d68d !important; }
+
+/* ── 17.21 Announcements / Health cards ──────────────────────────────────── */
+html[data-theme="contrast"] .announcement-card,
+html[data-theme="contrast"] .notice-card,
+html[data-theme="contrast"] .health-card { background: #161b22 !important; border-color: #30363d !important; color: #c9d1d9 !important; }
+html[data-theme="contrast"] .announcement-card h3,
+html[data-theme="contrast"] .announcement-card h4,
+html[data-theme="contrast"] .notice-card h3,
+html[data-theme="contrast"] .health-card h3,
+html[data-theme="contrast"] .health-card h4 { color: #e6edf3 !important; }
+html[data-theme="contrast"] .announcement-card.pinned { border-left-color: #ff9933 !important; }
+
+/* ── 17.22 Scrollbar ─────────────────────────────────────────────────────── */
+html[data-theme="contrast"] ::-webkit-scrollbar { width: 8px; height: 8px; }
+html[data-theme="contrast"] ::-webkit-scrollbar-track { background: #0d1117; }
+html[data-theme="contrast"] ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+html[data-theme="contrast"] ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+/* ── 17.23 Skeletons ─────────────────────────────────────────────────────── */
+html[data-theme="contrast"] .skeleton,
+html[data-theme="contrast"] .tl-skeleton-row {
+    background: linear-gradient(90deg, #1c2128 25%, #21262d 50%, #1c2128 75%) !important;
+    background-size: 200% 100% !important;
+}
+
+/* ── 17.24 News Ticker ───────────────────────────────────────────────────── */
+html[data-theme="contrast"] .news-ticker-wrap { background: linear-gradient(90deg,#010409 0%,#0d1117 100%) !important; border-bottom-color: #ff9933 !important; }
+html[data-theme="contrast"] .ticker-item { color: #c9d1d9 !important; }
+html[data-theme="contrast"] .ticker-item a { color: #e6edf3 !important; }
+
+/* ── 17.25 Dividers ──────────────────────────────────────────────────────── */
+html[data-theme="contrast"] hr { border-color: #30363d !important; }
+
+/* ── 17.26 Page-level wrappers ───────────────────────────────────────────── */
+html[data-theme="contrast"] .py-5,
+html[data-theme="contrast"] .home-section,
+html[data-theme="contrast"] .page-content { background-color: #0d1117 !important; }
+
 /* ══════════════════════════════════════════
    GLOBAL @MEDIA PRINT — base site pages
    (This is NOT the receipt page — that has its own print CSS)
