@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+
+{% block title %}Transparency Report{% endblock %}
+
+{% block content %}
+<!-- Gov breadcrumb -->
+<div class="gov-breadcrumb">
+  <div class="container">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}">Home</a></li>
+      <li class="breadcrumb-item active">Transparency Report</li>
+    </ol>
+  </div>
+</div>
+
+<!-- Page hero -->
+<section class="py-5" style="background: linear-gradient(135deg, #0B2545 0%, #1E3A5F 100%);">
+  <div class="container text-center text-white">
+    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3"
+         style="background: rgba(255,153,51,0.18); border: 1px solid rgba(255,153,51,0.35); font-size:.82rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#ff9933;">
+      <i class="bi bi-graph-up-arrow"></i> Live Data
+    </div>
+    <h1 class="fw-bold mb-2" style="font-size:clamp(1.6rem,4vw,2.5rem);">Public Transparency Report</h1>
+    <p class="mb-0 opacity-75" style="max-width:540px; margin:0 auto;">
+      Real-time aggregate statistics on citizen complaints, resolution rates, and department performance.
+      All data is anonymised — no personal information is displayed.
+    </p>
+  </div>
+</section>
+
+<!-- KPI strip -->
+<section class="py-4" style="background:#f7f8f3; border-bottom:1px solid #dde4db;">
+  <div class="container">
+    <div class="row g-3 text-center">
+
+      <div class="col-6 col-md-3">
+        <div class="kpi-card total h-100">
+          <div class="kpi-value">{{ stats.total | default(0) }}</div>
+          <div class="kpi-label">Total Complaints</div>
+          <div class="kpi-sub">All time</div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="kpi-card resolved h-100">
+          <div class="kpi-value">{{ stats.resolution_rate | default(0) }}%</div>
+          <div class="kpi-label">Resolution Rate</div>
+          <div class="kpi-sub">{{ stats.closed | default(0) }} closed</div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="kpi-card pending h-100">
+          <div class="kpi-value">{{ stats.sla_compliance | default(0) }}%</div>
+          <div class="kpi-label">SLA Compliance</div>
+          <div class="kpi-sub">Within deadline</div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="kpi-card delayed h-100">
+          <div class="kpi-value">{{ stats.delayed | default(0) }}</div>
+          <div class="kpi-label">Delayed</div>
+          <div class="kpi-sub">Need attention</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Monthly trend + Categories -->
+<section class="py-5">
+  <div class="container">
+    <div class="row g-4">
+
+      <!-- Monthly Trend -->
+      <div class="col-lg-7">
+        <div class="mibsp-card p-4 h-100">
+          <h2 class="h5 fw-bold mb-4">
+            <i class="bi bi-bar-chart-line-fill text-success me-2"></i>6-Month Trend
+          </h2>
+          <div class="table-responsive">
+            <table class="mibsp-table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Submitted</th>
+                  <th>Resolved</th>
+                  <th>Resolution %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in monthly_trend %}
+                <tr>
+                  <td><strong>{{ row.month }}</strong></td>
+                  <td>{{ row.submitted }}</td>
+                  <td>{{ row.resolved }}</td>
+                  <td>
+                    {% if row.submitted > 0 %}
+                      {% set pct = ((row.resolved / row.submitted) * 100) | round(1) %}
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="sla-bar flex-grow-1" style="height:6px;">
+                          <span class="sla-bar-fill" style="--sla-progress:{{ pct }}%; width:{{ pct }}%;"></span>
+                        </div>
+                        <small>{{ pct }}%</small>
+                      </div>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Categories -->
+      <div class="col-lg-5">
+        <div class="mibsp-card p-4 h-100">
+          <h2 class="h5 fw-bold mb-4">
+            <i class="bi bi-tags-fill text-warning me-2"></i>Top Issue Categories
+          </h2>
+          {% if top_categories %}
+            {% set max_count = top_categories[0].count %}
+            <div class="d-flex flex-column gap-3">
+              {% for cat in top_categories %}
+              <div>
+                <div class="d-flex justify-content-between mb-1">
+                  <small class="fw-semibold">{{ cat.name }}</small>
+                  <small class="text-muted">{{ cat.count }}</small>
+                </div>
+                <div class="sla-bar" style="height:8px;">
+                  <span class="sla-bar-fill" style="width:{{ ((cat.count / max_count) * 100) | round }}%;"></span>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state py-4">
+              <div class="empty-state-icon"><i class="bi bi-tags"></i></div>
+              <p class="empty-state-message">No category data yet.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Department breakdown -->
+<section class="py-5" style="background:#f7f8f3;">
+  <div class="container">
+    <h2 class="h4 fw-bold mb-4">
+      <i class="bi bi-building-fill text-primary me-2"></i>Department Performance
+    </h2>
+    {% if dept_stats %}
+    <div class="mibsp-card overflow-hidden">
+      <div class="table-responsive">
+        <table class="mibsp-table mb-0">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Total</th>
+              <th>Active</th>
+              <th>Delayed</th>
+              <th>Closed</th>
+              <th>Resolution Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dept in dept_stats %}
+            <tr>
+              <td><strong>{{ dept.name }}</strong></td>
+              <td>{{ dept.total }}</td>
+              <td>
+                <span class="badge-status badge-review">{{ dept.active }}</span>
+              </td>
+              <td>
+                {% if dept.delayed > 0 %}
+                  <span class="badge-status badge-delayed">{{ dept.delayed }}</span>
+                {% else %}
+                  <span class="text-muted">0</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge-status badge-closed">{{ dept.closed }}</span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-2" style="min-width:120px;">
+                  <div class="sla-bar flex-grow-1" style="height:6px;">
+                    <span class="sla-bar-fill" style="width:{{ dept.resolution_rate }}%;"></span>
+                  </div>
+                  <small class="fw-semibold">{{ dept.resolution_rate }}%</small>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon"><i class="bi bi-building"></i></div>
+      <p class="empty-state-title">No department data yet</p>
+      <p class="empty-state-message">Complaint data will appear here once submissions are received.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Status pipeline -->
+<section class="py-5">
+  <div class="container">
+    <h2 class="h4 fw-bold mb-4">
+      <i class="bi bi-funnel-fill text-info me-2"></i>Live Complaint Pipeline
+    </h2>
+    <div class="row g-3">
+      {% set pipeline = [
+        ('Pending',      stats.pending,      'badge-pending',  'bi-hourglass-split'),
+        ('Under Review', stats.under_review,  'badge-review',   'bi-eye-fill'),
+        ('Action Taken', stats.action_taken,  'badge-action',   'bi-check2-circle'),
+        ('Delayed',      stats.delayed,       'badge-delayed',  'bi-exclamation-triangle-fill'),
+        ('Reopened',     stats.reopened,      'badge-reopened', 'bi-arrow-counterclockwise'),
+        ('Closed',       stats.closed,        'badge-closed',   'bi-check-circle-fill'),
+      ] %}
+      {% for label, count, badge_class, icon in pipeline %}
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="mibsp-card p-3 text-center h-100">
+          <i class="bi {{ icon }} fs-4 mb-2 d-block opacity-75"></i>
+          <div class="fs-2 fw-bold mb-1">{{ count | default(0) }}</div>
+          <span class="badge-status {{ badge_class }}">{{ label }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- Disclaimer -->
+<section class="py-4" style="background:#f7f8f3; border-top:1px solid #dde4db;">
+  <div class="container">
+    <p class="text-muted small mb-0 text-center">
+      <i class="bi bi-shield-lock-fill me-1"></i>
+      All statistics are fully anonymised. No personal information, names, or identifiers are displayed.
+      Data updates in real time from the live database.
+      Civik India — Independent public awareness initiative.
+    </p>
+  </div>
+</section>
+{% endblock %}

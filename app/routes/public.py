@@ -2409,6 +2409,83 @@ def ai_classify():
     })
 
 
+@public_bp.route('/stats')
+def public_stats():
+    """Public transparency page — aggregate complaint statistics."""
+    from datetime import timedelta
+    from sqlalchemy import func, extract
+
+    # ── Overall pipeline stats (public=True excludes Awaiting Review / Rejected) ──
+    stats = Complaint.get_stats(public=True)
+
+    # ── Per-department breakdown ──────────────────────────────────────────────────
+    dept_stats = []
+    for dept in Department.query.order_by(Department.name).all():
+        q = Complaint.query.filter(
+            Complaint.department_id == dept.id,
+            Complaint.status.in_(['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed'])
+        )
+        total = q.count()
+        if total == 0:
+            continue
+        closed = q.filter_by(status='Closed').count()
+        delayed = q.filter_by(status='Delayed').count()
+        active = q.filter(Complaint.status.in_(['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened'])).count()
+        dept_stats.append({
+            'name': dept.name,
+            'total': total,
+            'closed': closed,
+            'delayed': delayed,
+            'active': active,
+            'resolution_rate': round(closed / total * 100, 1) if total else 0,
+        })
+    # Sort by total complaints descending
+    dept_stats.sort(key=lambda x: x['total'], reverse=True)
+
+    # ── Monthly trend (last 6 months) ─────────────────────────────────────────────
+    now = utc_now()
+    monthly_trend = []
+    for i in range(5, -1, -1):
+        month_start = (now.replace(day=1) - timedelta(days=i * 30)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if i > 0:
+            month_end = (now.replace(day=1) - timedelta(days=(i - 1) * 30)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        else:
+            month_end = now
+        submitted = Complaint.query.filter(
+            Complaint.submitted_at >= month_start,
+            Complaint.submitted_at < month_end,
+            Complaint.status.in_(['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed'])
+        ).count()
+        resolved = Complaint.query.filter(
+            Complaint.resolved_at >= month_start,
+            Complaint.resolved_at < month_end,
+            Complaint.status == 'Closed'
+        ).count()
+        monthly_trend.append({
+            'month': month_start.strftime('%b %Y'),
+            'submitted': submitted,
+            'resolved': resolved,
+        })
+
+    # ── Top categories (ai_category) ─────────────────────────────────────────────
+    category_rows = db.session.query(
+        Complaint.ai_category,
+        func.count(Complaint.id).label('count')
+    ).filter(
+        Complaint.ai_category.isnot(None),
+        Complaint.status.in_(['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed'])
+    ).group_by(Complaint.ai_category).order_by(func.count(Complaint.id).desc()).limit(6).all()
+    top_categories = [{'name': r.ai_category, 'count': r.count} for r in category_rows]
+
+    return render_template(
+        'public/stats.html',
+        stats=stats,
+        dept_stats=dept_stats,
+        monthly_trend=monthly_trend,
+        top_categories=top_categories,
+    )
+
+
 # =============================================================================
 # HEALTH CHECK
 # =============================================================================

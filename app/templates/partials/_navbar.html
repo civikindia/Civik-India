@@ -90,6 +90,7 @@
                             <li><a class="submit-pill {% if request.endpoint == 'public.submit_complaint' %}active{% endif %}" href="{{ url_for('public.submit_complaint') }}"><i class="bi bi-file-text"></i>{{ _('Submit Complaint') }}</a></li>
                             <li><a class="{% if request.endpoint == 'public.track_complaint' %}active{% endif %}" href="{{ url_for('public.track_complaint') }}"><i class="bi bi-search"></i>{{ _('Track Complaint') }}</a></li>
                             <li><a class="{% if request.endpoint == 'public.public_dashboard' %}active{% endif %}" href="{{ url_for('public.public_dashboard') }}"><i class="bi bi-bar-chart"></i>{{ _('Dashboard') }}</a></li>
+                            <li><a class="{% if request.endpoint == 'public.public_stats' %}active{% endif %}" href="{{ url_for('public.public_stats') }}"><i class="bi bi-graph-up-arrow"></i>{{ _('Transparency') }}</a></li>
                             <li><a class="{% if request.endpoint == 'public.geo_heatmap' %}active{% endif %}" href="{{ url_for('public.geo_heatmap') }}"><i class="bi bi-geo-alt"></i>{{ _('Geo Heatmap') }}</a></li>
                             <li class="dropdown">
                                 <a class="dropdown-toggle {% if request.endpoint in ['public.about', 'public.help_page', 'public.how_it_works', 'public.notice_board'] %}active{% endif %}" href="#" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-info-circle"></i>{{ _('Information') }}</a>
