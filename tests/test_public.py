@@ -628,8 +628,10 @@ class TestAPIEndpoints:
         """Geo heatmap API rate limiter should return 429 when limits are exceeded outside of testing mode."""
         original_testing = app.testing
         original_config_testing = app.config.get('TESTING')
+        original_cache_seconds = app.config.get('PUBLIC_API_CACHE_SECONDS')
         app.testing = False
         app.config['TESTING'] = False
+        app.config['PUBLIC_API_CACHE_SECONDS'] = 0
 
         try:
             client.get('/api/geo/heatmap')
@@ -639,6 +641,7 @@ class TestAPIEndpoints:
         finally:
             app.testing = original_testing
             app.config['TESTING'] = original_config_testing
+            app.config['PUBLIC_API_CACHE_SECONDS'] = original_cache_seconds
 
     def test_reopen_closed_complaint_oversized_reason(self, client, sample_data):
         """Test that a reopen reason > 1000 characters is rejected."""
