@@ -16,6 +16,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
+from flask_compress import Compress
+from whitenoise import WhiteNoise
 from config import config
 from app.clock import utc_now
 
@@ -76,6 +78,19 @@ def create_app(config_name=None):
     if app.config.get('TRUST_PROXY_HEADERS'):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
     
+    # Initialize HTTP compression (Flask-Compress)
+    Compress(app)
+
+    # Initialize WhiteNoise for static file serving
+    import os
+    static_dir = os.path.join(app.root_path, 'static')
+    app.wsgi_app = WhiteNoise(
+        app.wsgi_app,
+        root=static_dir,
+        prefix='static/',
+        max_age=31536000
+    )
+    
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
@@ -134,6 +149,36 @@ def create_app(config_name=None):
                     flash('Session expired due to security policy (User-Agent changed). Please log in again.', 'warning')
                     return redirect(url_for('auth.login'))
 
+    # CSP: allows Bootstrap/Chart.js/Leaflet from CDN, reCAPTCHA v3, OSM tiles, Nominatim reverse geocode.
+    CSP_HEADER = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' "
+            "https://cdn.jsdelivr.net "
+            "https://unpkg.com "
+            "https://www.google.com "
+            "https://www.gstatic.com; "
+        "style-src 'self' 'unsafe-inline' "
+            "https://cdn.jsdelivr.net "
+            "https://unpkg.com "
+            "https://fonts.googleapis.com "
+            "https://cdnjs.cloudflare.com; "
+        "img-src 'self' data: blob: "
+            "https://*.basemaps.cartocdn.com "
+            "https://*.stadiamaps.com "
+            "https://*.tile.openstreetmap.org "
+            "https://tile.openstreetmap.org; "
+        "font-src 'self' "
+            "https://fonts.gstatic.com "
+            "https://cdnjs.cloudflare.com "
+            "https://cdn.jsdelivr.net "
+            "https://unpkg.com; "
+        "connect-src 'self' "
+            "https://nominatim.openstreetmap.org; "
+        "frame-src https://www.google.com; "
+        "object-src 'none'; "
+        "base-uri 'self';"
+    )
+
     @app.after_request
     def add_security_headers(response):
         """Add security headers including CSP, framing, MIME sniffing, referrer, and permissions."""
@@ -142,36 +187,7 @@ def create_app(config_name=None):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=(self)'
-        # CSP: allows Bootstrap/Chart.js/Leaflet from CDN, reCAPTCHA v3, OSM tiles, Nominatim reverse geocode.
-        csp = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' "
-                "https://cdn.jsdelivr.net "
-                "https://unpkg.com "
-                "https://www.google.com "
-                "https://www.gstatic.com; "
-            "style-src 'self' 'unsafe-inline' "
-                "https://cdn.jsdelivr.net "
-                "https://unpkg.com "
-                "https://fonts.googleapis.com "
-                "https://cdnjs.cloudflare.com; "
-            "img-src 'self' data: blob: "
-                "https://*.basemaps.cartocdn.com "
-                "https://*.stadiamaps.com "
-                "https://*.tile.openstreetmap.org "
-                "https://tile.openstreetmap.org; "
-            "font-src 'self' "
-                "https://fonts.gstatic.com "
-                "https://cdnjs.cloudflare.com "
-                "https://cdn.jsdelivr.net "
-                "https://unpkg.com; "
-            "connect-src 'self' "
-                "https://nominatim.openstreetmap.org; "
-            "frame-src https://www.google.com; "
-            "object-src 'none'; "
-            "base-uri 'self';"
-        )
-        response.headers['Content-Security-Policy'] = csp
+        response.headers['Content-Security-Policy'] = CSP_HEADER
         return response
 
     @app.route('/admin/auth/login')

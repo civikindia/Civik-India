@@ -142,8 +142,8 @@
         {% include 'partials/_chatbot.html' %}
     {% endif %}
 
-    <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
     <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {

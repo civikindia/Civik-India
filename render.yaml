@@ -45,7 +45,7 @@ services:
       - key: BACKUP_CRON_TOKEN
         generateValue: true
       - key: WEB_CONCURRENCY
-        value: "1"
+        value: "2"
       - key: GUNICORN_TIMEOUT
         value: "120"
       - key: BOOTSTRAP_DB_RETRIES
