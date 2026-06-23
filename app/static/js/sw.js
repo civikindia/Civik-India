@@ -1,22 +1,19 @@
-const CACHE_NAME = 'civikindia-v2';
+const CACHE_NAME = 'civikindia-v3';
 const CORE_ASSETS = [
   '/',
   '/static/manifest.json',
   '/static/brand/favicon.ico',
   '/static/brand/logo-mark.png',
+  '/static/brand/logo-mark.webp',
   '/static/brand/pwa-192.png',
   '/static/brand/pwa-512.png',
   '/static/css/mibsp-tokens.css',
-  '/static/css/style.css',
+  '/static/css/style-core.css',
   '/static/vendor/bootstrap-icons/bootstrap-icons.css',
   '/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2',
   '/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff',
   '/static/vendor/bootstrap/bootstrap.min.css',
   '/static/vendor/bootstrap/bootstrap.bundle.min.js',
-  '/static/vendor/chart.js/chart.umd.min.js',
-  '/static/vendor/leaflet/leaflet.min.css',
-  '/static/vendor/leaflet/leaflet.min.js',
-  '/static/vendor/leaflet-heat/leaflet-heat.min.js',
   '/static/js/main.js'
 ];
 

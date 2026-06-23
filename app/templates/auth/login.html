@@ -7,7 +7,10 @@
     <div class="login-left-panel">
         <div class="login-panel-content">
             <span class="portal-shield large brand-logo-shell">
-                <img src="{{ url_for('static', filename='brand/logo-mark.png') }}" alt="Civik India logo">
+                <picture>
+                    <source srcset="{{ url_for('static', filename='brand/logo-mark.webp') }}" type="image/webp">
+                    <img src="{{ url_for('static', filename='brand/logo-mark.png') }}" alt="Civik India logo">
+                </picture>
             </span>
             <h1>Civik India — Citizen Voice Against Corruption</h1>
             <p>Secure operational access for staff handling civic awareness, complaint review, and accountability workflows.</p>

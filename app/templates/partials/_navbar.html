@@ -52,7 +52,10 @@
                 {% endif %}
                 <a class="portal-brand" href="{{ brand_href }}" aria-label="{{ _('Civik India home') }}">
                     <span class="portal-shield brand-logo-shell">
-                        <img src="{{ url_for('static', filename='brand/logo-mark.png') }}" alt="{{ _('Civik India logo') }}">
+                        <picture>
+                            <source srcset="{{ url_for('static', filename='brand/logo-mark.webp') }}" type="image/webp">
+                            <img src="{{ url_for('static', filename='brand/logo-mark.png') }}" alt="{{ _('Civik India logo') }}">
+                        </picture>
                     </span>
                     <span class="portal-copy">
                         <span class="portal-title">Civik India</span>

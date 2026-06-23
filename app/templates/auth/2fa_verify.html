@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Two-Factor Verification{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style-auth.css') }}">
+{% endblock %}
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">

@@ -1,0 +1,5 @@
+{
+  "cliCommand": " REDISCLI_AUTH=884BKWjn0Fj40H8tnFCY4eUgvy9eVmYP valkey-cli --user red-d8di2rbeo5us73ev8nf0 -h singapore-keyvalue.render.com -p 6379 --tls",
+  "externalConnectionString": "rediss://red-d8di2rbeo5us73ev8nf0:884BKWjn0Fj40H8tnFCY4eUgvy9eVmYP@singapore-keyvalue.render.com:6379",
+  "internalConnectionString": "redis://red-d8di2rbeo5us73ev8nf0:6379"
+}

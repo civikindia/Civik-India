@@ -2,6 +2,10 @@
 
 {% block title %}Public Dashboard{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style-dashboard.css') }}">
+{% endblock %}
+
 {% block content %}
 {% set total = stats.total or 0 %}
 {% set pending = stats.pending or 0 %}

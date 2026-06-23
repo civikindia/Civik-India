@@ -2,6 +2,10 @@
 
 {% block title %}Officer Dashboard{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style-dashboard.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="py-4 bg-light mobile-data-page officer-dashboard-v2 dashboard-shell">
     <div class="container">

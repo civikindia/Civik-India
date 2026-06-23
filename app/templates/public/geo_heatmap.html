@@ -3,6 +3,7 @@
 {% block title %}Geo Heatmap{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style-heatmap.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.min.css') }}">
 <style>
     @keyframes geoPulse {

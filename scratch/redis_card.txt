@@ -1,0 +1,32 @@
+span><span class="health-metric-value text-truncate" style="max-width:160px;" title="sqlite:///:memory:">sqlite:///:memory:</span></div>
+          
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REDIS ── -->
+    
+    <div class="col-md-6 col-xl-4">
+      <div class="card health-card h-100">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="status-indicator status-error"></span>
+            <h2 class="h6 mb-0 fw-bold">⚡ Redis</h2>
+            <span class="badge bg-danger ms-auto">ERROR</span>
+          </div>
+          
+          <div class="alert alert-danger py-2 small mb-0">Error 10061 connecting to localhost:6379. No connection could be made because the target machine actively refused it.</div>
+          
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CELERY ── -->
+    
+    <div class="col-md-6 col-xl-4">
+      <div class="card health-card h-100">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="status-indicator status-warning"></span>
+            <h2 class="h6 mb-0 fw-bold">🔄 Celery Workers</h2>
+            <span class="badge

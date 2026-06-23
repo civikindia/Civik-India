@@ -1,0 +1,24 @@
+{
+  "status": 201,
+  "response": {
+    "createdAt": "2026-05-30T17:42:05.613772353Z",
+    "id": "red-d8di2rbeo5us73ev8nf0",
+    "ipAllowList": null,
+    "name": "civikindia-redis",
+    "options": {
+      "maxmemoryPolicy": "allkeys_lru",
+      "persistenceMode": "off"
+    },
+    "owner": {
+      "email": "civikindia0@gmail.com",
+      "id": "tea-d89dhd99rddc7396mg3g",
+      "name": "CivikIndia's workspace",
+      "type": "team"
+    },
+    "plan": "free",
+    "region": "singapore",
+    "status": "unknown",
+    "updatedAt": "2026-05-30T17:42:05.613772353Z",
+    "version": "8.1.4"
+  }
+}
