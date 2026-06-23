@@ -318,136 +318,28 @@ document.addEventListener('DOMContentLoaded', function() {
         [[27.7, 88.0], [26.3, 90.2], [25.0, 92.8], [23.7, 94.5]]
     ];
 
-    function createLocalIndiaBasemap() {
-        const localLayer = L.layerGroup();
-        const indiaSvg = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 760" role="img" aria-label="Local India basemap">
-                <defs>
-                    <linearGradient id="indiaLandGradient" x1="0" x2="1" y1="0" y2="1">
-                        <stop offset="0" stop-color="#fff7ed"/>
-                        <stop offset="0.48" stop-color="#f9fafb"/>
-                        <stop offset="1" stop-color="#e8f5ee"/>
-                    </linearGradient>
-                    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#1A2B4A" flood-opacity="0.13"/>
-                    </filter>
-                </defs>
-                <rect width="640" height="760" fill="rgba(232,242,248,0.22)"/>
-                <path d="M287 35 C330 54 358 83 374 124 C412 135 452 167 486 215 C521 265 520 319 493 363 C463 411 464 450 487 500 C463 546 421 583 386 625 C352 666 346 714 309 738 C278 706 268 656 230 619 C192 582 152 553 130 506 C110 463 88 437 58 401 C92 387 105 351 94 313 C80 266 101 224 136 198 C165 176 171 132 203 108 C232 88 247 56 287 35 Z"
-                    class="geo-india-outline" fill="url(#indiaLandGradient)" stroke="#1A2B4A" stroke-width="4" filter="url(#softShadow)"/>
-                <path d="M205 112 C242 163 260 214 250 274 C236 348 251 420 292 487 C322 536 326 594 306 737" class="geo-india-state-line" fill="none" stroke="#006B3C" stroke-width="2" stroke-opacity="0.34"/>
-                <path d="M136 200 C194 235 253 244 315 224 C382 202 433 217 491 260" class="geo-india-state-line" fill="none" stroke="#FF6200" stroke-width="2" stroke-opacity="0.34"/>
-                <path d="M96 314 C168 334 234 338 302 319 C374 299 430 322 494 364" class="geo-india-state-line" fill="none" stroke="#1A2B4A" stroke-width="2" stroke-opacity="0.22"/>
-                <path d="M130 506 C189 473 259 462 332 486 C397 507 442 511 486 500" class="geo-india-state-line" fill="none" stroke="#006B3C" stroke-width="2" stroke-opacity="0.25"/>
-                <path d="M386 625 C402 655 427 682 455 706" fill="none" stroke="#1A2B4A" stroke-width="3" stroke-opacity="0.28"/>
-                <circle cx="500" cy="637" r="8" fill="#e8f5ee" stroke="#1A2B4A" stroke-width="2" opacity="0.8"/>
-                <circle cx="530" cy="675" r="6" fill="#e8f5ee" stroke="#1A2B4A" stroke-width="2" opacity="0.72"/>
-                <text x="294" y="354" text-anchor="middle" fill="#1A2B4A" font-size="34" font-weight="700" opacity="0.24">INDIA</text>
-                <text x="128" y="604" text-anchor="middle" fill="#006B3C" font-size="18" font-style="italic" opacity="0.5">Arabian Sea</text>
-                <text x="502" y="558" text-anchor="middle" fill="#006B3C" font-size="18" font-style="italic" opacity="0.5">Bay of Bengal</text>
-            </svg>`;
-        const svgElement = new DOMParser()
-            .parseFromString(indiaSvg.trim(), 'image/svg+xml')
-            .documentElement;
-        const svgOverlay = L.svgOverlay(svgElement, INDIA_BOUNDS, {
-            interactive: false,
-            opacity: 1
-        });
-        localLayer.addLayer(svgOverlay);
-
-        localLayer.addLayer(L.polygon(INDIA_MAINLAND_POLYGON, {
-            interactive: false,
-            color: '#1A2B4A',
-            weight: 2,
-            opacity: 0.45,
-            fillColor: '#f8fafc',
-            fillOpacity: 0.18
-        }));
-        INDIA_REGION_LINES.forEach((line) => {
-            localLayer.addLayer(L.polyline(line, {
-                interactive: false,
-                color: '#006B3C',
-                weight: 1,
-                opacity: 0.28,
-                dashArray: '5 7'
-            }));
-        });
-        localLayer.addLayer(L.circleMarker([11.7, 92.7], {
-            interactive: false,
-            radius: 4,
-            color: '#1A2B4A',
-            weight: 1,
-            fillColor: '#e8f5ee',
-            fillOpacity: 0.75
-        }));
-
-        [
-            {label: 'New Delhi', lat: 28.6139, lng: 77.2090},
-            {label: 'Mumbai', lat: 19.0760, lng: 72.8777},
-            {label: 'Bengaluru', lat: 12.9716, lng: 77.5946},
-            {label: 'Chennai', lat: 13.0827, lng: 80.2707},
-            {label: 'Kolkata', lat: 22.5726, lng: 88.3639},
-            {label: 'Hyderabad', lat: 17.3850, lng: 78.4867},
-            {label: 'Jaipur', lat: 26.9124, lng: 75.7873},
-            {label: 'Lucknow', lat: 26.8467, lng: 80.9462},
-            {label: 'Patna', lat: 25.5941, lng: 85.1376},
-            {label: 'Bhubaneswar', lat: 20.2961, lng: 85.8245}
-        ].forEach((place) => {
-            localLayer.addLayer(L.marker([place.lat, place.lng], {
-                interactive: false,
-                keyboard: false,
-                icon: L.divIcon({
-                    className: 'geo-india-map-label',
-                    html: `<span>${place.label}</span>`,
-                    iconSize: null
-                })
-            }));
-        });
-
-        localLayer.addLayer(L.marker([23.8, 78.9], {
-            interactive: false,
-            keyboard: false,
-            icon: L.divIcon({
-                className: 'geo-india-map-label geo-india-map-label-country',
-                html: '<span>India Local Basemap</span>',
-                iconSize: null
-            })
-        }));
-
-        return localLayer;
-    }
-
-    const localIndiaLayer = createLocalIndiaBasemap();
-    localIndiaLayer.addTo(map);
-    if (mapContainerEl) {
-        mapContainerEl.classList.add('geo-local-basemap-active');
-    }
-
     const cartoDbLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19
-    });
+    }).addTo(map);
 
     const stadiaLayer = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
         maxZoom: 20,
         attribution: '© <a href="https://stadiamaps.com/">Stadia Maps</a>'
     });
 
-    let currentLayer = localIndiaLayer;
+    let currentLayer = cartoDbLayer;
 
     const baseMaps = {
-        "Local India Basemap": localIndiaLayer,
         "Online: CartoDB Positron": cartoDbLayer,
         "Online: Stadia Alidade": stadiaLayer
     };
     L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
-    map.attributionControl.addAttribution('Local civic basemap fallback');
 
     let loadSuccess = true;
     let errorCount = 0;
     let onlineTileFallbackTimer = null;
-    let usingLocalBasemapOnly = true;
 
     function handleTileError(e) {
         if (loadSuccess) return;
@@ -459,7 +351,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function handleTileLoad(e) {
         loadSuccess = true;
-        usingLocalBasemapOnly = false;
         if (onlineTileFallbackTimer) {
             clearTimeout(onlineTileFallbackTimer);
             onlineTileFallbackTimer = null;
@@ -483,37 +374,6 @@ document.addEventListener('DOMContentLoaded', function() {
         layer.off('tileerror', handleTileError);
     }
 
-    function activateLocalBasemap(message) {
-        if (onlineTileFallbackTimer) {
-            clearTimeout(onlineTileFallbackTimer);
-            onlineTileFallbackTimer = null;
-        }
-        teardownFallbackEvents(cartoDbLayer);
-        teardownFallbackEvents(stadiaLayer);
-        if (map.hasLayer(cartoDbLayer)) {
-            map.removeLayer(cartoDbLayer);
-        }
-        if (map.hasLayer(stadiaLayer)) {
-            map.removeLayer(stadiaLayer);
-        }
-        if (!map.hasLayer(localIndiaLayer)) {
-            localIndiaLayer.addTo(map);
-        }
-        currentLayer = localIndiaLayer;
-        usingLocalBasemapOnly = true;
-        loadSuccess = true;
-        errorCount = 0;
-        if (mapContainerEl) {
-            mapContainerEl.classList.add('geo-local-basemap-active');
-        }
-        if (activeFilterSummary) {
-            activeFilterSummary.dataset.basemapMode = 'local';
-        }
-        if (message) {
-            setState(message, false, true);
-        }
-    }
-
     function monitorOnlineBasemap(layer) {
         if (onlineTileFallbackTimer) {
             clearTimeout(onlineTileFallbackTimer);
@@ -523,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setupFallbackEvents(layer);
         onlineTileFallbackTimer = setTimeout(() => {
             if (!loadSuccess && currentLayer === layer) {
-                activateLocalBasemap('Online map tiles are slow or unavailable, so the local India basemap is shown.');
+                switchToFallback();
             }
         }, 3500);
     }
@@ -538,8 +398,8 @@ document.addEventListener('DOMContentLoaded', function() {
             stadiaLayer.addTo(map);
             monitorOnlineBasemap(stadiaLayer);
         } else if (currentLayer === stadiaLayer) {
-            console.warn("Stadia Maps tiles failed to load, showing local India basemap fallback...");
-            activateLocalBasemap('Online map tiles are unavailable, so a local India basemap with city labels is shown.');
+            console.warn("Stadia Maps tiles failed to load, online tiles unavailable.");
+            setState('Online map tiles are unavailable. Please check your internet connection.', true);
         }
     }
 
@@ -551,12 +411,6 @@ document.addEventListener('DOMContentLoaded', function() {
             onlineTileFallbackTimer = null;
         }
         currentLayer = event.layer;
-        if (event.layer === localIndiaLayer) {
-            activateLocalBasemap('');
-            updateActiveFilterSummary(allPoints.filter(matchesFilters).length);
-            return;
-        }
-        usingLocalBasemapOnly = false;
         if (mapContainerEl) {
             mapContainerEl.classList.remove('geo-local-basemap-active');
         }
@@ -749,9 +603,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (layerModeFilter.value !== 'heat') {
             applied.push(`Layer: ${layerModeFilter.options[layerModeFilter.selectedIndex].text}`);
-        }
-        if (usingLocalBasemapOnly) {
-            applied.push('Basemap: Local India fallback');
         }
 
         const base = `Showing ${filteredCount} of ${allPoints.length} geo-tagged complaints.`;

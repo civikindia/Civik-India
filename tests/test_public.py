@@ -87,13 +87,12 @@ class TestHomepage:
         assert response.status_code == 200
         assert b'id="geoHeatmapContainer"' in response.data
 
-    def test_geo_heatmap_page_has_local_india_basemap_fallback(self, client):
-        """Geo heatmap should include a local India basemap for offline tile failures."""
+    def test_geo_heatmap_page_uses_online_basemaps(self, client):
+        """Geo heatmap should use online map tiles and support fallback."""
         response = client.get('/geo-heatmap')
         assert response.status_code == 200
-        assert b'createLocalIndiaBasemap' in response.data
-        assert b'India Local Basemap' in response.data
-        assert b'Basemap: Local India fallback' in response.data
+        assert b'cartoDbLayer' in response.data
+        assert b'stadiaLayer' in response.data
 
     def test_how_it_works_page_loads(self, client):
         """Test how-it-works page loads successfully."""
