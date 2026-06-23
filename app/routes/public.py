@@ -1860,10 +1860,20 @@ def public_dashboard():
         'to_month': '',
     }
 
-    stats = _compute_dashboard_stats(default_filters)
-    dept_stats, best_department, worst_department = _compute_department_stats(default_filters)
-    top_services = _compute_top_services(default_filters, limit=6)
-    
+    def build_dashboard_data():
+        stats_data = _compute_dashboard_stats(default_filters)
+        dept_stats_data, best_dept, worst_dept = _compute_department_stats(default_filters)
+        top_services_data = _compute_top_services(default_filters, limit=6)
+        return {
+            'stats': stats_data,
+            'dept_stats': dept_stats_data,
+            'top_services': top_services_data,
+            'best_department': best_dept,
+            'worst_department': worst_dept
+        }
+
+    data, _, _ = _cached_public_payload('dashboard_html_stats', build_dashboard_data)
+
     # Recent activity (last 30 days)
     thirty_days_ago = utc_now() - timedelta(days=30)
     recent_complaints = Complaint.query.filter(
@@ -1876,11 +1886,11 @@ def public_dashboard():
         TrendingNews.created_at.desc()
     ).all()
     return render_template('public/dashboard.html',
-                          stats=stats,
-                          dept_stats=dept_stats,
-                          top_services=top_services,
-                          best_department=best_department,
-                          worst_department=worst_department,
+                          stats=data['stats'],
+                          dept_stats=data['dept_stats'],
+                          top_services=data['top_services'],
+                          best_department=data['best_department'],
+                          worst_department=data['worst_department'],
                           recent_complaints=recent_complaints,
                           status_options=DASHBOARD_STATUSES,
                           trending_items=trending_items)
@@ -1985,14 +1995,30 @@ def get_monthly_chart_data():
             include_time_window=False
         )
 
+        from sqlalchemy import func
+        if db.engine.dialect.name == 'sqlite':
+            month_expr = func.substr(Complaint.submitted_at, 1, 7)
+        else:
+            month_expr = func.to_char(Complaint.submitted_at, 'YYYY-MM')
+
+        month_end = _shift_month(filters['to_month_start'], 1)
+        base_query = base_query.filter(
+            Complaint.submitted_at >= filters['from_month_start'],
+            Complaint.submitted_at < month_end
+        )
+
+        counts = dict(
+            base_query.with_entities(
+                month_expr,
+                func.count(Complaint.id)
+            ).group_by(month_expr).all()
+        )
+
         labels = []
         data = []
         for month_start in _iter_month_starts(filters['from_month_start'], filters['to_month_start']):
-            month_end = _shift_month(month_start, 1)
-            count = base_query.filter(
-                Complaint.submitted_at >= month_start,
-                Complaint.submitted_at < month_end
-            ).count()
+            key = month_start.strftime('%Y-%m')
+            count = counts.get(key, 0)
             labels.append(month_start.strftime('%b %Y'))
             data.append(count)
 
@@ -2010,6 +2036,20 @@ def get_dept_chart_data():
         return jsonify({'error': str(exc)}), 400
 
     def build_payload():
+        base_query = _apply_dashboard_filters(
+            Complaint.query,
+            filters,
+            include_time_window=True
+        )
+
+        from sqlalchemy import func
+        counts = dict(
+            base_query.with_entities(
+                Complaint.department_id,
+                func.count(Complaint.id)
+            ).group_by(Complaint.department_id).all()
+        )
+
         departments_query = Department.query.order_by(Department.name.asc())
         if filters.get('department_id'):
             departments_query = departments_query.filter(Department.id == filters['department_id'])
@@ -2018,13 +2058,8 @@ def get_dept_chart_data():
         labels = []
         data = []
         for dept in departments:
-            count = _apply_dashboard_filters(
-                Complaint.query.filter(Complaint.department_id == dept.id),
-                filters,
-                include_time_window=True
-            ).count()
             labels.append(dept.name)
-            data.append(count)
+            data.append(counts.get(dept.id, 0))
 
         return {'labels': labels, 'data': data}
 
@@ -2046,11 +2081,16 @@ def get_status_chart_data():
             include_time_window=True
         )
 
+        from sqlalchemy import func
+        counts = dict(
+            base_query.with_entities(
+                Complaint.status,
+                func.count(Complaint.id)
+            ).group_by(Complaint.status).all()
+        )
+
         statuses = DASHBOARD_STATUSES
-        data = []
-        for status in statuses:
-            count = base_query.filter(Complaint.status == status).count()
-            data.append(count)
+        data = [counts.get(status, 0) for status in statuses]
 
         return {'labels': statuses, 'data': data}
 
@@ -2073,20 +2113,38 @@ def get_resolution_time_chart_data():
             include_time_window=False
         )
 
+        from sqlalchemy import func, extract
+        if db.engine.dialect.name == 'sqlite':
+            month_expr = func.substr(Complaint.resolved_at, 1, 7)
+            diff_expr = (func.strftime('%s', Complaint.resolved_at) - func.strftime('%s', Complaint.submitted_at)) / 3600.0
+        elif db.engine.dialect.name == 'mysql':
+            month_expr = func.date_format(Complaint.resolved_at, '%Y-%m')
+            diff_expr = func.timestampdiff(text('SECOND'), Complaint.submitted_at, Complaint.resolved_at) / 3600.0
+        else:
+            month_expr = func.to_char(Complaint.resolved_at, 'YYYY-MM')
+            diff_expr = extract('epoch', Complaint.resolved_at - Complaint.submitted_at) / 3600.0
+
+        base_query = base_query.filter(
+            Complaint.resolved_at >= filters['from_month_start'],
+            Complaint.resolved_at < _shift_month(filters['to_month_start'], 1)
+        )
+
+        results = dict(
+            base_query.with_entities(
+                month_expr,
+                func.round(func.avg(diff_expr), 2)
+            ).group_by(month_expr).all()
+        )
+
         labels = []
         values = []
         for month_start in _iter_month_starts(filters['from_month_start'], filters['to_month_start']):
-            month_end = _shift_month(month_start, 1)
-            closed = base_query.filter(
-                Complaint.resolved_at >= month_start,
-                Complaint.resolved_at < month_end
-            ).all()
-            avg_hours = round(
-                sum(c.get_resolution_time() or 0 for c in closed) / len(closed),
-                2
-            ) if closed else 0
+            key = month_start.strftime('%Y-%m')
+            avg_hours = results.get(key, 0)
+            if avg_hours is None:
+                avg_hours = 0
             labels.append(month_start.strftime('%b %Y'))
-            values.append(avg_hours)
+            values.append(float(avg_hours))
 
         return {'labels': labels, 'data': values}
 
@@ -2109,18 +2167,42 @@ def get_sla_compliance_chart_data():
             include_time_window=False
         )
 
+        from sqlalchemy import func, case
+        if db.engine.dialect.name == 'sqlite':
+            month_expr = func.substr(Complaint.resolved_at, 1, 7)
+        elif db.engine.dialect.name == 'mysql':
+            month_expr = func.date_format(Complaint.resolved_at, '%Y-%m')
+        else:
+            month_expr = func.to_char(Complaint.resolved_at, 'YYYY-MM')
+
+        compliance_case = case(
+            (Complaint.sla_due_at.isnot(None) & (Complaint.resolved_at <= Complaint.sla_due_at), 1),
+            else_=0
+        )
+
+        base_query = base_query.filter(
+            Complaint.resolved_at >= filters['from_month_start'],
+            Complaint.resolved_at < _shift_month(filters['to_month_start'], 1)
+        )
+
+        results = base_query.with_entities(
+            month_expr,
+            func.sum(compliance_case).label('within_count'),
+            func.count(Complaint.id).label('total_count')
+        ).group_by(month_expr).all()
+
+        results_dict = {
+            r[0]: round(((r[1] or 0) / r[2] * 100), 2) if r[2] and r[2] > 0 else 0
+            for r in results
+        }
+
         labels = []
         values = []
         for month_start in _iter_month_starts(filters['from_month_start'], filters['to_month_start']):
-            month_end = _shift_month(month_start, 1)
-            closed = base_query.filter(
-                Complaint.resolved_at >= month_start,
-                Complaint.resolved_at < month_end
-            ).all()
-            within = sum(1 for c in closed if c.sla_due_at and c.resolved_at and c.resolved_at <= c.sla_due_at)
-            compliance = round((within / len(closed) * 100), 2) if closed else 0
+            key = month_start.strftime('%Y-%m')
+            compliance = results_dict.get(key, 0)
             labels.append(month_start.strftime('%b %Y'))
-            values.append(compliance)
+            values.append(float(compliance))
 
         return {'labels': labels, 'data': values}
 
@@ -2413,61 +2495,101 @@ def ai_classify():
 def public_stats():
     """Public transparency page — aggregate complaint statistics."""
     from datetime import timedelta
-    from sqlalchemy import func, extract
+    from sqlalchemy import func
 
-    # ── Overall pipeline stats (public=True excludes Awaiting Review / Rejected) ──
-    stats = Complaint.get_stats(public=True)
+    def build_stats_data():
+        stats_summary = Complaint.get_stats(public=True)
 
-    # ── Per-department breakdown ──────────────────────────────────────────────────
-    dept_stats = []
-    for dept in Department.query.order_by(Department.name).all():
-        q = Complaint.query.filter(
-            Complaint.department_id == dept.id,
+        # ── Per-department breakdown ──
+        raw_dept_counts = db.session.query(
+            Complaint.department_id,
+            Complaint.status,
+            func.count(Complaint.id)
+        ).filter(
             Complaint.status.in_(['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed'])
-        )
-        total = q.count()
-        if total == 0:
-            continue
-        closed = q.filter_by(status='Closed').count()
-        delayed = q.filter_by(status='Delayed').count()
-        active = q.filter(Complaint.status.in_(['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened'])).count()
-        dept_stats.append({
-            'name': dept.name,
-            'total': total,
-            'closed': closed,
-            'delayed': delayed,
-            'active': active,
-            'resolution_rate': round(closed / total * 100, 1) if total else 0,
-        })
-    # Sort by total complaints descending
-    dept_stats.sort(key=lambda x: x['total'], reverse=True)
+        ).group_by(
+            Complaint.department_id,
+            Complaint.status
+        ).all()
 
-    # ── Monthly trend (last 6 months) ─────────────────────────────────────────────
-    now = utc_now()
-    monthly_trend = []
-    for i in range(5, -1, -1):
-        month_start = (now.replace(day=1) - timedelta(days=i * 30)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        if i > 0:
-            month_end = (now.replace(day=1) - timedelta(days=(i - 1) * 30)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        dept_status_map = {}
+        for dept_id, status, count in raw_dept_counts:
+            dept_status_map.setdefault(dept_id, {})[status] = count
+
+        dept_stats_summary = []
+        for dept in Department.query.order_by(Department.name).all():
+            counts = dept_status_map.get(dept.id, {})
+            closed = counts.get('Closed', 0)
+            delayed = counts.get('Delayed', 0)
+            active = sum(counts.get(st, 0) for st in ['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened'])
+            total = closed + active
+
+            if total == 0:
+                continue
+
+            dept_stats_summary.append({
+                'name': dept.name,
+                'total': total,
+                'closed': closed,
+                'delayed': delayed,
+                'active': active,
+                'resolution_rate': round(closed / total * 100, 1) if total else 0,
+            })
+        dept_stats_summary.sort(key=lambda x: x['total'], reverse=True)
+
+        # ── Monthly trend (last 6 months) ──
+        now = utc_now()
+        earliest_month_start = (now.replace(day=1) - timedelta(days=5 * 30)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        if db.engine.dialect.name == 'sqlite':
+            sub_month_expr = func.substr(Complaint.submitted_at, 1, 7)
+            res_month_expr = func.substr(Complaint.resolved_at, 1, 7)
+        elif db.engine.dialect.name == 'mysql':
+            sub_month_expr = func.date_format(Complaint.submitted_at, '%Y-%m')
+            res_month_expr = func.date_format(Complaint.resolved_at, '%Y-%m')
         else:
-            month_end = now
-        submitted = Complaint.query.filter(
-            Complaint.submitted_at >= month_start,
-            Complaint.submitted_at < month_end,
-            Complaint.status.in_(['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed'])
-        ).count()
-        resolved = Complaint.query.filter(
-            Complaint.resolved_at >= month_start,
-            Complaint.resolved_at < month_end,
-            Complaint.status == 'Closed'
-        ).count()
-        monthly_trend.append({
-            'month': month_start.strftime('%b %Y'),
-            'submitted': submitted,
-            'resolved': resolved,
-        })
+            sub_month_expr = func.to_char(Complaint.submitted_at, 'YYYY-MM')
+            res_month_expr = func.to_char(Complaint.resolved_at, 'YYYY-MM')
 
-    # ── Top categories (ai_category) ─────────────────────────────────────────────
+        submitted_counts = dict(
+            db.session.query(
+                sub_month_expr,
+                func.count(Complaint.id)
+            ).filter(
+                Complaint.submitted_at >= earliest_month_start,
+                Complaint.status.in_(['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed'])
+            ).group_by(sub_month_expr).all()
+        )
+
+        resolved_counts = dict(
+            db.session.query(
+                res_month_expr,
+                func.count(Complaint.id)
+            ).filter(
+                Complaint.resolved_at >= earliest_month_start,
+                Complaint.status == 'Closed'
+            ).group_by(res_month_expr).all()
+        )
+
+        monthly_trend_summary = []
+        for i in range(5, -1, -1):
+            month_start = (now.replace(day=1) - timedelta(days=i * 30)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            key = month_start.strftime('%Y-%m')
+            monthly_trend_summary.append({
+                'month': month_start.strftime('%b %Y'),
+                'submitted': submitted_counts.get(key, 0),
+                'resolved': resolved_counts.get(key, 0),
+            })
+
+        return {
+            'stats': stats_summary,
+            'dept_stats': dept_stats_summary,
+            'monthly_trend': monthly_trend_summary
+        }
+
+    cached_data, _, _ = _cached_public_payload('public_stats_page', build_stats_data)
+
+    # ── Top categories (ai_category) ──
     category_rows = db.session.query(
         Complaint.ai_category,
         func.count(Complaint.id).label('count')
@@ -2479,9 +2601,9 @@ def public_stats():
 
     return render_template(
         'public/stats.html',
-        stats=stats,
-        dept_stats=dept_stats,
-        monthly_trend=monthly_trend,
+        stats=cached_data['stats'],
+        dept_stats=cached_data['dept_stats'],
+        monthly_trend=cached_data['monthly_trend'],
         top_categories=top_categories,
     )
 

@@ -100,7 +100,7 @@ class Config:
 
     # Geo heatmap performance guard (API limit before progressive rendering)
     GEO_HEATMAP_MAX_POINTS = int(os.environ.get('GEO_HEATMAP_MAX_POINTS', 2500))
-    PUBLIC_API_CACHE_SECONDS = int(os.environ.get('PUBLIC_API_CACHE_SECONDS', 15))
+    PUBLIC_API_CACHE_SECONDS = int(os.environ.get('PUBLIC_API_CACHE_SECONDS', 60))
     SEND_FILE_MAX_AGE_DEFAULT = int(os.environ.get('SEND_FILE_MAX_AGE_DEFAULT', 3600))
     COMPRESS_MIMETYPES = [
         'text/html', 'text/css', 'application/javascript', 'application/json'

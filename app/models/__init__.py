@@ -490,13 +490,19 @@ class Complaint(db.Model):
         if not candidates:
             return None
 
-        def load_count(user):
-            return Complaint.query.filter(
-                Complaint.assigned_to == user.id,
+        candidate_ids = [c.id for c in candidates]
+        from sqlalchemy import func
+        active_counts = dict(
+            db.session.query(
+                Complaint.assigned_to,
+                func.count(Complaint.id)
+            ).filter(
+                Complaint.assigned_to.in_(candidate_ids),
                 Complaint.status != 'Closed'
-            ).count()
+            ).group_by(Complaint.assigned_to).all()
+        )
 
-        assignee = min(candidates, key=load_count)
+        assignee = min(candidates, key=lambda user: active_counts.get(user.id, 0))
         self.assigned_to = assignee.id
         return assignee
     
@@ -656,11 +662,11 @@ class Complaint(db.Model):
         Returns number of complaints auto-escalated.
         """
         now = utc_now()
-        active = Complaint.query.filter(Complaint.status.in_(Complaint.ACTIVE_STATUSES)).all()
+        active_query = Complaint.query.filter(Complaint.status.in_(Complaint.ACTIVE_STATUSES))
         escalated = []
         initialized_due_dates = False
 
-        for complaint in active:
+        for complaint in active_query.yield_per(100):
             before_due = complaint.sla_due_at
             complaint.initialize_sla_due()
             if before_due is None and complaint.sla_due_at is not None:
@@ -718,14 +724,11 @@ class Complaint(db.Model):
         """Get aggregate statistics for dashboard using efficient SQL counts."""
         from sqlalchemy import case, func
 
-        if public:
-            public_statuses = ['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed']
-            base = Complaint.query.filter(Complaint.status.in_(public_statuses))
-        else:
-            base = Complaint.query
+        public_statuses = ['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed']
+        all_statuses = ['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed', 'Awaiting Review', 'Rejected']
+        filter_statuses = public_statuses if public else all_statuses
 
-        # Single aggregate query for all status counts
-        row = db.session.query(
+        query_exprs = [
             func.count(Complaint.id).label('total'),
             func.count(case((Complaint.status == 'Pending', 1))).label('pending'),
             func.count(case((Complaint.status == 'Under Review', 1))).label('under_review'),
@@ -733,41 +736,33 @@ class Complaint(db.Model):
             func.count(case((Complaint.status == 'Delayed', 1))).label('delayed'),
             func.count(case((Complaint.status == 'Reopened', 1))).label('reopened'),
             func.count(case((Complaint.status == 'Closed', 1))).label('closed'),
-        ).filter(
-            Complaint.status.in_(
-                public_statuses if public
-                else ['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed', 'Awaiting Review', 'Rejected']
-            )
-        ).one()
+            func.count(case((Complaint.status == 'Awaiting Review', 1))).label('awaiting_review'),
+            func.count(case((Complaint.status == 'Rejected', 1))).label('rejected'),
+            func.count(case((
+                db.and_(
+                    Complaint.priority.in_(['High', 'Urgent']),
+                    Complaint.status.in_(Complaint.ACTIVE_STATUSES)
+                ), 1
+            ))).label('high_priority'),
+            func.count(case((
+                db.and_(
+                    Complaint.status == 'Closed',
+                    Complaint.resolved_at.isnot(None),
+                    Complaint.sla_due_at.isnot(None),
+                    Complaint.resolved_at <= Complaint.sla_due_at
+                ), 1
+            ))).label('within_sla')
+        ]
+
+        row = db.session.query(*query_exprs).filter(Complaint.status.in_(filter_statuses)).one()
 
         total = row.total or 0
         closed = row.closed or 0
+        awaiting_review = row.awaiting_review or 0 if not public else 0
+        rejected = row.rejected or 0 if not public else 0
+        high_priority = row.high_priority or 0
+        within_sla = row.within_sla or 0
 
-        awaiting_review = 0
-        rejected = 0
-        if not public:
-            ar_row = db.session.query(
-                func.count(case((Complaint.status == 'Awaiting Review', 1))).label('awaiting_review'),
-                func.count(case((Complaint.status == 'Rejected', 1))).label('rejected'),
-            ).one()
-            awaiting_review = ar_row.awaiting_review or 0
-            rejected = ar_row.rejected or 0
-
-        high_priority = Complaint.query.filter(
-            Complaint.priority.in_(['High', 'Urgent']),
-            Complaint.status.in_(Complaint.ACTIVE_STATUSES)
-        ).count()
-
-        # SLA compliance: count closed complaints resolved before sla_due_at
-        # Uses the pre-computed sla_due_at column to avoid loading objects
-        within_sla = 0
-        if closed > 0:
-            within_sla = Complaint.query.filter(
-                Complaint.status == 'Closed',
-                Complaint.resolved_at.isnot(None),
-                Complaint.sla_due_at.isnot(None),
-                Complaint.resolved_at <= Complaint.sla_due_at
-            ).count()
         sla_compliance = round((within_sla / closed * 100), 2) if closed > 0 else 0
         
         return {
