@@ -93,6 +93,24 @@
     0%   { background-position: 100% 0; }
     100% { background-position: -100% 0; }
 }
+
+/* ── Contrast Overrides ── */
+html[data-theme="contrast"] .civik-timeline::before {
+    background: var(--neutral-300) !important;
+}
+html[data-theme="contrast"] .civik-tl-dot {
+    background: var(--gov-green) !important;
+    border-color: var(--neutral-50) !important;
+    box-shadow: 0 0 0 2px var(--gov-green) !important;
+}
+html[data-theme="contrast"] .civik-tl-meta {
+    color: var(--neutral-500) !important;
+}
+html[data-theme="contrast"] .civik-tl-notes {
+    color: var(--neutral-900) !important;
+    background: var(--neutral-100) !important;
+    border-left-color: var(--neutral-300) !important;
+}
 </style>
 {% endblock %}
 

@@ -198,16 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const css = getComputedStyle(document.documentElement);
-    const colors = {
-        green: css.getPropertyValue('--gov-green').trim(),
-        navy: css.getPropertyValue('--gov-navy').trim(),
-        saffron: css.getPropertyValue('--gov-saffron').trim(),
-        pending: css.getPropertyValue('--status-pending').trim(),
-        resolved: css.getPropertyValue('--status-resolved').trim(),
-        delayed: css.getPropertyValue('--status-delayed').trim(),
-        normal: css.getPropertyValue('--status-normal').trim()
-    };
+    const chartInstances = {};
     const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } };
 
     function sumSeries(data) {
@@ -254,125 +245,176 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    fetch('/api/chart/monthly').then(r => r.json()).then(data => {
-        if (monthlyEmpty(data)) {
-            showChartMessage('monthlyChart', 'No monthly complaint data to chart yet.');
-            return;
+    function clearChartIfExists(id) {
+        if (chartInstances[id]) {
+            chartInstances[id].destroy();
+            delete chartInstances[id];
         }
-        ensureCanvasVisible('monthlyChart');
-        new Chart(document.getElementById('monthlyChart'), { type: 'line', data: { labels: data.labels, datasets: [{ label: 'Complaints', data: data.data, borderColor: colors.green, backgroundColor: 'rgba(0,107,60,0.12)', fill: true, tension: 0.4 }] }, options: { ...commonOptions, scales: { y: { beginAtZero: true } } } });
-    });
-    fetch('/api/chart/status').then(r => r.json()).then(data => {
-        if (statusEmpty(data)) {
-            showChartMessage('statusChart', 'No status breakdown to chart yet.');
-            return;
-        }
-        ensureCanvasVisible('statusChart');
-        new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: data.labels, datasets: [{ data: data.data, backgroundColor: [colors.pending, colors.normal, colors.green, colors.delayed, colors.saffron, colors.resolved] }] }, options: commonOptions });
-    });
-    const funnelTotal = {{ stats.total|int }};
-    if (!funnelTotal) {
-        showChartMessage('funnelChart', 'No funnel data until complaints are recorded.');
-    } else {
-        ensureCanvasVisible('funnelChart');
-        new Chart(document.getElementById('funnelChart'), { type: 'bar', data: { labels: ['Total', 'Pending', 'Action Taken', 'Resolved'], datasets: [{ label: 'Complaints', data: [{{ stats.total }}, {{ stats.pending }}, {{ stats.action_taken }}, {{ stats.closed }}], backgroundColor: [colors.navy, colors.pending, colors.normal, colors.resolved] }] }, options: { ...commonOptions, indexAxis: 'y' } });
     }
 
-    // Department Distribution horizontal bar chart
-    fetch('/api/chart/dept').then(r => r.json()).then(data => {
-        if (!data || !data.data || sumSeries(data) === 0) {
-            showChartMessage('deptChart', 'No department-wise complaint data to chart yet.');
-            return;
+    function updateChartDefaultsForTheme() {
+        const isContrast = document.documentElement.getAttribute('data-theme') === 'contrast';
+        if (isContrast) {
+            Chart.defaults.color = '#f8fafc';
+            Chart.defaults.borderColor = '#475569';
+        } else {
+            Chart.defaults.color = '#64748b';
+            Chart.defaults.borderColor = '#e2e8f0';
         }
-        ensureCanvasVisible('deptChart');
-        new Chart(document.getElementById('deptChart'), {
-            type: 'bar',
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    label: 'Complaints',
-                    data: data.data,
-                    backgroundColor: colors.navy
-                }]
-            },
-            options: {
-                ...commonOptions,
-                indexAxis: 'y',
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
+    }
+
+    function initAllCharts() {
+        const css = getComputedStyle(document.documentElement);
+        const colors = {
+            green: css.getPropertyValue('--gov-green').trim(),
+            navy: css.getPropertyValue('--gov-navy').trim(),
+            saffron: css.getPropertyValue('--gov-saffron').trim(),
+            pending: css.getPropertyValue('--status-pending').trim(),
+            resolved: css.getPropertyValue('--status-resolved').trim(),
+            delayed: css.getPropertyValue('--status-delayed').trim(),
+            normal: css.getPropertyValue('--status-normal').trim()
+        };
+
+        // Monthly Trends Chart
+        clearChartIfExists('monthlyChart');
+        fetch('/api/chart/monthly').then(r => r.json()).then(data => {
+            if (monthlyEmpty(data)) {
+                showChartMessage('monthlyChart', 'No monthly complaint data to chart yet.');
+                return;
+            }
+            ensureCanvasVisible('monthlyChart');
+            chartInstances['monthlyChart'] = new Chart(document.getElementById('monthlyChart'), { type: 'line', data: { labels: data.labels, datasets: [{ label: 'Complaints', data: data.data, borderColor: colors.green, backgroundColor: 'rgba(0,107,60,0.12)', fill: true, tension: 0.4 }] }, options: { ...commonOptions, scales: { y: { beginAtZero: true } } } });
+        });
+
+        // Status Breakdown Chart
+        clearChartIfExists('statusChart');
+        fetch('/api/chart/status').then(r => r.json()).then(data => {
+            if (statusEmpty(data)) {
+                showChartMessage('statusChart', 'No status breakdown to chart yet.');
+                return;
+            }
+            ensureCanvasVisible('statusChart');
+            chartInstances['statusChart'] = new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: data.labels, datasets: [{ data: data.data, backgroundColor: [colors.pending, colors.normal, colors.green, colors.delayed, colors.saffron, colors.resolved] }] }, options: commonOptions });
+        });
+
+        // Conversion Funnel Chart
+        clearChartIfExists('funnelChart');
+        const funnelTotal = {{ stats.total|int }};
+        if (!funnelTotal) {
+            showChartMessage('funnelChart', 'No funnel data until complaints are recorded.');
+        } else {
+            ensureCanvasVisible('funnelChart');
+            chartInstances['funnelChart'] = new Chart(document.getElementById('funnelChart'), { type: 'bar', data: { labels: ['Total', 'Pending', 'Action Taken', 'Resolved'], datasets: [{ label: 'Complaints', data: [{{ stats.total }}, {{ stats.pending }}, {{ stats.action_taken }}, {{ stats.closed }}], backgroundColor: [colors.navy, colors.pending, colors.normal, colors.resolved] }] }, options: { ...commonOptions, indexAxis: 'y' } });
+        }
+
+        // Department workload bar chart
+        clearChartIfExists('deptChart');
+        fetch('/api/chart/dept').then(r => r.json()).then(data => {
+            if (!data || !data.data || sumSeries(data) === 0) {
+                showChartMessage('deptChart', 'No department-wise complaint data to chart yet.');
+                return;
+            }
+            ensureCanvasVisible('deptChart');
+            chartInstances['deptChart'] = new Chart(document.getElementById('deptChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Complaints',
+                        data: data.data,
+                        backgroundColor: colors.navy
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
                         }
                     }
                 }
-            }
+            });
         });
+
+        // SLA Compliance & Resolution Trends Chart
+        clearChartIfExists('slaTrendChart');
+        Promise.all([
+            fetch('/api/chart/sla-compliance').then(r => r.json()),
+            fetch('/api/chart/resolution-time').then(r => r.json())
+        ]).then(([slaData, resData]) => {
+            const hasSla = slaData && slaData.data && slaData.data.length && sumSeries(slaData) > 0;
+            const hasRes = resData && resData.data && resData.data.length && sumSeries(resData) > 0;
+            if (!hasSla && !hasRes) {
+                showChartMessage('slaTrendChart', 'No SLA compliance or resolution trend data to chart yet.');
+                return;
+            }
+            ensureCanvasVisible('slaTrendChart');
+            chartInstances['slaTrendChart'] = new Chart(document.getElementById('slaTrendChart'), {
+                type: 'line',
+                data: {
+                    labels: (slaData.labels && slaData.labels.length) ? slaData.labels : resData.labels,
+                    datasets: [
+                        {
+                            label: 'SLA Compliance (%)',
+                            data: slaData.data,
+                            borderColor: colors.green,
+                            backgroundColor: 'transparent',
+                            yAxisID: 'ySla',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Avg. Resolution (Hours)',
+                            data: resData.data,
+                            borderColor: colors.saffron,
+                            backgroundColor: 'transparent',
+                            yAxisID: 'yRes',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ySla: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'SLA Compliance (%)' },
+                            min: 0,
+                            max: 100
+                        },
+                        yRes: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Avg. Resolution (Hours)' },
+                            min: 0,
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }).catch(err => {
+            console.error('Failed to load SLA trend charts:', err);
+            showChartMessage('slaTrendChart', 'Failed to load chart data.');
+        });
+    }
+
+    // Set up theme change listener
+    window.addEventListener('themechanged', function () {
+        updateChartDefaultsForTheme();
+        initAllCharts();
     });
 
-    // Dual-axis SLA Compliance & Resolution Trends Chart
-    Promise.all([
-        fetch('/api/chart/sla-compliance').then(r => r.json()),
-        fetch('/api/chart/resolution-time').then(r => r.json())
-    ]).then(([slaData, resData]) => {
-        const hasSla = slaData && slaData.data && slaData.data.length && sumSeries(slaData) > 0;
-        const hasRes = resData && resData.data && resData.data.length && sumSeries(resData) > 0;
-        if (!hasSla && !hasRes) {
-            showChartMessage('slaTrendChart', 'No SLA compliance or resolution trend data to chart yet.');
-            return;
-        }
-        ensureCanvasVisible('slaTrendChart');
-        new Chart(document.getElementById('slaTrendChart'), {
-            type: 'line',
-            data: {
-                labels: (slaData.labels && slaData.labels.length) ? slaData.labels : resData.labels,
-                datasets: [
-                    {
-                        label: 'SLA Compliance (%)',
-                        data: slaData.data,
-                        borderColor: colors.green,
-                        backgroundColor: 'transparent',
-                        yAxisID: 'ySla',
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Avg. Resolution (Hours)',
-                        data: resData.data,
-                        borderColor: colors.saffron,
-                        backgroundColor: 'transparent',
-                        yAxisID: 'yRes',
-                        tension: 0.4
-                    }
-                ]
-            },
-            options: {
-                ...commonOptions,
-                scales: {
-                    ySla: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: { display: true, text: 'SLA Compliance (%)' },
-                        min: 0,
-                        max: 100
-                    },
-                    yRes: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: { display: true, text: 'Avg. Resolution (Hours)' },
-                        min: 0,
-                        grid: {
-                            drawOnChartArea: false
-                        }
-                    }
-                }
-            }
-        });
-    }).catch(err => {
-        console.error('Failed to load SLA trend charts:', err);
-        showChartMessage('slaTrendChart', 'Failed to load chart data.');
-    });
+    // Initial setup
+    updateChartDefaultsForTheme();
+    initAllCharts();
 
     // ── T1-D: Live KPI refresh every 60 seconds ──────────────────────────────
     const kpiMap = {
