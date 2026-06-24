@@ -32,8 +32,10 @@ Flask-Babel==4.0.0
 
 # Production Server
 gunicorn==21.2.0
+gevent==26.5.0
 flask-compress>=1.14.0
 whitenoise>=6.6.0
+Flask-Caching==2.4.0
 
 # Async Tasks (Celery)
 Celery==5.3.4

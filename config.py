@@ -101,6 +101,8 @@ class Config:
     # Geo heatmap performance guard (API limit before progressive rendering)
     GEO_HEATMAP_MAX_POINTS = int(os.environ.get('GEO_HEATMAP_MAX_POINTS', 2500))
     PUBLIC_API_CACHE_SECONDS = int(os.environ.get('PUBLIC_API_CACHE_SECONDS', 60))
+    CACHE_TYPE = 'SimpleCache'
+    CACHE_DEFAULT_TIMEOUT = 60
     SEND_FILE_MAX_AGE_DEFAULT = int(os.environ.get('SEND_FILE_MAX_AGE_DEFAULT', 3600))
     COMPRESS_MIMETYPES = [
         'text/html', 'text/css', 'application/javascript', 'application/json'
@@ -211,6 +213,8 @@ class TestingConfig(Config):
     WTF_CSRF_ENABLED = False  # Disable CSRF for testing
     SLA_CHECK_INTERVAL_SECONDS = 0  # Always run in tests for determinism
     PUBLIC_API_CACHE_SECONDS = 0
+    CACHE_TYPE = 'NullCache'
+    CACHE_DEFAULT_TIMEOUT = 0
     LOGIN_RATE_LIMIT_ENABLED = False
     SUBMIT_RATE_LIMIT_ENABLED = False
     EVIDENCE_STORAGE_PROVIDER = 'local'
@@ -238,6 +242,11 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SAMESITE = 'Lax'
     PREFERRED_URL_SCHEME = 'https'
     TRUST_PROXY_HEADERS = True
+    
+    # Cache settings
+    CACHE_TYPE = 'RedisCache'
+    CACHE_REDIS_URL = os.environ.get('REDIS_URL') or 'redis://localhost:6379/0'
+    CACHE_DEFAULT_TIMEOUT = 60
     
     @classmethod
     def init_app(cls, app):

@@ -17,6 +17,7 @@ from flask_migrate import Migrate
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
 from flask_compress import Compress
+from flask_caching import Cache
 from whitenoise import WhiteNoise
 from config import config
 from app.clock import utc_now
@@ -28,6 +29,7 @@ csrf = CSRFProtect()
 babel = Babel()
 celery = Celery(__name__)
 mail = Mail()
+cache = Cache()
 
 
 def select_locale():
@@ -97,6 +99,7 @@ def create_app(config_name=None):
     csrf.init_app(app)
     babel.init_app(app, locale_selector=select_locale)
     mail.init_app(app)
+    cache.init_app(app)
     init_celery(app)
     
     # Register blueprints

@@ -32,8 +32,6 @@ _geo_rate_lock = threading.Lock()
 _geo_rate_buckets = {}
 _submit_rate_lock = threading.Lock()
 _submit_rate_buckets = {}
-_public_api_cache_lock = threading.Lock()
-_public_api_cache = {}
 MIN_COMPLAINT_DESCRIPTION_CHARACTERS = 25
 
 
@@ -364,12 +362,13 @@ def _no_cache_json(payload, status=200):
 
 def _public_cache_key(namespace):
     """Build a stable short-lived cache key for public aggregate endpoints."""
-    args = tuple(sorted(
-        (key, value)
-        for key, value in request.args.items()
-        if key != '_'
-    ))
-    return namespace, args
+    # Convert query parameters to sorted list of pairs, filter out random query busters
+    args = sorted([
+        (k, v) for k, v in request.args.items(multi=True)
+        if k != '_'
+    ])
+    args_str = str(args)
+    return f"public_payload:{namespace}:{hashlib.md5(args_str.encode('utf-8')).hexdigest()}"
 
 
 def _cached_public_payload(namespace, producer):
@@ -381,26 +380,14 @@ def _cached_public_payload(namespace, producer):
     if ttl <= 0 or current_app.config.get('TESTING') or current_app.testing:
         return producer(), False, ttl
 
+    from app import cache
     key = _public_cache_key(namespace)
-    now_ts = time.time()
-
-    with _public_api_cache_lock:
-        cached = _public_api_cache.get(key)
-        if cached and now_ts - cached['stored_at'] < ttl:
-            return cached['payload'], True, ttl
+    cached_payload = cache.get(key)
+    if cached_payload is not None:
+        return cached_payload, True, ttl
 
     payload = producer()
-    with _public_api_cache_lock:
-        _public_api_cache[key] = {'stored_at': now_ts, 'payload': payload}
-        if len(_public_api_cache) > 256:
-            stale_cutoff = now_ts - (ttl * 4)
-            stale_keys = [
-                cache_key for cache_key, value in _public_api_cache.items()
-                if value['stored_at'] < stale_cutoff
-            ]
-            for cache_key in stale_keys[:128]:
-                _public_api_cache.pop(cache_key, None)
-
+    cache.set(key, payload, timeout=ttl)
     return payload, False, ttl
 
 
@@ -427,16 +414,15 @@ def _public_cache_hit_response(namespace):
     if ttl <= 0 or current_app.config.get('TESTING') or current_app.testing:
         return None
 
+    from app import cache
     key = _public_cache_key(namespace)
-    now_ts = time.time()
-    with _public_api_cache_lock:
-        cached = _public_api_cache.get(key)
-        if not cached or now_ts - cached['stored_at'] >= ttl:
-            return None
-        response = jsonify(cached['payload'])
-        response.headers['Cache-Control'] = f'public, max-age={ttl}'
-        response.headers['X-CivikIndia-Cache'] = 'hit'
-        return response
+    cached_payload = cache.get(key)
+    if cached_payload is None:
+        return None
+    response = jsonify(cached_payload)
+    response.headers['Cache-Control'] = f'public, max-age={ttl}'
+    response.headers['X-CivikIndia-Cache'] = 'hit'
+    return response
 
 
 def _iter_month_starts(from_month_start, to_month_start):

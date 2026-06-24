@@ -100,3 +100,6 @@ migrations/versions/*.pyc
 
 # OS
 Thumbs.db
+
+# Build artifacts
+*.gz

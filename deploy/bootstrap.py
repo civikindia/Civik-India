@@ -197,8 +197,58 @@ def ensure_default_officer():
     db.session.add(officer)
 
 
+def compress_static_assets(production=False):
+    import re
+    import gzip
+    
+    static_dir = Path(__file__).resolve().parent.parent / 'app' / 'static'
+    print(f"[boot] Processing static assets in {static_dir} (minify={production})...")
+    
+    css_comments = re.compile(r'/\*.*?\*/', re.DOTALL)
+    css_spaces = re.compile(r'\s*([\{\};:,])\s*')
+    css_multi_space = re.compile(r'\s+')
+    
+    count_comp = 0
+    count_min = 0
+    
+    for root, _, files in os.walk(static_dir):
+        for file in files:
+            if file.endswith(('.css', '.js', '.json', '.svg')) and not file.endswith('.gz'):
+                file_path = Path(root) / file
+                gz_path = Path(root) / f"{file}.gz"
+                
+                # Check if we should process
+                if not gz_path.exists() or file_path.stat().st_mtime > gz_path.stat().st_mtime:
+                    try:
+                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                        
+                        # Minify CSS in production
+                        if production and file.endswith('.css'):
+                            content = css_comments.sub('', content)
+                            content = css_multi_space.sub(' ', content)
+                            content = css_spaces.sub(r'\1', content)
+                            content = content.strip()
+                            with open(file_path, 'w', encoding='utf-8') as f_out:
+                                f_out.write(content)
+                            count_min += 1
+                        
+                        # Gzip compression
+                        with gzip.open(gz_path, 'wb', compresslevel=9) as f_out:
+                            f_out.write(content.encode('utf-8'))
+                        count_comp += 1
+                    except Exception as e:
+                        print(f"[boot] Error processing asset {file}: {e}")
+                        
+    print(f"[boot] Pre-compressed {count_comp} assets, minified {count_min} CSS assets.")
+
+
 def main():
     env = os.environ.get("FLASK_ENV", "production")
+    
+    # Pre-compress and minify static assets before starting the app
+    compress_static_assets(production=(env == 'production'))
+
     app = create_app(env)
     max_retries = int(os.environ.get("BOOTSTRAP_DB_RETRIES", "8"))
     retry_delay = float(os.environ.get("BOOTSTRAP_DB_RETRY_DELAY", "2"))

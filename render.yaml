@@ -47,7 +47,7 @@ services:
       - key: WEB_CONCURRENCY
         value: "2"
       - key: GUNICORN_TIMEOUT
-        value: "120"
+        value: "30"
       - key: BOOTSTRAP_DB_RETRIES
         value: "30"
       - key: BOOTSTRAP_DB_RETRY_DELAY
