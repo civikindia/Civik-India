@@ -18,3 +18,41 @@ html[data-theme="contrast"] .alert-reject-info {
   border-color: var(--neutral-300) !important;
   color: var(--neutral-900) !important;
 }
+
+/* ── Heatmap Filter Pills Styling ── */
+#departmentPills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.filter-pill {
+    transition: all 150ms ease;
+    border-radius: 9999px !important;
+    font-weight: 600;
+}
+.filter-pill.active {
+    background-color: var(--gov-navy, #1a2b4a) !important;
+    color: #ffffff !important;
+    border-color: var(--gov-navy, #1a2b4a) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+html[data-theme="contrast"] .filter-pill.active {
+    background-color: var(--gov-green, #006b3c) !important;
+    color: #000000 !important;
+    border-color: var(--gov-green, #006b3c) !important;
+}
+html[data-theme="contrast"] .filter-pill {
+    border-color: var(--neutral-300) !important;
+    color: var(--neutral-700) !important;
+}
+html[data-theme="contrast"] .filter-pill:hover {
+    background-color: var(--neutral-100) !important;
+}
+
+/* Heatmap skeleton loading state */
+.geo-heatmap-state.skeleton {
+    background: linear-gradient(90deg, var(--neutral-100) 25%, var(--neutral-50) 50%, var(--neutral-100) 75%) !important;
+    background-size: 200% 100% !important;
+}
+

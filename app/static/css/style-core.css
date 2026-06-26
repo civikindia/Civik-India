@@ -205,3 +205,23 @@ h3 { font-size: clamp(1.125rem, 2vw, 1.5rem) !important; }
 h4 { font-size: 1.125rem; }
 h5 { font-size: 1rem; }
 h6 { font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Skeleton helper classes */
+.skeleton-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 140px;
+  width: 100%;
+}
+.skeleton-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50% !important;
+}
+.skeleton-text { height: 14px; margin-bottom: 8px; width: 80%; }
+.skeleton-title { height: 24px; margin-bottom: 12px; width: 60%; }
+.skeleton-avatar { width: 48px; height: 48px; border-radius: 12px; }
+.skeleton-card { height: 120px; }
+.skeleton-chart { height: 300px; }
+.skeleton-row { height: 48px; margin-bottom: 4px; }

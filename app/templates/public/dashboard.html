@@ -148,32 +148,56 @@
                 <div class="metric-card metric-card-left h-100">
                     <div class="metric-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></div>
                     <p class="metric-label mb-1">Total</p>
-                    <h4 id="metricTotal" class="metric-value mb-1 counter-value" data-count="{{ total }}" data-decimals="0">{{ total }}</h4>
-                    <small class="text-muted">Complaints recorded</small>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h4 id="metricTotal" class="metric-value mb-1 counter-value" data-count="{{ total }}" data-decimals="0">{{ total }}</h4>
+                        <span class="kpi-trend-badge" id="trendTotal"></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <small class="text-muted">Complaints</small>
+                        <canvas class="kpi-sparkline" id="sparkTotal" style="width: 50px; height: 16px;"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="col-6 col-sm-6 col-xl-2" data-reveal>
                 <div class="metric-card metric-card-left h-100">
                     <div class="metric-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div>
                     <p class="metric-label mb-1">Pending</p>
-                    <h4 id="metricPending" class="metric-value mb-1 counter-value" data-count="{{ pending }}" data-decimals="0">{{ pending }}</h4>
-                    <small class="text-muted">Waiting initial review</small>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h4 id="metricPending" class="metric-value mb-1 counter-value" data-count="{{ pending }}" data-decimals="0">{{ pending }}</h4>
+                        <span class="kpi-trend-badge" id="trendPending"></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <small class="text-muted">Awaiting review</small>
+                        <canvas class="kpi-sparkline" id="sparkPending" style="width: 50px; height: 16px;"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="col-6 col-sm-6 col-xl-2" data-reveal>
                 <div class="metric-card metric-card-left h-100">
                     <div class="metric-icon bg-info bg-opacity-10 text-info"><i class="bi bi-list-check" aria-hidden="true"></i></div>
                     <p class="metric-label mb-1">In Progress</p>
-                    <h4 id="metricInProgress" class="metric-value mb-1 counter-value" data-count="{{ in_progress }}" data-decimals="0">{{ in_progress }}</h4>
-                    <small class="text-muted">Active workflow items</small>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h4 id="metricInProgress" class="metric-value mb-1 counter-value" data-count="{{ in_progress }}" data-decimals="0">{{ in_progress }}</h4>
+                        <span class="kpi-trend-badge" id="trendInProgress"></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <small class="text-muted">Active items</small>
+                        <canvas class="kpi-sparkline" id="sparkInProgress" style="width: 50px; height: 16px;"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="col-6 col-sm-6 col-xl-2" data-reveal>
                 <div class="metric-card metric-card-left h-100">
                     <div class="metric-icon bg-success bg-opacity-10 text-success"><i class="bi bi-check-circle" aria-hidden="true"></i></div>
                     <p class="metric-label mb-1">Resolved</p>
-                    <h4 id="metricResolved" class="metric-value mb-1 counter-value" data-count="{{ closed }}" data-decimals="0">{{ closed }}</h4>
-                    <small class="text-muted">Closed complaints</small>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <div class="metric-value mb-1 counter-value" id="metricResolved" data-count="{{ closed }}" data-decimals="0">{{ closed }}</div>
+                        <span class="kpi-trend-badge" id="trendResolved"></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <small class="text-muted">Closed</small>
+                        <canvas class="kpi-sparkline" id="sparkResolved" style="width: 50px; height: 16px;"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="col-6 col-sm-6 col-xl-2" data-reveal>
@@ -277,7 +301,17 @@
                     <div class="card-body px-4 pb-4">
                         <div class="chart-canvas-wrap">
                             <canvas id="monthlyChart"></canvas>
-                            <div class="chart-loading" id="monthlyChartState"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading trend data</div>
+                            <div class="chart-loading" id="monthlyChartState">
+                                <div class="skeleton-chart-bars px-3">
+                                    <div class="skeleton flex-grow-1" style="height: 30%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 50%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 70%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 45%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 60%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 85%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 55%;"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -288,7 +322,9 @@
                     <div class="card-body px-4 pb-4">
                         <div class="chart-canvas-wrap">
                             <canvas id="statusChart"></canvas>
-                            <div class="chart-loading" id="statusChartState"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading status data</div>
+                            <div class="chart-loading" id="statusChartState">
+                                <div class="skeleton skeleton-circle"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -302,7 +338,16 @@
                     <div class="card-body px-4 pb-4">
                         <div class="chart-canvas-wrap chart-canvas-wrap-short">
                             <canvas id="deptChart"></canvas>
-                            <div class="chart-loading" id="deptChartState"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading department data</div>
+                            <div class="chart-loading" id="deptChartState">
+                                <div class="skeleton-chart-bars px-3" style="height: 140px;">
+                                    <div class="skeleton flex-grow-1" style="height: 40%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 65%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 85%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 30%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 55%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 70%;"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -313,7 +358,15 @@
                     <div class="card-body px-4 pb-4">
                         <div class="chart-canvas-wrap chart-canvas-wrap-short">
                             <canvas id="resolutionTimeChart"></canvas>
-                            <div class="chart-loading" id="resolutionTimeChartState"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading resolution time</div>
+                            <div class="chart-loading" id="resolutionTimeChartState">
+                                <div class="skeleton-chart-bars px-3" style="height: 100px;">
+                                    <div class="skeleton flex-grow-1" style="height: 30%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 50%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 70%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 45%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 60%;"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -322,8 +375,17 @@
                     <div class="card-body px-4 pb-4">
                         <div class="chart-canvas-wrap chart-canvas-wrap-short">
                             <canvas id="slaComplianceChart"></canvas>
-                            <div class="chart-loading" id="slaComplianceChartState"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading SLA trend</div>
+                            <div class="chart-loading" id="slaComplianceChartState">
+                                <div class="skeleton-chart-bars px-3" style="height: 100px;">
+                                    <div class="skeleton flex-grow-1" style="height: 60%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 45%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 30%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 70%;"></div>
+                                    <div class="skeleton flex-grow-1" style="height: 55%;"></div>
+                                </div>
+                            </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -420,5 +482,6 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/chart.js/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/kpi-animations.js') }}"></script>
 <script src="{{ url_for('static', filename='js/dashboard_public.js') }}"></script>
 {% endblock %}

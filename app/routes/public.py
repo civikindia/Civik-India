@@ -332,7 +332,19 @@ def _parse_geo_filters():
     district = _parse_geo_filter_value(request.args.get('district'), 'District')
     city = _parse_geo_filter_value(request.args.get('city'), 'City')
 
-    department_id = request.args.get('department_id', type=int)
+    department_ids = None
+    dept_raw = request.args.get('department_id')
+    if dept_raw:
+        if ',' in dept_raw:
+            try:
+                department_ids = [int(x) for x in dept_raw.split(',') if x.strip().isdigit()]
+            except ValueError:
+                pass
+        elif dept_raw.isdigit():
+            department_ids = [int(dept_raw)]
+
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
 
     limit = request.args.get('limit', type=int)
     max_points = int(current_app.config.get('GEO_HEATMAP_MAX_POINTS', 2500))
@@ -345,7 +357,9 @@ def _parse_geo_filters():
         'state': state or None,
         'district': district or None,
         'city': city or None,
-        'department_id': department_id or None,
+        'department_ids': department_ids,
+        'date_from': date_from or None,
+        'date_to': date_to or None,
         'limit': limit
     }
 
@@ -1828,6 +1842,59 @@ def complaint_status_history(tracking_id):
 # PUBLIC DASHBOARD
 # =============================================================================
 
+def _get_public_period_stats(start_date=None, end_date=None):
+    from sqlalchemy import case, func
+    q = Complaint.query.filter(Complaint.status.in_(['Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed']))
+    if start_date:
+        q = q.filter(Complaint.submitted_at >= start_date)
+    if end_date:
+        q = q.filter(Complaint.submitted_at < end_date)
+    
+    row = q.with_entities(
+        func.count(Complaint.id).label('total'),
+        func.count(case((Complaint.status == 'Pending', 1))).label('pending'),
+        func.count(case((Complaint.status == 'Closed', 1))).label('closed'),
+        func.count(case((Complaint.status.in_(['Under Review', 'Action Taken', 'Delayed', 'Reopened']), 1))).label('in_progress')
+    ).one()
+    
+    return {
+        'total': row.total or 0,
+        'pending': row.pending or 0,
+        'closed': row.closed or 0,
+        'in_progress': row.in_progress or 0
+    }
+
+def _get_public_dashboard_trends_and_prev():
+    from sqlalchemy import func
+    now = utc_now()
+    max_date = db.session.query(func.max(Complaint.submitted_at)).scalar() or now
+    ref_date = max_date if (now - max_date).days > 7 else now
+    
+    start_p1 = ref_date - timedelta(days=30)
+    prev_all = _get_public_period_stats(end_date=start_p1)
+    
+    start_ref = ref_date.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=6)
+    
+    trends = {
+        'total': [],
+        'pending': [],
+        'closed': [],
+        'in_progress': []
+    }
+    
+    for i in range(7):
+        day_start = start_ref + timedelta(days=i)
+        day_end = day_start + timedelta(days=1)
+        
+        day_stats = _get_public_period_stats(day_start, day_end)
+        trends['total'].append(day_stats['total'])
+        trends['pending'].append(day_stats['pending'])
+        trends['closed'].append(day_stats['closed'])
+        trends['in_progress'].append(day_stats['in_progress'])
+        
+    return prev_all, trends
+
+
 @public_bp.route('/dashboard')
 def public_dashboard():
     """
@@ -1850,12 +1917,15 @@ def public_dashboard():
         stats_data = _compute_dashboard_stats(default_filters)
         dept_stats_data, best_dept, worst_dept = _compute_department_stats(default_filters)
         top_services_data = _compute_top_services(default_filters, limit=6)
+        prev_all, trends = _get_public_dashboard_trends_and_prev()
         return {
             'stats': stats_data,
             'dept_stats': dept_stats_data,
             'top_services': top_services_data,
             'best_department': best_dept,
-            'worst_department': worst_dept
+            'worst_department': worst_dept,
+            'previous_stats': prev_all,
+            'trends': trends
         }
 
     data, _, _ = _cached_public_payload('dashboard_html_stats', build_dashboard_data)
@@ -1879,7 +1949,9 @@ def public_dashboard():
                           worst_department=data['worst_department'],
                           recent_complaints=recent_complaints,
                           status_options=DASHBOARD_STATUSES,
-                          trending_items=trending_items)
+                          trending_items=trending_items,
+                          previous_stats=data.get('previous_stats'),
+                          trends=data.get('trends'))
 
 
 # =============================================================================
@@ -1947,6 +2019,8 @@ def get_dashboard_overview():
                 )
             })
 
+        prev_all, trends = _get_public_dashboard_trends_and_prev()
+
         return {
             'filters': {
                 'department_id': filters.get('department_id'),
@@ -1961,6 +2035,8 @@ def get_dashboard_overview():
             'worst_department': worst_department,
             'dept_stats': ranked_departments,
             'recent_complaints': recent_serialized,
+            'previous_stats': prev_all,
+            'trends': trends
         }
 
     return _cached_public_json('dashboard_overview', build_payload)
@@ -2307,8 +2383,12 @@ def get_geo_heatmap_data():
             query = query.filter(Complaint.district == geo_filters['district'])
         if geo_filters.get('city'):
             query = query.filter(Complaint.city == geo_filters['city'])
-        if geo_filters.get('department_id'):
-            query = query.filter(Complaint.department_id == geo_filters['department_id'])
+        if geo_filters.get('department_ids'):
+            query = query.filter(Complaint.department_id.in_(geo_filters['department_ids']))
+        if geo_filters.get('date_from'):
+            query = query.filter(Complaint.submitted_at >= geo_filters['date_from'])
+        if geo_filters.get('date_to'):
+            query = query.filter(Complaint.submitted_at <= geo_filters['date_to'] + ' 23:59:59.999999')
 
         complaints = query.order_by(Complaint.submitted_at.desc()).limit(requested_limit).all()
         return [

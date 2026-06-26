@@ -173,9 +173,13 @@
             }
             el.classList.remove('d-none');
             el.classList.toggle('chart-error', isError);
-            el.innerHTML = isError
-                ? `<i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>${message}`
-                : `<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>${message}`;
+            if (isError) {
+                el.innerHTML = `<i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>${message}`;
+            } else {
+                if (!el.querySelector('.skeleton') && !el.querySelector('[class*="skeleton"]')) {
+                    el.innerHTML = `<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>${message}`;
+                }
+            }
         }
 
         function createOrUpdateChart(key, canvasId, config) {
@@ -482,6 +486,41 @@
             renderDeptScoreboard(payload?.dept_stats || []);
             renderRecentActivity(payload?.recent_complaints || []);
             renderTopServices(payload?.top_services || []);
+
+            // Draw sparklines and trend badges
+            if (window.KPIAnimations && payload?.previous_stats && payload?.trends) {
+                const prev = payload.previous_stats;
+                const trends = payload.trends;
+                const isContrast = document.documentElement.getAttribute('data-theme') === 'contrast';
+                const primaryColor = isContrast ? '#818cf8' : '#6366f1';
+                const pendingColor = isContrast ? '#fbbf24' : '#f59e0b';
+                const progressColor = isContrast ? '#67e8f9' : '#06b6d4';
+                const resolvedColor = isContrast ? '#34d399' : '#10b981';
+
+                // Total
+                KPIAnimations.animateTrendBadge(document.getElementById('trendTotal'), stats.total, prev.total);
+                if (trends.total) {
+                    KPIAnimations.drawSparkline(document.getElementById('sparkTotal'), trends.total, primaryColor);
+                }
+                
+                // Pending
+                KPIAnimations.animateTrendBadge(document.getElementById('trendPending'), stats.pending, prev.pending);
+                if (trends.pending) {
+                    KPIAnimations.drawSparkline(document.getElementById('sparkPending'), trends.pending, pendingColor);
+                }
+
+                // In Progress
+                KPIAnimations.animateTrendBadge(document.getElementById('trendInProgress'), stats.in_progress, prev.in_progress);
+                if (trends.in_progress) {
+                    KPIAnimations.drawSparkline(document.getElementById('sparkInProgress'), trends.in_progress, progressColor);
+                }
+
+                // Resolved
+                KPIAnimations.animateTrendBadge(document.getElementById('trendResolved'), stats.closed, prev.closed);
+                if (trends.closed) {
+                    KPIAnimations.drawSparkline(document.getElementById('sparkResolved'), trends.closed, resolvedColor);
+                }
+            }
         }
 
         function fetchOverview(filters, requestId) {

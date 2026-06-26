@@ -97,21 +97,20 @@
                                 </select>
                             </div>
                             <div class="col-sm-6 col-lg-4">
-                                <label class="form-label small fw-semibold" for="departmentFilter">Department</label>
-                                <select class="form-select" id="departmentFilter">
-                                    <option value="all">All Departments</option>
-                                    {% for dept in departments %}
-                                    <option value="{{ dept.id }}">{{ dept.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-sm-6 col-lg-4">
                                 <label class="form-label small fw-semibold" for="layerModeFilter">Layer Mode</label>
                                 <select class="form-select" id="layerModeFilter">
                                     <option value="heat">Heatmap</option>
                                     <option value="markers">Markers</option>
                                     <option value="both">Heatmap + Markers</option>
                                 </select>
+                            </div>
+                            <div class="col-sm-6 col-lg-4">
+                                <label class="form-label small fw-semibold" for="dateFromFilter">From Date</label>
+                                <input type="date" class="form-control" id="dateFromFilter">
+                            </div>
+                            <div class="col-sm-6 col-lg-4">
+                                <label class="form-label small fw-semibold" for="dateToFilter">To Date</label>
+                                <input type="date" class="form-control" id="dateToFilter">
                             </div>
                             <div class="col-sm-6 col-lg-4">
                                 <label class="form-label small fw-semibold" for="stateFilter">State</label>
@@ -130,6 +129,15 @@
                                 <select class="form-select" id="cityFilter">
                                     <option value="all">All Cities</option>
                                 </select>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <label class="form-label small fw-semibold d-block">Filter Departments</label>
+                                <div class="d-flex flex-wrap gap-2" id="departmentPills">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary filter-pill active" data-value="all">All Departments</button>
+                                    {% for dept in departments %}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary filter-pill" data-value="{{ dept.id }}">{{ dept.name }}</button>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                         <p class="small text-muted mb-0 mt-3" id="activeFilterSummary">Showing all geo-tagged complaints.</p>
@@ -228,7 +236,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const stateEl = document.getElementById('geoHeatmapState');
     const statusFilter = document.getElementById('statusFilter');
     const priorityFilter = document.getElementById('priorityFilter');
-    const departmentFilter = document.getElementById('departmentFilter');
+    const departmentPillsContainer = document.getElementById('departmentPills');
+    const dateFromFilter = document.getElementById('dateFromFilter');
+    const dateToFilter = document.getElementById('dateToFilter');
     const stateFilter = document.getElementById('stateFilter');
     const districtFilter = document.getElementById('districtFilter');
     const cityFilter = document.getElementById('cityFilter');
@@ -250,20 +260,24 @@ document.addEventListener('DOMContentLoaded', function() {
     function setState(message, isError = false, isInfo = false) {
         if (!message) {
             stateEl.classList.add('d-none');
-            stateEl.classList.remove('geo-heatmap-error', 'geo-heatmap-info');
+            stateEl.classList.remove('geo-heatmap-error', 'geo-heatmap-info', 'skeleton');
             return;
         }
         stateEl.classList.remove('d-none');
         stateEl.classList.toggle('geo-heatmap-error', isError);
         stateEl.classList.toggle('geo-heatmap-info', Boolean(isInfo) && !isError);
         if (isError) {
+            stateEl.classList.remove('skeleton');
             stateEl.innerHTML = `<i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>${message}`;
         } else if (isInfo) {
+            stateEl.classList.remove('skeleton');
             stateEl.innerHTML = `<i class="bi bi-info-circle me-2" aria-hidden="true"></i>${message}`;
         } else {
-            stateEl.innerHTML = `<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>${message}`;
+            stateEl.classList.add('skeleton');
+            stateEl.innerHTML = '';
         }
     }
+
 
     const statusColors = {
         'Pending': '#f59e0b',
@@ -557,11 +571,22 @@ document.addEventListener('DOMContentLoaded', function() {
         setSelectOptions(cityFilter, getCityValues(stateFilter.value, districtFilter.value), 'All Cities');
     }
 
+    function getSelectedDepartments() {
+        if (!departmentPillsContainer) return 'all';
+        const activePills = departmentPillsContainer.querySelectorAll('.filter-pill.active');
+        if (activePills.length === 0) return 'all';
+        const values = Array.from(activePills).map(pill => pill.getAttribute('data-value'));
+        if (values.includes('all')) return 'all';
+        return values.join(',');
+    }
+
     function getCurrentFilters() {
         return {
             status: statusFilter?.value || 'all',
             priority: priorityFilter?.value || 'all',
-            department_id: departmentFilter?.value || 'all',
+            department_id: getSelectedDepartments(),
+            date_from: dateFromFilter?.value || '',
+            date_to: dateToFilter?.value || '',
             state: stateFilter?.value || 'all',
             district: districtFilter?.value || 'all',
             city: cityFilter?.value || 'all'
@@ -578,6 +603,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         params.set('limit', String(maxPointsToRender));
 
+        // Persist filter state in URL
+        const cleanParams = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value && value !== 'all' && value !== '') {
+                cleanParams.set(key, value);
+            }
+        });
+        const queryStr = cleanParams.toString();
+        const newUrl = window.location.pathname + (queryStr ? '?' + queryStr : '');
+        window.history.replaceState({ path: newUrl }, '', newUrl);
+
         return `/api/geo/heatmap?${params.toString()}`;
     }
 
@@ -589,9 +625,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (priorityFilter.value !== 'all') {
             applied.push(`Priority: ${priorityFilter.value}`);
         }
-        if (departmentFilter && departmentFilter.value !== 'all') {
-            const deptText = departmentFilter.options[departmentFilter.selectedIndex].text;
-            applied.push(`Department: ${deptText}`);
+        
+        const depts = getSelectedDepartments();
+        if (depts !== 'all') {
+            const activePillNames = Array.from(departmentPillsContainer.querySelectorAll('.filter-pill.active')).map(p => p.textContent);
+            applied.push(`Departments: ${activePillNames.join(', ')}`);
+        }
+
+        if (dateFromFilter && dateFromFilter.value) {
+            applied.push(`From: ${dateFromFilter.value}`);
+        }
+        if (dateToFilter && dateToFilter.value) {
+            applied.push(`To: ${dateToFilter.value}`);
         }
         if (stateFilter.value !== 'all') {
             applied.push(`State: ${stateFilter.value}`);
@@ -691,15 +736,24 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetFilters() {
         statusFilter.value = 'all';
         priorityFilter.value = 'all';
-        if (departmentFilter) {
-            departmentFilter.value = 'all';
+        if (departmentPillsContainer) {
+            departmentPillsContainer.querySelectorAll('.filter-pill').forEach(pill => {
+                pill.classList.toggle('active', pill.getAttribute('data-value') === 'all');
+                pill.classList.toggle('btn-secondary', pill.getAttribute('data-value') === 'all');
+                pill.classList.toggle('btn-outline-secondary', pill.getAttribute('data-value') !== 'all');
+            });
         }
+        if (dateFromFilter) dateFromFilter.value = '';
+        if (dateToFilter) dateToFilter.value = '';
         layerModeFilter.value = hasHeatPlugin ? 'heat' : 'markers';
         stateFilter.value = 'all';
         syncDistrictAndCity();
         districtFilter.value = 'all';
         syncCityOnly();
         cityFilter.value = 'all';
+        
+        window.history.replaceState({ path: window.location.pathname }, '', window.location.pathname);
+        
         fetchHeatmapData();
     }
 
@@ -946,11 +1000,78 @@ document.addEventListener('DOMContentLoaded', function() {
 
     statusFilter.addEventListener('change', renderMap);
     priorityFilter.addEventListener('change', renderMap);
-    if (departmentFilter) {
-        departmentFilter.addEventListener('change', () => {
-            fetchHeatmapData();
+    function applyFiltersFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        
+        if (params.has('status')) statusFilter.value = params.get('status');
+        if (params.has('priority')) priorityFilter.value = params.get('priority');
+        
+        if (params.has('date_from') && dateFromFilter) dateFromFilter.value = params.get('date_from');
+        if (params.has('date_to') && dateToFilter) dateToFilter.value = params.get('date_to');
+        
+        if (params.has('department_id') && departmentPillsContainer) {
+            const ids = params.get('department_id').split(',');
+            const hasActiveSpecific = ids.some(id => id !== 'all' && id !== '');
+            
+            departmentPillsContainer.querySelectorAll('.filter-pill').forEach(pill => {
+                const val = pill.getAttribute('data-value');
+                const shouldBeActive = val === 'all' ? !hasActiveSpecific : ids.includes(val);
+                pill.classList.toggle('active', shouldBeActive);
+                pill.classList.toggle('btn-secondary', shouldBeActive);
+                pill.classList.toggle('btn-outline-secondary', !shouldBeActive);
+            });
+        }
+        
+        if (params.has('state')) stateFilter.value = params.get('state');
+        if (params.has('district')) {
+            syncDistrictAndCity();
+            districtFilter.value = params.get('district');
+        }
+        if (params.has('city')) {
+            syncCityOnly();
+            cityFilter.value = params.get('city');
+        }
+    }
+
+    statusFilter.addEventListener('change', renderMap);
+    priorityFilter.addEventListener('change', renderMap);
+
+    if (departmentPillsContainer) {
+        departmentPillsContainer.querySelectorAll('.filter-pill').forEach(pill => {
+            pill.addEventListener('click', function() {
+                const val = this.getAttribute('data-value');
+                if (val === 'all') {
+                    departmentPillsContainer.querySelectorAll('.filter-pill').forEach(p => {
+                        const isAll = p.getAttribute('data-value') === 'all';
+                        p.classList.toggle('active', isAll);
+                        p.classList.toggle('btn-secondary', isAll);
+                        p.classList.toggle('btn-outline-secondary', !isAll);
+                    });
+                } else {
+                    this.classList.toggle('active');
+                    this.classList.toggle('btn-secondary');
+                    this.classList.toggle('btn-outline-secondary');
+                    
+                    const allPill = departmentPillsContainer.querySelector('.filter-pill[data-value="all"]');
+                    if (allPill) {
+                        allPill.classList.remove('active', 'btn-secondary');
+                        allPill.classList.add('btn-outline-secondary');
+                    }
+                    
+                    const activePills = departmentPillsContainer.querySelectorAll('.filter-pill.active');
+                    if (activePills.length === 0 && allPill) {
+                        allPill.classList.add('active', 'btn-secondary');
+                        allPill.classList.remove('btn-outline-secondary');
+                    }
+                }
+                fetchHeatmapData();
+            });
         });
     }
+
+    if (dateFromFilter) dateFromFilter.addEventListener('change', fetchHeatmapData);
+    if (dateToFilter) dateToFilter.addEventListener('change', fetchHeatmapData);
+
     stateFilter.addEventListener('change', () => {
         syncDistrictAndCity();
         renderMap();
@@ -972,6 +1093,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         map.invalidateSize();
     }, 120);
+    
+    // Apply filters from URL search params before first fetch
+    applyFiltersFromURL();
     fetchHeatmapData();
 
     // Pull latest geo points periodically for long-open dashboards.

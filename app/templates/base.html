@@ -50,6 +50,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mibsp-tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style-core.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/print.css') }}" media="print">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style-onboarding.css') }}">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -146,6 +148,8 @@
 
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/onboarding.js') }}" defer></script>
     <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
@@ -153,6 +157,7 @@
         });
     }
     </script>
+    <button id="helpTour" class="tour-help-btn" aria-label="Start Onboarding Tour" title="Start Onboarding Tour">?</button>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

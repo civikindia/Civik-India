@@ -25,14 +25,62 @@
             <div class="col-6 col-md-2-5 col-lg">
                 <div class="kpi-card review-inbox-kpi bg-primary text-white">
                     <div class="kpi-label text-white-50">Review Inbox</div>
-                    <div class="kpi-value counter-value" data-count="{{ stats.awaiting_review }}">{{ stats.awaiting_review }}</div>
-                    <div class="kpi-sub"><a href="{{ url_for('admin.review_inbox') }}" class="text-white text-decoration-none">Go to Inbox &rarr;</a></div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <div class="kpi-value counter-value" id="kpiAwaitingReview" data-count="{{ stats.awaiting_review }}">{{ stats.awaiting_review }}</div>
+                        <span class="kpi-trend-badge" id="trendAwaitingReview"></span>
+                    </div>
+                    <div class="kpi-sub d-flex justify-content-between align-items-center mt-1">
+                        <a href="{{ url_for('admin.review_inbox') }}" class="text-white text-decoration-none small">Go to Inbox &rarr;</a>
+                        <canvas class="kpi-sparkline" id="sparkAwaitingReview" style="width: 60px; height: 20px;"></canvas>
+                    </div>
                 </div>
             </div>
-            <div class="col-6 col-md-3"><div class="kpi-card total"><div class="kpi-label">Total Complaints</div><div class="kpi-value counter-value" data-count="{{ stats.total }}">{{ stats.total }}</div><div class="kpi-sub">All submissions</div></div></div>
-            <div class="col-6 col-md-3"><div class="kpi-card pending"><div class="kpi-label">Pending</div><div class="kpi-value counter-value" data-count="{{ stats.pending }}">{{ stats.pending }}</div><div class="kpi-sub">Awaiting review</div></div></div>
-            <div class="col-6 col-md-3"><div class="kpi-card resolved"><div class="kpi-label">Resolved</div><div class="kpi-value counter-value" data-count="{{ stats.closed }}">{{ stats.closed }}</div><div class="kpi-sub">{{ stats.resolution_rate }}% rate</div></div></div>
-            <div class="col-6 col-md-3"><div class="kpi-card officers"><div class="kpi-label">Officers</div><div class="kpi-value counter-value" data-count="{{ total_officers }}">{{ total_officers }}</div><div class="kpi-sub">{{ total_departments }} departments</div></div></div>
+            <div class="col-6 col-md-3">
+                <div class="kpi-card total">
+                    <div class="kpi-label">Total Complaints</div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <div class="kpi-value counter-value" id="kpiTotal" data-count="{{ stats.total }}">{{ stats.total }}</div>
+                        <span class="kpi-trend-badge" id="trendTotal"></span>
+                    </div>
+                    <div class="kpi-sub d-flex justify-content-between align-items-center mt-1">
+                        <span>All submissions</span>
+                        <canvas class="kpi-sparkline" id="sparkTotal" style="width: 60px; height: 20px;"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="kpi-card pending">
+                    <div class="kpi-label">Pending</div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <div class="kpi-value counter-value" id="kpiPending" data-count="{{ stats.pending }}">{{ stats.pending }}</div>
+                        <span class="kpi-trend-badge" id="trendPending"></span>
+                    </div>
+                    <div class="kpi-sub d-flex justify-content-between align-items-center mt-1">
+                        <span>Awaiting review</span>
+                        <canvas class="kpi-sparkline" id="sparkPending" style="width: 60px; height: 20px;"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="kpi-card resolved">
+                    <div class="kpi-label">Resolved</div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <div class="kpi-value counter-value" id="kpiResolved" data-count="{{ stats.closed }}">{{ stats.closed }}</div>
+                        <span class="kpi-trend-badge" id="trendResolved"></span>
+                    </div>
+                    <div class="kpi-sub d-flex justify-content-between align-items-center mt-1">
+                        <span id="resolvedSubText">{{ stats.resolution_rate }}% rate</span>
+                        <canvas class="kpi-sparkline" id="sparkResolved" style="width: 60px; height: 20px;"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="kpi-card officers">
+                    <div class="kpi-label">Officers</div>
+                    <div class="kpi-value counter-value" data-count="{{ total_officers }}">{{ total_officers }}</div>
+                    <div class="kpi-sub">{{ total_departments }} departments</div>
+                </div>
+            </div>
         </div>
 
         <div class="stat-chips-row">
@@ -66,15 +114,87 @@
         {% endif %}
 
         <div class="row g-4 mb-4">
-            <div class="col-lg-4" data-reveal><div class="mibsp-card chart-panel"><h2><i class="bi bi-graph-up"></i>Monthly Trends</h2><div class="chart-canvas-wrap" style="position: relative; min-height: 200px;"><canvas id="monthlyChart" height="200"></canvas></div></div></div>
-            <div class="col-lg-4" data-reveal><div class="mibsp-card chart-panel"><h2><i class="bi bi-pie-chart"></i>Status Breakdown</h2><div class="chart-canvas-wrap" style="position: relative; min-height: 200px;"><canvas id="statusChart" height="200"></canvas></div></div></div>
-            <div class="col-lg-4" data-reveal><div class="mibsp-card chart-panel"><h2><i class="bi bi-funnel"></i>Conversion Funnel</h2><div class="chart-canvas-wrap" style="position: relative; min-height: 200px;"><canvas id="funnelChart" height="200"></canvas></div></div></div>
+            <div class="col-lg-4" data-reveal>
+                <div class="mibsp-card chart-panel">
+                    <h2><i class="bi bi-graph-up"></i>Monthly Trends</h2>
+                    <div class="chart-canvas-wrap" style="position: relative; min-height: 200px;">
+                        <canvas id="monthlyChart" height="200"></canvas>
+                        <div class="chart-loading" id="monthlyChartState">
+                            <div class="skeleton-chart-bars px-3" style="height: 140px;">
+                                <div class="skeleton flex-grow-1" style="height: 30%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 50%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 70%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 45%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 60%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4" data-reveal>
+                <div class="mibsp-card chart-panel">
+                    <h2><i class="bi bi-pie-chart"></i>Status Breakdown</h2>
+                    <div class="chart-canvas-wrap" style="position: relative; min-height: 200px;">
+                        <canvas id="statusChart" height="200"></canvas>
+                        <div class="chart-loading" id="statusChartState">
+                            <div class="skeleton skeleton-circle"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4" data-reveal>
+                <div class="mibsp-card chart-panel">
+                    <h2><i class="bi bi-funnel"></i>Conversion Funnel</h2>
+                    <div class="chart-canvas-wrap" style="position: relative; min-height: 200px;">
+                        <canvas id="funnelChart" height="200"></canvas>
+                        <div class="chart-loading" id="funnelChartState">
+                            <div class="skeleton-chart-bars px-3" style="height: 140px;">
+                                <div class="skeleton flex-grow-1" style="height: 90%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 65%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 40%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 20%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="row g-4 mb-4" data-reveal>
-            <div class="col-lg-6"><div class="mibsp-card chart-panel"><h2><i class="bi bi-bar-chart-steps"></i>Department Distribution</h2><div class="chart-canvas-wrap" style="position: relative; min-height: 220px;"><canvas id="deptChart" height="220"></canvas></div></div></div>
-            <div class="col-lg-6"><div class="mibsp-card chart-panel"><h2><i class="bi bi-clock-history"></i>SLA Compliance & Resolution Trends</h2><div class="chart-canvas-wrap" style="position: relative; min-height: 220px;"><canvas id="slaTrendChart" height="220"></canvas></div></div></div>
+            <div class="col-lg-6">
+                <div class="mibsp-card chart-panel">
+                    <h2><i class="bi bi-bar-chart-steps"></i>Department Distribution</h2>
+                    <div class="chart-canvas-wrap" style="position: relative; min-height: 220px;">
+                        <canvas id="deptChart" height="220"></canvas>
+                        <div class="chart-loading" id="deptChartState">
+                            <div class="skeleton-chart-bars px-3" style="height: 160px;">
+                                <div class="skeleton flex-grow-1" style="height: 50%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 80%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 35%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 60%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="mibsp-card chart-panel">
+                    <h2><i class="bi bi-clock-history"></i>SLA Compliance & Resolution Trends</h2>
+                    <div class="chart-canvas-wrap" style="position: relative; min-height: 220px;">
+                        <canvas id="slaTrendChart" height="220"></canvas>
+                        <div class="chart-loading" id="slaTrendChartState">
+                            <div class="skeleton-chart-bars px-3" style="height: 160px;">
+                                <div class="skeleton flex-grow-1" style="height: 70%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 55%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 80%;"></div>
+                                <div class="skeleton flex-grow-1" style="height: 65%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
 
         <div class="quick-actions-grid mb-4" data-reveal>
             <a href="{{ url_for('admin.rti_compliance_report') }}"><i class="bi bi-scale"></i><strong>RTI Report</strong><span>Overdue complaints</span></a>
@@ -182,6 +302,7 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/chart.js/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/kpi-animations.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const copySeedCommandBtn = document.getElementById('copySeedCommandBtn');
@@ -223,6 +344,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const wrap = canvas.parentElement;
         canvas.classList.add('d-none');
+        const loading = wrap.querySelector('.chart-loading');
+        if (loading) {
+            loading.classList.add('d-none');
+        }
         let hint = wrap.querySelector('.chart-empty-hint');
         if (!hint) {
             hint = document.createElement('div');
@@ -239,11 +364,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         canvas.classList.remove('d-none');
+        const loading = canvas.parentElement.querySelector('.chart-loading');
+        if (loading) {
+            loading.classList.add('d-none');
+        }
         const hint = canvas.parentElement.querySelector('.chart-empty-hint');
         if (hint) {
             hint.remove();
         }
     }
+
 
     function clearChartIfExists(id) {
         if (chartInstances[id]) {
@@ -284,6 +414,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             ensureCanvasVisible('monthlyChart');
             chartInstances['monthlyChart'] = new Chart(document.getElementById('monthlyChart'), { type: 'line', data: { labels: data.labels, datasets: [{ label: 'Complaints', data: data.data, borderColor: colors.green, backgroundColor: 'rgba(0,107,60,0.12)', fill: true, tension: 0.4 }] }, options: { ...commonOptions, scales: { y: { beginAtZero: true } } } });
+        }).catch(err => {
+            console.error('Failed to load monthly trends chart:', err);
+            showChartMessage('monthlyChart', 'Failed to load chart data.');
         });
 
         // Status Breakdown Chart
@@ -295,6 +428,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             ensureCanvasVisible('statusChart');
             chartInstances['statusChart'] = new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: data.labels, datasets: [{ data: data.data, backgroundColor: [colors.pending, colors.normal, colors.green, colors.delayed, colors.saffron, colors.resolved] }] }, options: commonOptions });
+        }).catch(err => {
+            console.error('Failed to load status breakdown chart:', err);
+            showChartMessage('statusChart', 'Failed to load chart data.');
         });
 
         // Conversion Funnel Chart
@@ -338,7 +474,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
+        }).catch(err => {
+            console.error('Failed to load department workload chart:', err);
+            showChartMessage('deptChart', 'Failed to load chart data.');
         });
+
 
         // SLA Compliance & Resolution Trends Chart
         clearChartIfExists('slaTrendChart');
@@ -404,24 +544,71 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Failed to load SLA trend charts:', err);
             showChartMessage('slaTrendChart', 'Failed to load chart data.');
         });
-    }
-
     // Set up theme change listener
     window.addEventListener('themechanged', function () {
         updateChartDefaultsForTheme();
         initAllCharts();
+        initKPITrendsAndSparklines(getCurrentStats(), prevStats, initialTrends);
     });
 
     // Initial setup
     updateChartDefaultsForTheme();
     initAllCharts();
 
+    // Initialize KPI Trends and Sparklines
+    const initialTrends = {{ trends|tojson if trends else 'null' }};
+    const prevStats = {{ previous_stats|tojson if previous_stats else 'null' }};
+    
+    function getCurrentStats() {
+        return {
+            total: parseInt(document.getElementById('kpiTotal').textContent) || 0,
+            pending: parseInt(document.getElementById('kpiPending').textContent) || 0,
+            closed: parseInt(document.getElementById('kpiResolved').textContent) || 0,
+            awaiting_review: parseInt(document.getElementById('kpiAwaitingReview').textContent) || 0
+        };
+    }
+
+    function initKPITrendsAndSparklines(stats, prev, trendsData) {
+        if (!window.KPIAnimations) return;
+        const isContrast = document.documentElement.getAttribute('data-theme') === 'contrast';
+        const primaryColor = isContrast ? '#818cf8' : '#6366f1';
+        const pendingColor = isContrast ? '#fbbf24' : '#f59e0b';
+        const resolvedColor = isContrast ? '#34d399' : '#10b981';
+        const reviewColor = isContrast ? '#a5b4fc' : '#4f46e5';
+
+        // Total
+        KPIAnimations.animateTrendBadge(document.getElementById('trendTotal'), stats.total, prev ? prev.total : 0);
+        if (trendsData && trendsData.total) {
+            KPIAnimations.drawSparkline(document.getElementById('sparkTotal'), trendsData.total, primaryColor);
+        }
+
+        // Pending
+        KPIAnimations.animateTrendBadge(document.getElementById('trendPending'), stats.pending, prev ? prev.pending : 0);
+        if (trendsData && trendsData.pending) {
+            KPIAnimations.drawSparkline(document.getElementById('sparkPending'), trendsData.pending, pendingColor);
+        }
+
+        // Resolved
+        KPIAnimations.animateTrendBadge(document.getElementById('trendResolved'), stats.closed, prev ? prev.closed : 0);
+        if (trendsData && trendsData.closed) {
+            KPIAnimations.drawSparkline(document.getElementById('sparkResolved'), trendsData.closed, resolvedColor);
+        }
+
+        // Awaiting Review
+        KPIAnimations.animateTrendBadge(document.getElementById('trendAwaitingReview'), stats.awaiting_review, prev ? prev.awaiting_review : 0);
+        if (trendsData && trendsData.awaiting_review) {
+            KPIAnimations.drawSparkline(document.getElementById('sparkAwaitingReview'), trendsData.awaiting_review, reviewColor);
+        }
+    }
+
+    initKPITrendsAndSparklines(getCurrentStats(), prevStats, initialTrends);
+
     // ── T1-D: Live KPI refresh every 60 seconds ──────────────────────────────
     const kpiMap = {
-        'awaiting_review': '.review-inbox-kpi .kpi-value',
-        'total':           '.kpi-card.total .kpi-value',
-        'pending':         '.kpi-card.pending .kpi-value',
-        'closed':          '.kpi-card.resolved .kpi-value',
+        'awaiting_review': '#kpiAwaitingReview',
+        'total':           '#kpiTotal',
+        'pending':         '#kpiPending',
+        'closed':          '#kpiResolved',
     };
     const chipMap = {
         'delayed':         '[data-kpi="delayed"]',
@@ -466,8 +653,21 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 Object.entries(kpiMap).forEach(([key, selector]) => {
                     const el = document.querySelector(selector);
-                    if (el && data[key] !== undefined) el.textContent = data[key];
+                    if (el && data[key] !== undefined) {
+                        if (window.KPIAnimations) {
+                            KPIAnimations.animateCounter(el, data[key]);
+                        } else {
+                            el.textContent = data[key];
+                        }
+                    }
                 });
+                
+                // Update resolution rate text
+                const resRateEl = document.getElementById('resolvedSubText');
+                if (resRateEl && data.resolution_rate !== undefined) {
+                    resRateEl.textContent = `${data.resolution_rate}% rate`;
+                }
+
                 // Update chips
                 const delayedChip = document.querySelector('[data-kpi="delayed"]');
                 if (delayedChip) delayedChip.innerHTML = delayedChip.innerHTML.replace(/Delayed:\s*\d+/, `Delayed: ${data.delayed}`);
@@ -475,9 +675,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (reopenedChip) reopenedChip.innerHTML = reopenedChip.innerHTML.replace(/Reopened:\s*\d+/, `Reopened: ${data.reopened}`);
                 const slaChip = document.querySelector('[data-kpi="sla"]');
                 if (slaChip) slaChip.innerHTML = slaChip.innerHTML.replace(/SLA:\s*[\d.]+%/, `SLA: ${data.sla_compliance}%`);
-                // Inbox badge in resolved KPI sub-text
-                const inboxSub = document.querySelector('.review-inbox-kpi .kpi-sub a');
-                // nothing to change there — just refresh value
+
+                // Update trends and sparklines if available
+                if (data.previous_stats && data.trends) {
+                    initKPITrendsAndSparklines(
+                        {
+                            total: data.total,
+                            pending: data.pending,
+                            closed: data.closed,
+                            awaiting_review: data.awaiting_review
+                        },
+                        data.previous_stats,
+                        data.trends
+                    );
+                }
 
                 lastRefresh = Date.now();
                 updateRefreshLabel();
@@ -487,6 +698,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial label update every second + fetch every 60s
     setInterval(updateRefreshLabel, 5000);
+    setInterval(refreshAdminKPIs, 60000);
+});al(updateRefreshLabel, 5000);
     setInterval(refreshAdminKPIs, 60000);
 });
 </script>

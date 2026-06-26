@@ -61,6 +61,59 @@ def _build_officer_performance_records(limit=None):
     return records
 
 
+def _get_period_stats(start_date=None, end_date=None):
+    from sqlalchemy import case, func
+    q = Complaint.query
+    if start_date:
+        q = q.filter(Complaint.submitted_at >= start_date)
+    if end_date:
+        q = q.filter(Complaint.submitted_at < end_date)
+    
+    row = q.with_entities(
+        func.count(Complaint.id).label('total'),
+        func.count(case((Complaint.status == 'Pending', 1))).label('pending'),
+        func.count(case((Complaint.status == 'Closed', 1))).label('closed'),
+        func.count(case((Complaint.status == 'Awaiting Review', 1))).label('awaiting_review')
+    ).one()
+    
+    return {
+        'total': row.total or 0,
+        'pending': row.pending or 0,
+        'closed': row.closed or 0,
+        'awaiting_review': row.awaiting_review or 0
+    }
+
+def _get_dashboard_trends_and_prev():
+    from sqlalchemy import func
+    now = utc_now()
+    max_date = db.session.query(func.max(Complaint.submitted_at)).scalar() or now
+    ref_date = max_date if (now - max_date).days > 7 else now
+    
+    start_p1 = ref_date - timedelta(days=30)
+    prev_all = _get_period_stats(end_date=start_p1)
+    
+    start_ref = ref_date.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=6)
+    
+    trends = {
+        'total': [],
+        'pending': [],
+        'closed': [],
+        'awaiting_review': []
+    }
+    
+    for i in range(7):
+        day_start = start_ref + timedelta(days=i)
+        day_end = day_start + timedelta(days=1)
+        
+        day_stats = _get_period_stats(day_start, day_end)
+        trends['total'].append(day_stats['total'])
+        trends['pending'].append(day_stats['pending'])
+        trends['closed'].append(day_stats['closed'])
+        trends['awaiting_review'].append(day_stats['awaiting_review'])
+        
+    return prev_all, trends
+
+
 # =============================================================================
 # DASHBOARD
 # =============================================================================
@@ -73,6 +126,9 @@ def dashboard():
 
     # Overall stats
     stats = Complaint.get_stats()
+    
+    prev_all, trends = _get_dashboard_trends_and_prev()
+
     
     # Additional metrics
     total_officers = User.query.filter(
@@ -131,7 +187,9 @@ def dashboard():
                           recent_complaints=recent_complaints,
                           recent_logs=recent_logs,
                           dept_performance=dept_performance,
-                          top_officers=top_officers)
+                          top_officers=top_officers,
+                          previous_stats=prev_all,
+                          trends=trends)
 
 
 @admin_bp.route('/inbox')
@@ -441,6 +499,7 @@ def print_complaint(tracking_id):
 def admin_kpi_stats():
     """Lightweight JSON endpoint for real-time dashboard KPI refresh."""
     stats = Complaint.get_stats()
+    prev_all, trends = _get_dashboard_trends_and_prev()
     return jsonify({
         'total': stats.get('total', 0),
         'pending': stats.get('pending', 0),
@@ -451,6 +510,8 @@ def admin_kpi_stats():
         'reopened': stats.get('reopened', 0),
         'sla_compliance': stats.get('sla_compliance', 0),
         'action_taken': stats.get('action_taken', 0),
+        'previous_stats': prev_all,
+        'trends': trends
     })
 
 

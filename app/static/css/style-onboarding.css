@@ -1,0 +1,191 @@
+/* Floating help button */
+.tour-help-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50% !important;
+    background-color: var(--gov-green, #006B3C);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 107, 60, 0.35);
+    z-index: 9999;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+.tour-help-btn:hover {
+    transform: scale(1.1);
+    background-color: var(--gov-green-mid, #008848);
+    box-shadow: 0 6px 16px rgba(0, 107, 60, 0.45);
+}
+.tour-help-btn:active {
+    transform: scale(0.95);
+}
+/* Pulse animation for the help button */
+@keyframes tour-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 107, 60, 0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 107, 60, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 107, 60, 0);
+    }
+}
+.tour-help-btn.pulse {
+    animation: tour-pulse 2s infinite;
+}
+
+/* Custom Shepherd Tooltip Style */
+.shepherd-element {
+    background: var(--white, #ffffff) !important;
+    border-radius: var(--radius-lg, 12px) !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid var(--neutral-300, #D1D5DB) !important;
+    max-width: 380px !important;
+    font-family: var(--font-primary), sans-serif !important;
+    padding: 6px !important;
+    z-index: 10000 !important;
+}
+
+/* Tooltip Title & Text */
+.shepherd-title {
+    color: var(--gov-navy, #1A2B4A) !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    padding: 0 !important;
+    margin-bottom: 8px !important;
+}
+.shepherd-text {
+    color: var(--neutral-700, #374151) !important;
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
+    padding: 0 !important;
+    margin-bottom: 16px !important;
+}
+.shepherd-header {
+    background: transparent !important;
+    padding: 12px 16px 0 16px !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.shepherd-content {
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* Close button inside tooltip */
+.shepherd-cancel-icon {
+    color: var(--neutral-500, #6B7280) !important;
+    font-size: 1.25rem !important;
+    font-weight: bold !important;
+    transition: color 0.15s !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    cursor: pointer !important;
+}
+.shepherd-cancel-icon:hover {
+    color: var(--gov-saffron, #FF6200) !important;
+}
+
+/* Tooltip Footer Buttons */
+.shepherd-footer {
+    padding: 0 16px 16px 16px !important;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px !important;
+}
+
+/* Buttons style */
+.shepherd-button {
+    background: var(--neutral-100, #F3F4F6) !important;
+    color: var(--neutral-700, #374151) !important;
+    border: 1px solid var(--neutral-300, #D1D5DB) !important;
+    border-radius: var(--radius-md, 8px) !important;
+    padding: 6px 16px !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 150ms ease !important;
+}
+.shepherd-button:hover {
+    background: var(--neutral-200, #E5E7EB) !important;
+    color: var(--neutral-900, #111827) !important;
+}
+.shepherd-button-primary {
+    background: var(--gov-green, #006B3C) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--gov-green, #006B3C) !important;
+}
+.shepherd-button-primary:hover {
+    background: var(--gov-green-mid, #008848) !important;
+    border-color: var(--gov-green-mid, #008848) !important;
+    color: #ffffff !important;
+}
+
+/* Arrow styling */
+.shepherd-element[data-popper-placement^='top'] > .shepherd-arrow::before {
+    border-top-color: var(--white, #ffffff) !important;
+}
+.shepherd-element[data-popper-placement^='bottom'] > .shepherd-arrow::before {
+    border-bottom-color: var(--white, #ffffff) !important;
+}
+.shepherd-element[data-popper-placement^='left'] > .shepherd-arrow::before {
+    border-left-color: var(--white, #ffffff) !important;
+}
+.shepherd-element[data-popper-placement^='right'] > .shepherd-arrow::before {
+    border-right-color: var(--white, #ffffff) !important;
+}
+
+/* Spotlight spotlight effect backdrop styling */
+.shepherd-modal-overlay-container {
+    opacity: 0.45 !important;
+    mix-blend-mode: multiply;
+}
+
+/* High Contrast theme support */
+html[data-theme="contrast"] .shepherd-element {
+    background: var(--white, #1e293b) !important;
+    border-color: var(--neutral-300, #475569) !important;
+}
+html[data-theme="contrast"] .shepherd-title {
+    color: var(--neutral-900, #f8fafc) !important;
+}
+html[data-theme="contrast"] .shepherd-text {
+    color: var(--neutral-700, #e2e8f0) !important;
+}
+html[data-theme="contrast"] .shepherd-button {
+    background: var(--neutral-100, #0f172a) !important;
+    color: var(--neutral-900, #f8fafc) !important;
+    border-color: var(--neutral-300, #475569) !important;
+}
+html[data-theme="contrast"] .shepherd-button:hover {
+    background: var(--neutral-300, #475569) !important;
+}
+html[data-theme="contrast"] .shepherd-button-primary {
+    background: var(--gov-green, #10b981) !important;
+    color: #020617 !important;
+    border-color: var(--gov-green, #10b981) !important;
+}
+html[data-theme="contrast"] .shepherd-button-primary:hover {
+    background: var(--gov-green-mid, #34d399) !important;
+    border-color: var(--gov-green-mid, #34d399) !important;
+    color: #020617 !important;
+}
+html[data-theme="contrast"] .tour-help-btn {
+    background-color: var(--gov-green, #10b981);
+    color: #020617;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+html[data-theme="contrast"] .tour-help-btn:hover {
+    background-color: var(--gov-green-mid, #34d399);
+}
