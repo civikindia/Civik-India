@@ -703,9 +703,13 @@ document.addEventListener('DOMContentLoaded', function() {
         updateActiveFilterSummary(filtered.length);
 
         if (!map.isStyleLoaded()) {
-            map.once('idle', () => updateLayers(geojson));
+            map.once('idle', () => {
+                setState('');
+                updateLayers(geojson);
+            });
             return;
         }
+        setState('');
         updateLayers(geojson);
     }
 
