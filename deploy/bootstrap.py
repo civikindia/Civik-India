@@ -28,7 +28,8 @@ BASELINE_DATA = [
             "Water Connection",
             "Water Quality Issue",
             "Pipeline Leakage",
-            "Billing Complaint",
+            "Water Tanker Request",
+            "Meter Reading Dispute",
         ],
     },
     {
@@ -39,16 +40,18 @@ BASELINE_DATA = [
             "Street Light Issue",
             "Road Construction",
             "Drainage Problem",
+            "Footpath Repair",
+            "Flyover/Bridge Issue",
         ],
     },
     {
         "department": "Public Health",
-        "description": "Public health services, sanitation, and hygiene",
+        "description": "Public health services, vaccination, food hygiene, and medical concerns",
         "services": [
             "Mosquito Menace",
-            "Garbage Collection",
             "Public Toilet Maintenance",
             "Health Violation",
+            "Food Safety Concern",
         ],
     },
     {
@@ -59,16 +62,91 @@ BASELINE_DATA = [
             "Voltage Issue",
             "New Connection",
             "Meter Complaint",
+            "Transformer Issue",
+            "Illegal Connection Report",
         ],
     },
     {
-        "department": "Sanitation",
-        "description": "Waste management and sanitation services",
+        "department": "Sanitation & Solid Waste",
+        "description": "Waste management, sanitation services, and hygiene",
         "services": [
             "Sewage Blockage",
             "Waste Collection",
             "Drain Cleaning",
             "Public Cleanliness",
+            "Garbage Pileup",
+            "Hazardous Waste Dumping",
+        ],
+    },
+    {
+        "department": "Town Planning & Building",
+        "description": "Zoning, building regulations, and public land usage",
+        "services": [
+            "Unauthorized Construction",
+            "Building Plan Approval",
+            "Encroachment on Public Land",
+            "Zoning Violation",
+        ],
+    },
+    {
+        "department": "Revenue & Taxation",
+        "description": "Taxation, trade licensing, billing, and certificates",
+        "services": [
+            "Property Tax Dispute",
+            "Trade License Issue",
+            "Water/Sewage Bill Complaint",
+            "Certificate Request",
+        ],
+    },
+    {
+        "department": "Transport & Traffic",
+        "description": "Traffic management, public transit, and road safety",
+        "services": [
+            "Parking Violation",
+            "Traffic Signal Malfunction",
+            "Public Transport Complaint",
+            "Road Safety Hazard",
+        ],
+    },
+    {
+        "department": "Environment & Parks",
+        "description": "Pollution controls, parks maintenance, and stray animals",
+        "services": [
+            "Noise Pollution",
+            "Air/Water Pollution",
+            "Tree Cutting/Felling",
+            "Park Maintenance",
+            "Stray Animal Menace",
+        ],
+    },
+    {
+        "department": "Housing & Urban Development",
+        "description": "Municipal housing schemes, slums, and community centers",
+        "services": [
+            "Public Housing Complaint",
+            "Slum Improvement Request",
+            "Community Hall Issue",
+            "Shelter Home Complaint",
+        ],
+    },
+    {
+        "department": "Education & Welfare",
+        "description": "Government schools, mid-day meals, and welfare programs",
+        "services": [
+            "Municipal School Complaint",
+            "Scholarship Grievance",
+            "Mid-Day Meal Issue",
+            "Welfare Scheme Delay",
+        ],
+    },
+    {
+        "department": "Governance & Anti-Corruption",
+        "description": "Bribery, vigilance, transparency, and official conduct issues",
+        "services": [
+            "Bribery/Corruption Report",
+            "RTI Non-Compliance",
+            "Officer Misconduct",
+            "Tender Irregularity",
         ],
     },
 ]
@@ -94,6 +172,14 @@ def _staff_password_from_env(env_name, local_default):
 
 
 def ensure_lookup_data():
+    # If "Sanitation" exists but "Sanitation & Solid Waste" does not, rename it
+    old_sanitation = Department.query.filter_by(name="Sanitation").first()
+    new_sanitation = Department.query.filter_by(name="Sanitation & Solid Waste").first()
+    if old_sanitation and not new_sanitation:
+        old_sanitation.name = "Sanitation & Solid Waste"
+        old_sanitation.description = "Waste management, sanitation services, and hygiene"
+        db.session.flush()
+
     for item in BASELINE_DATA:
         department = Department.query.filter_by(name=item["department"]).first()
         if not department:

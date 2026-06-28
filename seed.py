@@ -53,8 +53,6 @@ def random_nearby_coords(base_lat, base_lng):
     lat = round(base_lat + random.uniform(-0.035, 0.035), 6)
     lng = round(base_lng + random.uniform(-0.035, 0.035), 6)
     return lat, lng
-
-
 def seed_departments():
     """Create default departments."""
     departments_data = [
@@ -68,18 +66,54 @@ def seed_departments():
         },
         {
             'name': 'Public Health',
-            'description': 'Public health services, sanitation, and hygiene'
+            'description': 'Public health services, vaccination, food hygiene, and medical concerns'
         },
         {
             'name': 'Electricity',
             'description': 'Electricity supply and power-related services'
         },
         {
-            'name': 'Sanitation',
-            'description': 'Waste management and sanitation services'
+            'name': 'Sanitation & Solid Waste',
+            'description': 'Waste management, sanitation services, and hygiene'
+        },
+        {
+            'name': 'Town Planning & Building',
+            'description': 'Zoning, building regulations, and public land usage'
+        },
+        {
+            'name': 'Revenue & Taxation',
+            'description': 'Taxation, trade licensing, billing, and certificates'
+        },
+        {
+            'name': 'Transport & Traffic',
+            'description': 'Traffic management, public transit, and road safety'
+        },
+        {
+            'name': 'Environment & Parks',
+            'description': 'Pollution controls, parks maintenance, and stray animals'
+        },
+        {
+            'name': 'Housing & Urban Development',
+            'description': 'Municipal housing schemes, slums, and community centers'
+        },
+        {
+            'name': 'Education & Welfare',
+            'description': 'Government schools, mid-day meals, and welfare programs'
+        },
+        {
+            'name': 'Governance & Anti-Corruption',
+            'description': 'Bribery, vigilance, transparency, and official conduct issues'
         }
     ]
     
+    # Check if old "Sanitation" exists and rename it to keep IDs intact
+    old_sanitation = Department.query.filter_by(name="Sanitation").first()
+    new_sanitation = Department.query.filter_by(name="Sanitation & Solid Waste").first()
+    if old_sanitation and not new_sanitation:
+        old_sanitation.name = "Sanitation & Solid Waste"
+        old_sanitation.description = "Waste management, sanitation services, and hygiene"
+        db.session.flush()
+
     departments = []
     for data in departments_data:
         dept = Department.query.filter_by(name=data['name']).first()
@@ -94,7 +128,7 @@ def seed_departments():
 
 
 def seed_sla_policies(departments):
-    """Seed SLA policies (20 combinations of 5 departments x 4 priorities)."""
+    """Seed SLA policies (48 combinations of 12 departments x 4 priorities)."""
     priorities = ['Normal', 'High', 'Urgent', 'Low']
     policies_seeded = 0
     for dept in departments:
@@ -149,6 +183,7 @@ def seed_escalation_contacts(departments):
                 3: f"Superintending Engineer ({dept.name})"
             }
             
+            clean_name = dept.name.lower().replace(' ', '').replace('&', '')
             existing = EscalationContact.query.filter_by(department_id=dept.id, level=level).first()
             if not existing:
                 contact = EscalationContact(
@@ -156,9 +191,9 @@ def seed_escalation_contacts(departments):
                     level=level,
                     name=name_map[level],
                     designation=designation_map[level],
-                    email=f"escalation.l{level}.{dept.name.lower().replace(' ', '').replace('&', '')}@civikindia.gov.in",
-                    phone=f"98765432{dept.id}{level}",
-                    whatsapp_number=f"98765432{dept.id}{level}",
+                    email=f"escalation.l{level}.{clean_name}@civikindia.gov.in",
+                    phone=f"98765432{dept.id % 10}{level}",
+                    whatsapp_number=f"98765432{dept.id % 10}{level}",
                     is_active=True
                 )
                 db.session.add(contact)
@@ -174,32 +209,82 @@ def seed_services(departments):
             'Water Connection',
             'Water Quality Issue',
             'Pipeline Leakage',
-            'Billing Complaint'
+            'Water Tanker Request',
+            'Meter Reading Dispute',
         ],
         'Roads & Infrastructure': [
             'Pothole Repair',
             'Street Light Issue',
             'Road Construction',
-            'Drainage Problem'
+            'Drainage Problem',
+            'Footpath Repair',
+            'Flyover/Bridge Issue',
         ],
         'Public Health': [
             'Mosquito Menace',
-            'Garbage Collection',
             'Public Toilet Maintenance',
-            'Health Violation'
+            'Health Violation',
+            'Food Safety Concern',
         ],
         'Electricity': [
             'Power Outage',
             'Voltage Issue',
             'New Connection',
-            'Meter Complaint'
+            'Meter Complaint',
+            'Transformer Issue',
+            'Illegal Connection Report',
         ],
-        'Sanitation': [
+        'Sanitation & Solid Waste': [
             'Sewage Blockage',
             'Waste Collection',
             'Drain Cleaning',
-            'Public Cleanliness'
-        ]
+            'Public Cleanliness',
+            'Garbage Pileup',
+            'Hazardous Waste Dumping',
+        ],
+        'Town Planning & Building': [
+            'Unauthorized Construction',
+            'Building Plan Approval',
+            'Encroachment on Public Land',
+            'Zoning Violation',
+        ],
+        'Revenue & Taxation': [
+            'Property Tax Dispute',
+            'Trade License Issue',
+            'Water/Sewage Bill Complaint',
+            'Certificate Request',
+        ],
+        'Transport & Traffic': [
+            'Parking Violation',
+            'Traffic Signal Malfunction',
+            'Public Transport Complaint',
+            'Road Safety Hazard',
+        ],
+        'Environment & Parks': [
+            'Noise Pollution',
+            'Air/Water Pollution',
+            'Tree Cutting/Felling',
+            'Park Maintenance',
+            'Stray Animal Menace',
+        ],
+        'Housing & Urban Development': [
+            'Public Housing Complaint',
+            'Slum Improvement Request',
+            'Community Hall Issue',
+            'Shelter Home Complaint',
+        ],
+        'Education & Welfare': [
+            'Municipal School Complaint',
+            'Scholarship Grievance',
+            'Mid-Day Meal Issue',
+            'Welfare Scheme Delay',
+        ],
+        'Governance & Anti-Corruption': [
+            'Bribery/Corruption Report',
+            'RTI Non-Compliance',
+            'Officer Misconduct',
+            'Tender Irregularity',
+        ],
     }
     
     services = []
@@ -245,7 +330,16 @@ def seed_users(departments):
     officer_data = [
         ('officer_water', 'Water Supply'),
         ('officer_roads', 'Roads & Infrastructure'),
-        ('officer_health', 'Public Health')
+        ('officer_health', 'Public Health'),
+        ('officer_electricity', 'Electricity'),
+        ('officer_sanitation', 'Sanitation & Solid Waste'),
+        ('officer_planning', 'Town Planning & Building'),
+        ('officer_revenue', 'Revenue & Taxation'),
+        ('officer_transport', 'Transport & Traffic'),
+        ('officer_environment', 'Environment & Parks'),
+        ('officer_housing', 'Housing & Urban Development'),
+        ('officer_education', 'Education & Welfare'),
+        ('officer_governance', 'Governance & Anti-Corruption')
     ]
     
     for username, dept_name in officer_data:
@@ -267,7 +361,7 @@ def seed_users(departments):
     # Create zonal officers and commissioner
     zonal_data = [
         ('zonal_water', 'Water Supply'),
-        ('zonal_sanitation', 'Sanitation')
+        ('zonal_sanitation', 'Sanitation & Solid Waste')
     ]
     for username, dept_name in zonal_data:
         existing = User.query.filter_by(username=username).first()
@@ -304,23 +398,83 @@ def seed_users(departments):
 
 def seed_complaints(departments, services, count=20):
     """Create sample complaints."""
-    sample_descriptions = [
-        "Water supply has been irregular for the past week. We are facing severe shortage.",
-        "There is a large pothole on the main road causing accidents. Immediate repair needed.",
-        "Garbage has not been collected for 3 days. Foul smell and health hazard.",
-        "Street light not working for past 2 weeks. Area is dark and unsafe.",
-        "Sewage overflow on the street. Request immediate cleaning.",
-        "Power outage for 6 hours daily. Affecting work and daily life.",
-        "Water quality is poor with bad smell and color. Not fit for consumption.",
-        "Drainage blocked causing waterlogging during rains. Need urgent attention.",
-        "Mosquito breeding in stagnant water. Risk of dengue outbreak.",
-        "Illegal construction blocking road access. Please take action.",
-        "Public toilet not maintained properly. Unhygienic conditions.",
-        "Voltage fluctuations damaging electrical appliances. Need stabilizer.",
-        "New water connection requested 2 months ago. No response yet.",
-        "Road construction incomplete for past 3 months. Commuters suffering.",
-        "Waste segregation not being followed. Need awareness and enforcement."
-    ]
+    sample_descriptions_map = {
+        'Water Supply': [
+            "Water supply has been irregular for the past week. We are facing severe shortage.",
+            "Water quality is poor with bad smell and color. Not fit for consumption.",
+            "New water connection requested 2 months ago. No response yet.",
+            "Huge pipeline leakage observed on the main street. Thousands of liters of water being wasted.",
+            "Low water pressure received since last month, barely enough for ground floor tanks."
+        ],
+        'Roads & Infrastructure': [
+            "There is a large pothole on the main road causing accidents. Immediate repair needed.",
+            "Street light not working for past 2 weeks. Area is dark and unsafe.",
+            "Road construction incomplete for past 3 months. Commuters suffering.",
+            "Footpath pavement tiles are broken and missing, making walking hazardous for senior citizens.",
+            "A main street light pole is leaning dangerously and might fall. Urgent repair required."
+        ],
+        'Public Health': [
+            "Mosquito breeding in stagnant water near construction site. Risk of dengue outbreak.",
+            "Public toilet not maintained properly. Extremely unhygienic conditions and foul smell.",
+            "Restaurant in our area is disposing of uncooked food waste in the open. Huge health violation.",
+            "Vaccination drive center in the local clinic lacks proper queue management and hygiene."
+        ],
+        'Electricity': [
+            "Power outage for 6 hours daily without pre-announced schedule. Affecting work and daily life.",
+            "Voltage fluctuations damaging electrical appliances in our society. Need voltage stabilizer check.",
+            "Live electrical wires hanging loose from the transformer post. High risk of shock.",
+            "Electric meter running extremely fast. Suspect meter fault or tampering."
+        ],
+        'Sanitation & Solid Waste': [
+            "Garbage has not been collected for 3 days. Foul smell and health hazard.",
+            "Sewage overflow on the street due to drainage blockage. Request immediate cleaning.",
+            "Waste segregation not being followed by collectors. Need awareness and enforcement.",
+            "Illegal dumping of industrial/construction waste on the open plot behind our society.",
+            "Public waste bins are broken and trash is scattered all over the road."
+        ],
+        'Town Planning & Building': [
+            "Illegal construction of a commercial building in a residential zone without approvals.",
+            "Encroachment on public road/footpath by local shop owners, blocking pedestrian access.",
+            "Zoning violation: Industrial operations started in residential complex causing disturbance.",
+            "Unauthorized floor being built on top of an existing building, putting structure at risk."
+        ],
+        'Revenue & Taxation': [
+            "Property tax assessment calculation is incorrect. Visited office thrice with no help.",
+            "Delays in issuing trade license for new establishment despite submitting all documents.",
+            "Water tax billing discrepancy: Billed twice the actual amount. Requesting verification.",
+            "No response on birth/death certificate registration correction request filed online."
+        ],
+        'Transport & Traffic': [
+            "Illegal parking on the narrow main street is causing daily gridlocks and traffic jams.",
+            "Traffic signal at the main junction is not functioning for the last three days.",
+            "Local municipal bus service is highly irregular. Buses do not stop at designated shelters.",
+            "Speed breakers needed near the school zone due to rash driving accidents."
+        ],
+        'Environment & Parks': [
+            "Severe noise pollution from loudspeaker usage at night beyond permissible hours.",
+            "Illegal cutting/felling of mature green trees along the highway without forest permit.",
+            "Local public park has dried grass, broken benches, and is littered with plastic bottles.",
+            "Stray animal menace: Pack of stray dogs chasing vehicles and pedestrians at night."
+        ],
+        'Housing & Urban Development': [
+            "Dilapidated condition of public housing blocks. Plaster falling from the ceiling.",
+            "Slum redevelopment block lacks basic drinking water pipelines and sewer lines.",
+            "Local community hall booked for a private event is charging illegal extra cleaning fees.",
+            "Night shelter home for the homeless lacks clean blankets and basic drinking water."
+        ],
+        'Education & Welfare': [
+            "Municipal school building has broken window panes and toilets are unusable for girls.",
+            "Grievance regarding delay in disbursal of girls education scholarship scheme.",
+            "Mid-day meal hygiene is poor in the ward school. Insects found in the served food.",
+            "Local welfare center for senior citizens remains closed during scheduled hours."
+        ],
+        'Governance & Anti-Corruption': [
+            "Local officer demanded a bribe of 5000 INR to process the water connection file.",
+            "RTI application filed 45 days ago has not received any reply from the Public Information Officer.",
+            "Officer misconduct: Public officials behaving rudely and refusing to take public applications.",
+            "Irregularity in road repair tender allotment. Contract given to blacklisted firm."
+        ]
+    }
     
     statuses = ['Awaiting Review', 'Pending', 'Under Review', 'Action Taken', 'Delayed', 'Reopened', 'Closed']
     status_weights = [0.10, 0.22, 0.22, 0.16, 0.10, 0.08, 0.12]
@@ -344,12 +498,15 @@ def seed_complaints(departments, services, count=20):
         city_name = location['city']
         location_lat, location_lng = random_nearby_coords(location['lat'], location['lng'])
 
+        descriptions = sample_descriptions_map.get(dept.name, ["Civic issue reported in the ward."])
+        description = random.choice(descriptions)
+
         # Create complaint
         complaint = Complaint(
             tracking_id=generate_tracking_id(),
             service_id=service.id if service else None,
             department_id=dept.id,
-            description=random.choice(sample_descriptions),
+            description=description,
             status=status,
             priority='High' if random.random() < 0.25 else 'Normal',
             escalation_level=random.choice([0, 0, 1, 2]) if status in ['Delayed', 'Reopened'] else 0,

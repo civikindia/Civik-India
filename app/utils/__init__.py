@@ -522,11 +522,18 @@ def analyze_complaint_text(description):
     positive_keywords = ['resolved', 'improved', 'good', 'satisfied']
 
     category_rules = {
-        'Water Supply': ['water', 'pipeline', 'tap', 'leakage'],
-        'Roads & Infrastructure': ['road', 'pothole', 'street light', 'drainage'],
-        'Public Health': ['mosquito', 'health', 'hygiene', 'toilet'],
-        'Electricity': ['power', 'electricity', 'voltage', 'meter'],
-        'Sanitation': ['garbage', 'waste', 'sewage', 'cleaning']
+        'Water Supply': ['water', 'pipeline', 'tap', 'leakage', 'tanker'],
+        'Roads & Infrastructure': ['road', 'pothole', 'street light', 'flyover', 'bridge', 'pavement', 'footpath'],
+        'Public Health': ['vaccination', 'clinic', 'hospital', 'food safety', 'hygiene'],
+        'Electricity': ['power', 'electricity', 'voltage', 'transformer', 'shock', 'electric'],
+        'Sanitation & Solid Waste': ['garbage', 'waste', 'sewage', 'cleaning', 'dumping', 'litter', 'trash'],
+        'Town Planning & Building': ['construction', 'building permit', 'encroachment', 'zoning', 'illegal construction'],
+        'Revenue & Taxation': ['tax', 'property tax', 'license', 'bill', 'receipt', 'certificate'],
+        'Transport & Traffic': ['traffic', 'parking', 'bus', 'signal', 'speed breaker', 'road safety'],
+        'Environment & Parks': ['pollution', 'noise', 'tree', 'park', 'garden', 'stray animal', 'dog'],
+        'Housing & Urban Development': ['housing', 'slum', 'shelter', 'community hall'],
+        'Education & Welfare': ['school', 'scholarship', 'mid-day meal', 'welfare'],
+        'Governance & Anti-Corruption': ['corruption', 'bribe', 'rti', 'misconduct', 'tender']
     }
 
     is_urgent = any(keyword in text for keyword in urgent_keywords)

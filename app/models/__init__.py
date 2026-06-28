@@ -17,7 +17,7 @@ from app.clock import utc_now
 class Department(db.Model):
     """
     Government department/ward entity.
-    Examples: Water Supply, Roads & Infrastructure, Public Health, etc.
+    Examples: Water Supply, Roads & Infrastructure, Governance & Anti-Corruption, etc.
     """
     __tablename__ = 'departments'
     
