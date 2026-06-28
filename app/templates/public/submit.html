@@ -31,292 +31,367 @@
     <div class="container">
         <!-- Breadcrumb -->
         <nav aria-label="breadcrumb" class="gov-breadcrumb mb-4">
-            <ol class="breadcrumb justify-content-center">
+            <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ url_for('public.index') }}">{{ _('Home') }}</a></li>
                 <li class="breadcrumb-item active">{{ _('Submit Complaint') }}</li>
             </ol>
         </nav>
 
-        <div class="submit-hero-mini">
-            <span class="badge bg-secondary mb-2"><i class="bi bi-shield-lock me-1"></i>{{ _('Secure & Anonymous') }}</span>
-            <h1 class="fw-bold mb-2">{{ _('File a Complaint') }}</h1>
-            <span class="visually-hidden">{{ _('Submit Complaint Securely') }}</span>
-            <p class="text-muted small">
-                {{ _('Submit your grievance securely without registration. Your identity is completely protected.') }}
-            </p>
+        <div class="submit-hero-card p-4 p-lg-5 mb-4" data-reveal>
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-8">
+                    <span class="submit-hero-kicker mb-2">
+                        <i class="bi bi-incognito me-2"></i>{{ _('Anonymous Reporting') }}
+                    </span>
+                    <h1 class="fw-bold mb-3">{{ _('Submit Your Complaint') }}</h1>
+                    <span class="visually-hidden">{{ _('Submit Complaint Securely') }}</span>
+                    <p class="text-muted mb-0">
+                        {{ _('Provide clear facts, location context, and supporting evidence. The system does not require login and does not store your identity.') }}
+                    </p>
+                </div>
+                <div class="col-lg-4">
+                    <div class="submit-hero-stats">
+                        <div class="submit-hero-stat">
+                            <i class="bi bi-lock"></i>
+                            <span>{{ _('No login needed') }}</span>
+                        </div>
+                        <div class="submit-hero-stat">
+                            <i class="bi bi-clock"></i>
+                            <span>{{ _('2-3 minutes to submit') }}</span>
+                        </div>
+                        <div class="submit-hero-stat">
+                            <i class="bi bi-link-45deg"></i>
+                            <span>{{ _('Track via MIB ID') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="col-lg-8 mx-auto">
-            <div class="card submit-card-minimal border-0">
-                <div class="card-header py-4">
-                    <h2 class="h5 fw-bold mb-1"><i class="bi bi-file-earmark-text me-2 text-primary"></i>{{ _('Anonymous Submission Form') }}</h2>
-                    <p class="text-muted small mb-0">{{ _('Factual details and evidence files help us investigate issues quickly.') }}</p>
-                </div>
-                <div class="card-body p-4 p-md-5">
-                    <form method="POST" action="{{ url_for('public.submit_complaint') }}" enctype="multipart/form-data" id="complaintForm">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-4 align-items-start">
+            <div class="col-lg-8">
+                <div class="card submit-form-card shadow-sm border-0" data-reveal>
+                    <div class="submit-anonymous-strip">{{ _('Anonymous Reporting') }}</div>
+                    <div class="card-header py-4 submit-form-header">
+                        <h2 class="h4 mb-0"><i class="bi bi-file-text me-2"></i>{{ _('Submit Anonymous Complaint') }}</h2>
+                        <p class="mb-0 mt-2 opacity-75">{{ _('Your identity will not be recorded. All fields are required unless marked optional.') }}</p>
+                    </div>
+                    <div class="card-body p-4 p-md-5">
+                        <form method="POST" action="{{ url_for('public.submit_complaint') }}" enctype="multipart/form-data" id="complaintForm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                        <!-- Section 1: Classification -->
-                        <div class="submit-section-title">
-                            <i class="bi bi-1-circle-fill"></i>{{ _('Classification') }}
-                        </div>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <label for="department_id" class="form-label small fw-bold">{{ _('Department') }}</label>
-                                <select class="form-select form-select-lg" id="department_id" name="department_id" required>
-                                    <option value="">-- {{ _('Choose Department') }} --</option>
-                                    {% for dept in departments %}
-                                    <option value="{{ dept.id }}" {% if form_data and form_data.department_id|int == dept.id %}selected{% endif %}>
-                                        {{ dept.name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="service_id" class="form-label small fw-bold">{{ _('Service') }}</label>
-                                <select
-                                    class="form-select form-select-lg"
-                                    id="service_id"
-                                    name="service_id"
-                                    data-selected-service="{% if form_data and form_data.service_id %}{{ form_data.service_id }}{% endif %}"
+                            <nav class="submit-step-indicator mb-4" aria-label="Complaint form steps">
+                                <ol class="submit-step-list mb-0">
+                                    <li class="submit-step is-active" data-step="1"><span>1</span> Service</li>
+                                    <li class="submit-step" data-step="2"><span>2</span> Details</li>
+                                    <li class="submit-step" data-step="3"><span>3</span> Evidence</li>
+                                </ol>
+                            </nav>
+
+                            <section class="submit-block mb-4" data-reveal data-submit-step="1">
+                                <div class="submit-block-head mb-3">
+                                    <h6 class="mb-1 fw-bold form-section-header">{{ _('What Happened?') }}</h6>
+                                    <p class="small text-muted mb-0">{{ _('Choose the department and service where the incident occurred.') }}</p>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="department_id" class="form-label fw-semibold">
+                                            <i class="bi bi-building me-2 text-primary"></i>{{ _('Select Department') }}
+                                        </label>
+                                        <select class="form-select form-select-lg" id="department_id" name="department_id" required>
+                                            <option value="">-- {{ _('Choose Department') }} --</option>
+                                            {% for dept in departments %}
+                                            <option value="{{ dept.id }}" {% if form_data and form_data.department_id|int == dept.id %}selected{% endif %}>
+                                                {{ dept.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="form-text">{{ _('Select the department related to your complaint.') }}</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="service_id" class="form-label fw-semibold">
+                                            <i class="bi bi-clipboard-check me-2 text-primary"></i>{{ _('Select Service') }}
+                                        </label>
+                                        <select
+                                            class="form-select form-select-lg"
+                                            id="service_id"
+                                            name="service_id"
+                                            data-selected-service="{% if form_data and form_data.service_id %}{{ form_data.service_id }}{% endif %}"
+                                            required
+                                            disabled
+                                        >
+                                            <option value="">-- {{ _('First Select Department') }} --</option>
+                                        </select>
+                                        <div class="form-text">{{ _('Services load automatically after department selection.') }}</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="aiClassifyBtn">
+                                            <i class="bi bi-stars me-1"></i>{{ _('Auto Classify Department/Service') }}
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success btn-sm d-none" id="aiApplySuggestionBtn">
+                                            <i class="bi bi-check me-1"></i>{{ _('Apply Suggestion') }}
+                                        </button>
+                                    </div>
+                                    <div id="aiClassifyResult" class="alert alert-info py-2 px-3 small mt-2 d-none"></div>
+                                </div>
+                            </section>
+
+                            <section class="submit-block mb-4" data-reveal data-submit-step="2">
+                                <div class="submit-block-head mb-3">
+                                    <h6 class="mb-1 fw-bold form-section-header">{{ _('Tell Us More') }}</h6>
+                                    <p class="small text-muted mb-0">{{ _('Write a clear factual summary including dates, place, and service impact.') }}</p>
+                                </div>
+                                <label for="description" class="form-label fw-semibold">
+                                    <i class="bi bi-text-left me-2 text-primary"></i>{{ _('Complaint Description') }}
+                                </label>
+                                <textarea
+                                    class="form-control"
+                                    id="description"
+                                    name="description"
+                                    rows="6"
                                     required
-                                    disabled
-                                >
-                                    <option value="">-- {{ _('First Select Department') }} --</option>
-                                </select>
-                            </div>
-                        </div>
+                                    maxlength="5000"
+                                    placeholder="{{ _('Describe your complaint in detail. Include dates, locations, and any relevant information...') }}"
+                                >{% if form_data %}{{ form_data.description }}{% endif %}</textarea>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <div class="form-text" id="descriptionWordStatus">{{ _('Minimum 25 characters required.') }}</div>
+                                    <div class="form-text"><span id="wordCount">0</span> words / <span id="charCount">0</span> characters</div>
+                                </div>
+                                <div class="progress mt-2 submit-progress-track" style="height: 8px;">
+                                    <div class="progress-bar" id="descProgressBar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                
+                                <div class="row g-3 mt-3">
+                                    <div class="col-md-6">
+                                        <label for="complaint_category" class="form-label fw-semibold">{{ _('Complaint Category') }}</label>
+                                        <select class="form-select" id="complaint_category" name="complaint_category">
+                                            <option value="">-- Optional Category --</option>
+                                            <option value="Corruption/Bribery" {% if form_data and form_data.complaint_category == 'Corruption/Bribery' %}selected{% endif %}>Corruption/Bribery</option>
+                                            <option value="Service Delay" {% if form_data and form_data.complaint_category == 'Service Delay' %}selected{% endif %}>Service Delay</option>
+                                            <option value="Infrastructure Issue" {% if form_data and form_data.complaint_category == 'Infrastructure Issue' %}selected{% endif %}>Infrastructure Issue</option>
+                                            <option value="Staff Misbehavior" {% if form_data and form_data.complaint_category == 'Staff Misbehavior' %}selected{% endif %}>Staff Misbehavior</option>
+                                            <option value="Other" {% if form_data and form_data.complaint_category == 'Other' %}selected{% endif %}>Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="incident_date" class="form-label fw-semibold">{{ _('Incident Date (Optional)') }}</label>
+                                        <input type="date" class="form-control" id="incident_date" name="incident_date" value="{% if form_data %}{{ form_data.incident_date }}{% endif %}" max="{{ utc_now().strftime('%Y-%m-%d') }}">
+                                    </div>
+                                </div>
+                                <div class="row g-3 mt-1">
+                                    <div class="col-md-6">
+                                        <label for="ward_locality" class="form-label fw-semibold">{{ _('Ward/Locality') }}</label>
+                                        <input type="text" class="form-control" id="ward_locality" name="ward_locality" placeholder="e.g. Ward 5 / MG Road" value="{% if form_data %}{{ form_data.ward_locality }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="officer_name_alleged" class="form-label fw-semibold">{{ _('Officer Name (If Known)') }}</label>
+                                        <input type="text" class="form-control" id="officer_name_alleged" name="officer_name_alleged" placeholder="Optional" value="{% if form_data %}{{ form_data.officer_name_alleged }}{% endif %}">
+                                    </div>
+                                </div>
+                            </section>
 
-                        <!-- Section 2: Description -->
-                        <div class="submit-section-title">
-                            <i class="bi bi-2-circle-fill"></i>{{ _('Grievance Details') }}
-                        </div>
-                        <div class="mb-4">
-                            <label for="description" class="form-label small fw-bold">{{ _('Complaint Description') }}</label>
-                            <textarea
-                                class="form-control"
-                                id="description"
-                                name="description"
-                                rows="6"
-                                required
-                                maxlength="5000"
-                                placeholder="{{ _('Describe what happened in detail. Provide clear facts, service impact, and the action you expect from officers...') }}"
-                            >{% if form_data %}{{ form_data.description }}{% endif %}</textarea>
-                            <div class="d-flex justify-content-between mt-2">
-                                <div class="form-text" id="descriptionWordStatus">{{ _('Minimum 25 characters required.') }}</div>
-                                <div class="form-text text-muted small"><span id="charCount">0</span> characters</div>
-                            </div>
-                            <div class="progress mt-2 submit-progress-track" style="height: 6px; border-radius: 3px;">
-                                <div class="progress-bar" id="descProgressBar" role="progressbar" style="width: 0%"></div>
-                            </div>
-
-                            <div class="mt-3 d-flex flex-wrap gap-2 justify-content-end">
-                                <button type="button" class="ai-classify-pill-btn" id="aiClassifyBtn">
-                                    <i class="bi bi-stars me-1 text-primary"></i>{{ _('Auto-Detect Dept') }}
-                                </button>
-                                <button type="button" class="btn btn-sm btn-success d-none" id="aiApplySuggestionBtn">
-                                    <i class="bi bi-check me-1"></i>{{ _('Apply Suggestion') }}
-                                </button>
-                            </div>
-                            <div id="aiClassifyResult" class="alert alert-info py-2 px-3 small mt-2 d-none"></div>
-
-                            <!-- Collapsible AI Draft Assistant -->
-                            <div class="minimal-collapsible-card mt-3">
-                                <button type="button" class="minimal-collapsible-trigger collapsed" data-bs-toggle="collapse" data-bs-target="#aiHelperCollapse" aria-expanded="false" aria-controls="aiHelperCollapse">
-                                    <span><i class="bi bi-magic me-2 text-success"></i>{{ _('Need help writing? Use AI Assist') }}</span>
-                                </button>
-                                <div id="aiHelperCollapse" class="collapse">
-                                    <div class="minimal-collapsible-body">
+                            <section class="submit-block mb-4" data-reveal>
+                                <div class="card border-0 submit-ai-card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-robot text-primary me-2"></i>{{ _('AI Draft Assistant') }}
+                                            </h6>
+                                            <span class="badge-status badge-assigned">{{ _('Optional') }}</span>
+                                        </div>
                                         <p class="small text-muted mb-3">
-                                            {{ _('Ask AI to improve your complaint draft. Do not enter personal details.') }}
+                                            {{ _('Ask AI to improve your complaint draft. Do not include your name, phone, or address.') }}
                                         </p>
-                                        <div class="mb-3">
+                                        <div class="mb-2">
                                             <label for="aiPrompt" class="form-label small fw-semibold">{{ _('What help do you need?') }}</label>
                                             <textarea id="aiPrompt" class="form-control" rows="2" maxlength="1000"
-                                                placeholder="{{ _('e.g., Rewrite my draft to be formal and brief.') }}"></textarea>
+                                                placeholder="{{ _('Example: Rewrite my complaint to be clearer and include missing details.') }}"></textarea>
                                         </div>
-                                        <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-outline-success btn-sm" id="aiAskBtn">
+                                        <div class="d-flex flex-wrap gap-2 mb-3">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="aiAskBtn">
                                                 <i class="bi bi-magic me-1"></i>{{ _('Ask AI') }}
                                             </button>
-                                            <button type="button" class="btn btn-outline-primary btn-sm" id="useAiDraftBtn" disabled>
-                                                <i class="bi bi-arrow-down me-1"></i>{{ _('Use AI Draft') }}
+                                            <button type="button" class="btn btn-outline-success btn-sm" id="useAiDraftBtn" disabled>
+                                                <i class="bi bi-arrow-down me-1"></i>{{ _('Use Response In Description') }}
                                             </button>
                                         </div>
-                                        <div id="aiError" class="alert alert-warning py-2 px-3 d-none small mt-3"></div>
-                                        <div id="aiResponseWrap" class="d-none mt-3" aria-live="polite">
-                                            <label class="form-label small fw-semibold mb-1">{{ _('AI Suggestion') }}</label>
+                                        <div id="aiError" class="alert alert-warning py-2 px-3 d-none small mb-2"></div>
+                                        <div id="aiResponseWrap" class="d-none" aria-live="polite" aria-atomic="true">
+                                            <label class="form-label small fw-semibold mb-1">{{ _('AI Response') }}</label>
                                             <pre id="aiResponse" class="p-3 bg-white border rounded small mb-0 submit-ai-response"></pre>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
+                            </section>
 
-                        <!-- Section 3: Evidence & Optional Fields -->
-                        <div class="submit-section-title">
-                            <i class="bi bi-3-circle-fill"></i>{{ _('Evidence & Details') }}
-                        </div>
-                        <div class="mb-4">
-                            <label for="evidence" class="form-label small fw-bold">{{ _('Attach Evidence') }}</label>
-                            <div class="upload-drop-zone mb-2" id="dropZone">
-                                <i class="bi bi-cloud-arrow-up upload-drop-zone-icon"></i>
-                                <p class="mb-1 fw-semibold small" id="dropZoneText">{{ _('Click to attach evidence file or drag here') }}</p>
-                                <p class="text-muted small mb-0">{{ _('PDF, PNG, JPG (Max 16MB) - Required') }}</p>
+                            <section class="submit-block mb-4" data-reveal data-submit-step="3">
+                                <div class="submit-block-head mb-3">
+                                    <h6 class="mb-1 fw-bold form-section-header">{{ _('Evidence & Location') }}</h6>
+                                    <p class="small text-muted mb-0">{{ _('Attach a relevant evidence file and optional location details to speed up review.') }}</p>
+                                </div>
+                                <label for="evidence" class="form-label fw-semibold">
+                                    <i class="bi bi-paperclip me-2 text-primary"></i>{{ _('Evidence') }}
+                                </label>
                                 <input
                                     type="file"
+                                    class="form-control"
                                     id="evidence"
                                     name="evidence"
                                     accept=".pdf,.png,.jpg,.jpeg"
                                     required
-                                    style="display: none;"
                                 >
-                            </div>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    {{ _('Allowed: PDF, PNG, JPG (Max 16MB)') }}
+                                </div>
 
-                            <!-- Collapsible Location details -->
-                            <div class="minimal-collapsible-card mt-3">
-                                <button type="button" class="minimal-collapsible-trigger collapsed" data-bs-toggle="collapse" data-bs-target="#locationCollapse" aria-expanded="false" aria-controls="locationCollapse">
-                                    <span><i class="bi bi-geo-alt me-2 text-primary"></i>{{ _('Add Location Details (Optional)') }}</span>
-                                </button>
-                                <div id="locationCollapse" class="collapse">
-                                    <div class="minimal-collapsible-body">
-                                        <div class="row g-2 mb-3">
-                                            <div class="col-md-4">
-                                                <label for="state" class="form-label small fw-semibold">{{ _('State') }}</label>
-                                                <input type="text" class="form-control" id="state" name="state"
-                                                    value="{% if form_data %}{{ form_data.state }}{% endif %}"
-                                                    placeholder="{{ _('e.g., Maharashtra') }}">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label for="district" class="form-label small fw-semibold">{{ _('District') }}</label>
-                                                <input type="text" class="form-control" id="district" name="district"
-                                                    value="{% if form_data %}{{ form_data.district }}{% endif %}"
-                                                    placeholder="{{ _('e.g., Pune') }}">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label for="city" class="form-label small fw-semibold">{{ _('City') }}</label>
-                                                <input type="text" class="form-control" id="city" name="city"
-                                                    value="{% if form_data %}{{ form_data.city }}{% endif %}"
-                                                    placeholder="{{ _('e.g., Pune') }}">
-                                            </div>
-                                        </div>
-                                        <div class="row g-2 align-items-end mb-3">
-                                            <div class="col-5">
-                                                <label for="location_lat" class="form-label small fw-semibold">{{ _('Latitude') }}</label>
-                                                <input type="number" step="any" class="form-control" id="location_lat" name="location_lat"
-                                                    value="{% if form_data %}{{ form_data.location_lat }}{% endif %}"
-                                                    placeholder="{{ _('Latitude') }}">
-                                            </div>
-                                            <div class="col-5">
-                                                <label for="location_lng" class="form-label small fw-semibold">{{ _('Longitude') }}</label>
-                                                <input type="number" step="any" class="form-control" id="location_lng" name="location_lng"
-                                                    value="{% if form_data %}{{ form_data.location_lng }}{% endif %}"
-                                                    placeholder="{{ _('Longitude') }}">
-                                            </div>
-                                            <div class="col-2 d-grid">
-                                                <button type="button" class="btn btn-outline-secondary" id="locateBtn" aria-label="Detect current location" style="height: 38px;">
-                                                    <i class="bi bi-crosshair"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div id="locationStatus" class="alert alert-info py-2 px-3 small mt-2 d-none" role="status"></div>
-                                        
-                                        <div class="d-flex align-items-center gap-2 mt-2">
-                                            <button type="button" class="btn btn-outline-primary btn-sm" id="mapToggleBtn" aria-expanded="false" aria-controls="locationMapWrap">
-                                                <i class="bi bi-map me-1"></i>{{ _('Pick on Map') }}
-                                            </button>
-                                            <span class="text-muted small" id="mapPinLabel"></span>
-                                        </div>
-                                        <div id="locationMapWrap">
-                                            <div id="locationMap" aria-label="Interactive map to pick complaint location"></div>
-                                        </div>
+                                <hr class="my-4">
+
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-geo-alt me-2 text-primary"></i>{{ _('Location Pin (Optional)') }}
+                                </label>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-4">
+                                        <label for="state" class="visually-hidden">{{ _('State') }}</label>
+                                        <input type="text" class="form-control" id="state" name="state"
+                                            value="{% if form_data %}{{ form_data.state }}{% endif %}"
+                                            placeholder="{{ _('State (e.g., Maharashtra)') }}">
                                     </div>
+                                    <div class="col-md-4">
+                                        <label for="district" class="visually-hidden">{{ _('District') }}</label>
+                                        <input type="text" class="form-control" id="district" name="district"
+                                            value="{% if form_data %}{{ form_data.district }}{% endif %}"
+                                            placeholder="{{ _('District (e.g., Mumbai Suburban)') }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="city" class="visually-hidden">{{ _('City') }}</label>
+                                        <input type="text" class="form-control" id="city" name="city"
+                                            value="{% if form_data %}{{ form_data.city }}{% endif %}"
+                                            placeholder="{{ _('City (e.g., Mumbai)') }}">
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-5">
+                                        <label for="location_lat" class="visually-hidden">{{ _('Latitude') }}</label>
+                                        <input type="number" step="any" class="form-control" id="location_lat" name="location_lat"
+                                            value="{% if form_data %}{{ form_data.location_lat }}{% endif %}"
+                                            placeholder="{{ _('Latitude') }}">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label for="location_lng" class="visually-hidden">{{ _('Longitude') }}</label>
+                                        <input type="number" step="any" class="form-control" id="location_lng" name="location_lng"
+                                            value="{% if form_data %}{{ form_data.location_lng }}{% endif %}"
+                                            placeholder="{{ _('Longitude') }}">
+                                    </div>
+                                    <div class="col-md-2 d-grid">
+                                        <button type="button" class="btn btn-outline-secondary" id="locateBtn" aria-label="Detect current location">
+                                            <i class="bi bi-crosshair"></i><span class="d-none d-lg-inline ms-1">{{ _('Locate') }}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="form-text">{{ _('You can optionally attach approximate coordinates for faster field action.') }}</div>
+                                <div id="locationStatus" class="alert alert-permanent py-2 px-3 small mt-2 d-none" role="status" aria-live="polite"></div>
+
+                                <!-- Map pin picker -->
+                                <div class="d-flex align-items-center gap-2 mt-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="mapToggleBtn" aria-expanded="false" aria-controls="locationMapWrap">
+                                        <i class="bi bi-map me-1"></i>{{ _('Pick on Map') }}
+                                    </button>
+                                    <span class="text-muted small" id="mapPinLabel"></span>
+                                </div>
+                                <div id="locationMapWrap">
+                                    <div id="locationMap" aria-label="Interactive map to pick complaint location"></div>
+                                </div>
+                            </section>
+
+                            <section class="submit-block mb-4" data-reveal>
+                                <div class="submit-block-head mb-3">
+                                    <h6 class="mb-1 fw-bold">{{ _('Optional Contact & Follow-up') }}</h6>
+                                    <p class="small text-muted mb-0">{{ _('Provide voluntary information if you wish to be contacted or provide additional evidence.') }}</p>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="contact_preference" class="form-label fw-semibold">{{ _('Contact Preference') }}</label>
+                                        <select class="form-select" id="contact_preference" name="contact_preference">
+                                            <option value="">Do not contact me (Anonymous)</option>
+                                            <option value="email" {% if form_data and form_data.contact_preference == 'email' %}selected{% endif %}>Via Email</option>
+                                            <option value="phone" {% if form_data and form_data.contact_preference == 'phone' %}selected{% endif %}>Via Phone</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="voluntary_id" class="form-label fw-semibold">{{ _('Contact Detail (Optional)') }}</label>
+                                        <input type="text" class="form-control" id="voluntary_id" name="voluntary_id" placeholder="Email or Phone number" value="{% if form_data %}{{ form_data.voluntary_id }}{% endif %}">
+                                        <div class="form-text text-muted small"><i class="bi bi-lock me-1"></i>Encrypted in our database.</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 form-check">
+                                    <input class="form-check-input" type="checkbox" id="witness_available" name="witness_available" value="yes" {% if form_data and form_data.witness_available %}checked{% endif %}>
+                                    <label class="form-check-label" for="witness_available">
+                                        {{ _('Witness is available to testify if required.') }}
+                                    </label>
+                                </div>
+                            </section>
+
+                            <div class="alert alert-info d-flex mb-4 submit-privacy-notice" data-reveal>
+                                <i class="bi bi-info-circle me-3 mt-1"></i>
+                                <div>
+                                    <strong>{{ _('Privacy Notice:') }}</strong>
+                                    <p class="mb-0">{{ _('Your complaint is completely anonymous. We do not collect or store any personal information including your IP address, name, phone number, or email.') }}</p>
                                 </div>
                             </div>
 
-                            <!-- Collapsible Additional Details & Contacts -->
-                            <div class="minimal-collapsible-card mt-3">
-                                <button type="button" class="minimal-collapsible-trigger collapsed" data-bs-toggle="collapse" data-bs-target="#voluntaryCollapse" aria-expanded="false" aria-controls="voluntaryCollapse">
-                                    <span><i class="bi bi-person-badge me-2 text-secondary"></i>{{ _('Add Voluntary Contacts & Details (Optional)') }}</span>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{{ url_for('public.index') }}" class="btn btn-outline-secondary btn-lg">
+                                    {{ _('Cancel') }}
+                                </a>
+                                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                    <i class="bi bi-send me-2"></i>{{ _('Submit Complaint') }}
                                 </button>
-                                <div id="voluntaryCollapse" class="collapse">
-                                    <div class="minimal-collapsible-body">
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label for="complaint_category" class="form-label small fw-semibold">{{ _('Complaint Category') }}</label>
-                                                <select class="form-select" id="complaint_category" name="complaint_category">
-                                                    <option value="">-- Optional Category --</option>
-                                                    <option value="Corruption/Bribery" {% if form_data and form_data.complaint_category == 'Corruption/Bribery' %}selected{% endif %}>Corruption/Bribery</option>
-                                                    <option value="Service Delay" {% if form_data and form_data.complaint_category == 'Service Delay' %}selected{% endif %}>Service Delay</option>
-                                                    <option value="Infrastructure Issue" {% if form_data and form_data.complaint_category == 'Infrastructure Issue' %}selected{% endif %}>Infrastructure Issue</option>
-                                                    <option value="Staff Misbehavior" {% if form_data and form_data.complaint_category == 'Staff Misbehavior' %}selected{% endif %}>Staff Misbehavior</option>
-                                                    <option value="Other" {% if form_data and form_data.complaint_category == 'Other' %}selected{% endif %}>Other</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label for="incident_date" class="form-label small fw-semibold">{{ _('Incident Date') }}</label>
-                                                <input type="date" class="form-control" id="incident_date" name="incident_date" value="{% if form_data %}{{ form_data.incident_date }}{% endif %}" max="{{ utc_now().strftime('%Y-%m-%d') }}">
-                                            </div>
-                                        </div>
-                                        <div class="row g-3 mt-1">
-                                            <div class="col-md-6">
-                                                <label for="ward_locality" class="form-label small fw-semibold">{{ _('Ward/Locality') }}</label>
-                                                <input type="text" class="form-control" id="ward_locality" name="ward_locality" placeholder="e.g. Ward 5 / MG Road" value="{% if form_data %}{{ form_data.ward_locality }}{% endif %}">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label for="officer_name_alleged" class="form-label small fw-semibold">{{ _('Officer Name (If Known)') }}</label>
-                                                <input type="text" class="form-control" id="officer_name_alleged" name="officer_name_alleged" placeholder="Optional" value="{% if form_data %}{{ form_data.officer_name_alleged }}{% endif %}">
-                                            </div>
-                                        </div>
-                                        <div class="row g-3 mt-1">
-                                            <div class="col-md-6">
-                                                <label for="contact_preference" class="form-label small fw-semibold">{{ _('Contact Preference') }}</label>
-                                                <select class="form-select" id="contact_preference" name="contact_preference">
-                                                    <option value="">Do not contact me (Anonymous)</option>
-                                                    <option value="email" {% if form_data and form_data.contact_preference == 'email' %}selected{% endif %}>Via Email</option>
-                                                    <option value="phone" {% if form_data and form_data.contact_preference == 'phone' %}selected{% endif %}>Via Phone</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label for="voluntary_id" class="form-label small fw-semibold">{{ _('Contact Detail') }}</label>
-                                                <input type="text" class="form-control" id="voluntary_id" name="voluntary_id" placeholder="Email or Phone number" value="{% if form_data %}{{ form_data.voluntary_id }}{% endif %}">
-                                            </div>
-                                        </div>
-                                        <div class="mt-3 form-check">
-                                            <input class="form-check-input" type="checkbox" id="witness_available" name="witness_available" value="yes" {% if form_data and form_data.witness_available %}checked{% endif %}>
-                                            <label class="form-check-label small" for="witness_available">
-                                                {{ _('Witness is available to testify if required.') }}
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
-                        </div>
-
-                        <!-- Hidden sidecard references to prevent JS exceptions -->
-                        <div class="d-none">
-                            <span id="summaryDepartment"></span>
-                            <span id="summaryService"></span>
-                            <span id="summaryLength"></span>
-                            <span id="summaryLocation"></span>
-                            <span id="summaryCompletion"></span>
-                            <span id="summaryProgressBar"></span>
-                            <span id="wordCount">0</span>
-                        </div>
-
-                        <div class="d-flex gap-2 justify-content-end mt-4">
-                            <a href="{{ url_for('public.index') }}" class="btn btn-light px-4">
-                                {{ _('Cancel') }}
-                            </a>
-                            <button type="submit" class="btn btn-primary px-4 fw-bold" id="submitBtn">
-                                <i class="bi bi-send me-2"></i>{{ _('Submit Grievance') }}
-                            </button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
-                <div class="submit-privacy-strip">
-                    <i class="bi bi-shield-check text-success"></i>
-                    <span>{{ _('Zero Logging Policy: Civik India never logs user IP addresses or browser fingerprints.') }}</span>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="submit-side-card submit-side-sticky mb-3" data-reveal>
+                    <h6 class="fw-bold mb-3">{{ _('Submission Progress') }}</h6>
+                    <div class="submit-side-item">
+                        <span class="text-muted small">{{ _('Department') }}</span>
+                        <strong id="summaryDepartment">{{ _('Not selected') }}</strong>
+                    </div>
+                    <div class="submit-side-item">
+                        <span class="text-muted small">{{ _('Service') }}</span>
+                        <strong id="summaryService">{{ _('Not selected') }}</strong>
+                    </div>
+                    <div class="submit-side-item">
+                        <span class="text-muted small">{{ _('Description Words') }}</span>
+                        <strong id="summaryLength">{{ _('0 characters') }}</strong>
+                    </div>
+                    <div class="submit-side-item">
+                        <span class="text-muted small">{{ _('Location') }}</span>
+                        <strong id="summaryLocation">{{ _('Not provided') }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mt-3 mb-2">
+                        <span class="small fw-semibold">{{ _('Completion') }}</span>
+                        <span class="small fw-bold" id="summaryCompletion">0%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" id="summaryProgressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="submit-side-card" data-reveal>
+                    <h6 class="fw-bold mb-3">{{ _('Before You Submit') }}</h6>
+                    <ul class="submit-checklist mb-0">
+                        <li>{{ _('Describe what happened in clear factual language.') }}</li>
+                        <li>{{ _('Include approximate date/time and exact location.') }}</li>
+                        <li>{{ _('Mention service impact and expected action.') }}</li>
+                        <li>{{ _('Attach a relevant evidence file.') }}</li>
+                        <li>{{ _('Avoid personal identifiers in text and files.') }}</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -359,37 +434,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const cityInput = document.getElementById('city');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const minDescriptionCharacters = 25;
-
-    // Drag-and-drop zone wiring
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('evidence');
-    const dropZoneText = document.getElementById('dropZoneText');
-    if (dropZone && fileInput && dropZoneText) {
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) {
-                fileInput.files = e.dataTransfer.files;
-                fileInput.dispatchEvent(new Event('change'));
-            }
-        });
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
-                dropZoneText.textContent = `Attached: ${fileInput.files[0].name} (${(fileInput.files[0].size / 1024 / 1024).toFixed(2)} MB)`;
-            } else {
-                dropZoneText.textContent = 'Click to attach evidence file or drag here';
-            }
-        });
-    }
-
     const locationFallbacks = {
         'mumbai': {lat: 19.076090, lng: 72.877426, city: 'Mumbai', district: 'Mumbai Suburban', state: 'Maharashtra'},
         'mumbai suburban': {lat: 19.153000, lng: 72.856000, city: 'Mumbai', district: 'Mumbai Suburban', state: 'Maharashtra'},
@@ -413,6 +457,56 @@ document.addEventListener('DOMContentLoaded', function() {
         'maharashtra': {lat: 19.751480, lng: 75.713888, city: 'Mumbai', district: 'Mumbai Suburban', state: 'Maharashtra'}
     };
     let latestClassification = null;
+
+    function initSubmitStepIndicator() {
+        const sections = Array.from(document.querySelectorAll('[data-submit-step]'));
+        const steps = Array.from(document.querySelectorAll('.submit-step[data-step]'));
+        if (!sections.length || !steps.length) {
+            return;
+        }
+
+        function setActiveStep(step) {
+            steps.forEach(function(item) {
+                const isActive = item.getAttribute('data-step') === String(step);
+                item.classList.toggle('is-active', isActive);
+                if (isActive) {
+                    item.setAttribute('aria-current', 'step');
+                } else {
+                    item.removeAttribute('aria-current');
+                }
+            });
+        }
+
+        sections.forEach(function(section) {
+            section.addEventListener('focusin', function() {
+                setActiveStep(section.getAttribute('data-submit-step'));
+            });
+        });
+
+        if (!('IntersectionObserver' in window)) {
+            setActiveStep(sections[0].getAttribute('data-submit-step'));
+            return;
+        }
+
+        const observer = new IntersectionObserver(function(entries) {
+            const visible = entries
+                .filter(function(entry) { return entry.isIntersecting; })
+                .sort(function(a, b) { return b.intersectionRatio - a.intersectionRatio; })[0];
+            if (visible) {
+                setActiveStep(visible.target.getAttribute('data-submit-step'));
+            }
+        }, {
+            root: null,
+            rootMargin: '-20% 0px -55% 0px',
+            threshold: [0.2, 0.45, 0.7]
+        });
+
+        sections.forEach(function(section) {
+            observer.observe(section);
+        });
+    }
+
+    initSubmitStepIndicator();
 
     function countWords(value) {
         return (value.trim().match(/\S+/g) || []).length;
@@ -486,6 +580,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateDescriptionProgress() {
         const chars = description.value.trim().length;
+        const words = countWords(description.value);
         const pct = Math.min(Math.round((chars / minDescriptionCharacters) * 100), 100);
         if (descProgressBar) {
             descProgressBar.style.width = `${pct}%`;
@@ -672,7 +767,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showClassificationMessage('Unable to connect to auto-classification service.', true);
         } finally {
             aiClassifyBtn.disabled = false;
-            aiClassifyBtn.innerHTML = '<i class="bi bi-stars me-1 text-primary"></i>Auto-Detect Dept';
+            aiClassifyBtn.innerHTML = '<i class="bi bi-stars me-1"></i>Auto Classify Department/Service';
         }
     }
 
@@ -898,6 +993,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!form) return;
 
     form.addEventListener('submit', function(e) {
+        // Prevent default submit, get reCAPTCHA token first
         e.preventDefault();
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
@@ -905,6 +1001,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         grecaptcha.ready(function() {
             grecaptcha.execute('{{ recaptcha_site_key }}', {action: 'submit_complaint'}).then(function(token) {
+                // Inject token into form
                 let input = form.querySelector('input[name="g-recaptcha-response"]');
                 if (!input) {
                     input = document.createElement('input');
@@ -914,12 +1011,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 input.value = token;
 
+                // Now submit
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Submitting...';
                 form.submit();
             }).catch(function(err) {
                 console.error('reCAPTCHA error:', err);
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="bi bi-send me-2"></i>Submit Grievance';
+                submitBtn.innerHTML = '<i class="bi bi-send me-2"></i>Submit Complaint';
                 alert('Anti-spam verification failed. Please try again.');
             });
         });
@@ -949,6 +1047,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let mapReady    = false;
     let geocodeTimer = null;
 
+    // Default map center: India
     const DEFAULT_LAT = 20.5937, DEFAULT_LNG = 78.9629, DEFAULT_ZOOM = 5;
 
     function initMap() {
@@ -963,6 +1062,7 @@ document.addEventListener('DOMContentLoaded', function() {
             maxZoom: 19
         }).addTo(mapInstance);
 
+        // If coordinates already filled, show existing pin
         if (latInput.value && lngInput.value) {
             placePin(parseFloat(latInput.value), parseFloat(lngInput.value), false);
         }
@@ -972,6 +1072,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         mapReady = true;
+        // Invalidate map size after CSS transition
         setTimeout(function() { mapInstance.invalidateSize(); }, 360);
     }
 
@@ -996,6 +1097,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function fillCoords(lat, lng) {
         latInput.value = lat.toFixed(6);
         lngInput.value = lng.toFixed(6);
+        // Update sidebar summary if available
         if (typeof updateSubmissionSummary === 'function') updateSubmissionSummary();
         if (mapPinLabel) mapPinLabel.textContent = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     }
@@ -1012,6 +1114,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (!data || !data.address) return;
                 const a = data.address;
+                // Fill only if the field is empty (don't override user input)
                 if (cityInp && !cityInp.value)    cityInp.value = a.city || a.town || a.village || '';
                 if (districtInp && !districtInp.value) districtInp.value = a.county || a.district || a.state_district || '';
                 if (stateInp && !stateInp.value)  stateInp.value = a.state || '';
@@ -1019,9 +1122,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const label = [cityInp?.value, stateInp?.value].filter(Boolean).join(', ');
                 if (mapPinLabel && label) mapPinLabel.textContent = `📍 ${label}`;
             })
-            .catch(function() {});
+            .catch(function() {}); // silently ignore — user can fill manually
     }
 
+    // ── Toggle button ────────────────────────────────────────────
     mapToggleBtn.addEventListener('click', function() {
         const isOpen = mapWrap.classList.toggle('map-open');
         mapToggleBtn.setAttribute('aria-expanded', isOpen);
@@ -1033,8 +1137,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // ── Wire existing Locate Me button to also move map pin ──────
     const locateBtn = document.getElementById('locateBtn');
     if (locateBtn) {
+        // Patch: after the original locateBtn handler fires, sync the map pin
         document.addEventListener('locationCaptured', function(e) {
             if (!mapReady || !mapInstance) return;
             const lat = parseFloat(latInput.value);
@@ -1046,6 +1152,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // After existing applyLocationCoordinates() sets coords, fire a custom event so the map syncs
     const origApplyLoc = window.applyLocationCoordinates;
     if (typeof origApplyLoc === 'function') {
         window.applyLocationCoordinates = function(location, message, type) {
@@ -1055,6 +1162,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
+    // ── Sync map if lat/lng typed manually ───────────────────────
     [latInput, lngInput].forEach(function(inp) {
         if (!inp) return;
         inp.addEventListener('change', function() {
