@@ -4,29 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style-heatmap.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='vendor/leaflet/leaflet.min.css') }}">
-<style>
-    @keyframes geoPulse {
-        0% {
-            stroke-width: 2px;
-            stroke-opacity: 1;
-            fill-opacity: 0.9;
-        }
-        50% {
-            stroke-width: 6px;
-            stroke-opacity: 0.5;
-            fill-opacity: 0.7;
-        }
-        100% {
-            stroke-width: 2px;
-            stroke-opacity: 1;
-            fill-opacity: 0.9;
-        }
-    }
-    .geo-marker-high-pulse {
-        animation: geoPulse 1.5s infinite ease-in-out;
-    }
-</style>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.3.0/dist/maplibre-gl.css">
 {% endblock %}
 
 {% block content %}
@@ -226,8 +204,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='vendor/leaflet/leaflet.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/leaflet-heat/leaflet-heat.min.js') }}"></script>
+<script src="https://unpkg.com/maplibre-gl@4.3.0/dist/maplibre-gl.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const configuredMaxPoints = Math.max(200, Number({{ config['GEO_HEATMAP_MAX_POINTS'] or 2500 }}));
@@ -278,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-
     const statusColors = {
         'Pending': '#f59e0b',
         'Under Review': '#06b6d4',
@@ -288,164 +264,96 @@ document.addEventListener('DOMContentLoaded', function() {
         'Closed': '#12b981'
     };
 
-    if (!window.L || typeof window.L.map !== 'function') {
-        setState('Unable to load the map library. Please check your network or try refreshing.', true);
-        return;
-    }
-
     if (complaintsTotal === 0) {
         if (mapContainerEl) {
             mapContainerEl.classList.add('d-none');
         }
-        setState('There are no complaints in the database yet, so the map has nothing to plot. After demo data is loaded, refresh this page to see hotspots.', false, true);
+        setState('There are no complaints in the database yet, so the map has nothing to plot.', false, true);
         return;
     }
 
-    const hasHeatPlugin = typeof window.L.heatLayer === 'function';
-    const map = L.map('geoHeatmapContainer', {
-        center: [20.5937, 78.9629],
-        zoom: 5,
-        minZoom: 4,
+    // Initialize MapLibre GL map
+    const map = new maplibregl.Map({
+        container: 'geoHeatmapContainer',
+        style: {
+            version: 8,
+            sources: {
+                'raster-tiles': {
+                    type: 'raster',
+                    tiles: [
+                        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+                        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+                        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+                        'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png'
+                    ],
+                    tileSize: 256,
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
+                }
+            },
+            layers: [
+                {
+                    id: 'simple-tiles',
+                    type: 'raster',
+                    source: 'raster-tiles',
+                    minzoom: 0,
+                    maxzoom: 20
+                }
+            ]
+        },
+        center: [78.9629, 20.5937],
+        zoom: 4,
+        minZoom: 3,
         maxZoom: 18,
-        maxBounds: [[6.0, 68.0], [38.0, 98.0]],
-        maxBoundsViscosity: 1.0,
-        scrollWheelZoom: true
+        maxBounds: [[66.0, 5.0], [99.0, 38.0]],
+        pitch: 0,
+        bearing: 0
     });
 
-    const INDIA_BOUNDS = [[5.5, 66.5], [37.8, 99.5]];
-    const INDIA_MAINLAND_POLYGON = [
-        [35.5, 76.8], [34.4, 78.8], [32.7, 79.1], [31.0, 78.2],
-        [30.0, 80.2], [28.5, 82.0], [27.6, 84.2], [26.8, 87.0],
-        [27.6, 89.2], [26.1, 91.7], [24.8, 93.2], [23.8, 94.8],
-        [22.1, 93.1], [20.6, 92.4], [19.0, 92.0], [18.0, 89.5],
-        [16.8, 86.6], [15.4, 84.4], [13.3, 80.3], [11.2, 79.8],
-        [8.2, 77.4], [9.7, 76.1], [12.4, 74.9], [14.9, 74.0],
-        [17.8, 72.8], [20.8, 72.8], [22.9, 69.4], [24.6, 68.2],
-        [26.4, 70.1], [28.7, 70.5], [30.4, 73.7], [32.8, 74.5],
-        [35.5, 76.8]
-    ];
-    const INDIA_REGION_LINES = [
-        [[31.0, 72.0], [28.6, 76.0], [26.4, 79.6], [24.4, 83.8], [22.0, 87.2]],
-        [[26.3, 70.4], [25.0, 75.0], [23.6, 79.4], [22.5, 84.0], [21.2, 88.0]],
-        [[22.8, 69.6], [20.6, 73.5], [19.2, 77.7], [17.6, 81.5], [16.3, 85.4]],
-        [[19.0, 72.9], [18.1, 76.2], [16.4, 79.0], [14.1, 80.1]],
-        [[15.5, 74.0], [14.1, 76.8], [12.6, 78.2], [11.1, 79.7]],
-        [[27.7, 88.0], [26.3, 90.2], [25.0, 92.8], [23.7, 94.5]]
-    ];
+    // Custom 3D View Control
+    class Map3DToggleControl {
+        onAdd(map) {
+            this._map = map;
+            this._container = document.createElement('div');
+            this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+            
+            const button = document.createElement('button');
+            button.className = 'maplibre-ctrl-3d';
+            button.type = 'button';
+            button.title = 'Toggle 3D Perspective';
+            button.setAttribute('aria-label', 'Toggle 3D Perspective');
+            
+            button.onclick = () => {
+                const currentPitch = this._map.getPitch();
+                if (currentPitch === 0) {
+                    this._map.easeTo({
+                        pitch: 45,
+                        bearing: -10,
+                        duration: 800
+                    });
+                    button.classList.add('active');
+                } else {
+                    this._map.easeTo({
+                        pitch: 0,
+                        bearing: 0,
+                        duration: 800
+                    });
+                    button.classList.remove('active');
+                }
+            };
+            
+            this._container.appendChild(button);
+            return this._container;
+        }
 
-    const cartoDbLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19
-    }).addTo(map);
-
-    const stadiaLayer = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
-        maxZoom: 20,
-        attribution: '© <a href="https://stadiamaps.com/">Stadia Maps</a>'
-    });
-
-    let currentLayer = cartoDbLayer;
-
-    const baseMaps = {
-        "Online: CartoDB Positron": cartoDbLayer,
-        "Online: Stadia Alidade": stadiaLayer
-    };
-    L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
-
-    let loadSuccess = true;
-    let errorCount = 0;
-    let onlineTileFallbackTimer = null;
-
-    function handleTileError(e) {
-        if (loadSuccess) return;
-        errorCount++;
-        if (errorCount >= 4) {
-            switchToFallback();
+        onRemove() {
+            this._container.parentNode.removeChild(this._container);
+            this._map = undefined;
         }
     }
 
-    function handleTileLoad(e) {
-        loadSuccess = true;
-        if (onlineTileFallbackTimer) {
-            clearTimeout(onlineTileFallbackTimer);
-            onlineTileFallbackTimer = null;
-        }
-        if (mapContainerEl) {
-            mapContainerEl.classList.remove('geo-local-basemap-active');
-        }
-        setState('');
-    }
-
-    function setupFallbackEvents(layer) {
-        layer.on('tileload', handleTileLoad);
-        layer.on('tileerror', handleTileError);
-    }
-
-    function teardownFallbackEvents(layer) {
-        if (!layer || typeof layer.off !== 'function') {
-            return;
-        }
-        layer.off('tileload', handleTileLoad);
-        layer.off('tileerror', handleTileError);
-    }
-
-    function monitorOnlineBasemap(layer) {
-        if (onlineTileFallbackTimer) {
-            clearTimeout(onlineTileFallbackTimer);
-        }
-        loadSuccess = false;
-        errorCount = 0;
-        setupFallbackEvents(layer);
-        onlineTileFallbackTimer = setTimeout(() => {
-            if (!loadSuccess && currentLayer === layer) {
-                switchToFallback();
-            }
-        }, 3500);
-    }
-
-    function switchToFallback() {
-        if (currentLayer === cartoDbLayer) {
-            console.warn("CartoDB tiles failed to load, trying Stadia Maps fallback...");
-            map.removeLayer(cartoDbLayer);
-            teardownFallbackEvents(cartoDbLayer);
-
-            currentLayer = stadiaLayer;
-            stadiaLayer.addTo(map);
-            monitorOnlineBasemap(stadiaLayer);
-        } else if (currentLayer === stadiaLayer) {
-            console.warn("Stadia Maps tiles failed to load, online tiles unavailable.");
-            setState('Online map tiles are unavailable. Please check your internet connection.', true);
-        }
-    }
-
-    map.on('baselayerchange', (event) => {
-        teardownFallbackEvents(cartoDbLayer);
-        teardownFallbackEvents(stadiaLayer);
-        if (onlineTileFallbackTimer) {
-            clearTimeout(onlineTileFallbackTimer);
-            onlineTileFallbackTimer = null;
-        }
-        currentLayer = event.layer;
-        if (mapContainerEl) {
-            mapContainerEl.classList.remove('geo-local-basemap-active');
-        }
-        monitorOnlineBasemap(event.layer);
-        updateActiveFilterSummary(allPoints.filter(matchesFilters).length);
-    });
-
-    if (!hasHeatPlugin) {
-        layerModeFilter.value = 'markers';
-        Array.from(layerModeFilter.options).forEach((option) => {
-            if (option.value !== 'markers') {
-                option.disabled = true;
-                option.textContent = `${option.textContent} (unavailable)`;
-            }
-        });
-    }
-
-    const markerLayer = L.layerGroup().addTo(map);
-    const locationLabelLayer = L.layerGroup().addTo(map);
-    let heatLayer = null;
+    // Add navigation and 3D controls
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    map.addControl(new Map3DToggleControl(), 'top-right');
 
     let allPoints = [];
     let geoHierarchy = new Map();
@@ -603,7 +511,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         params.set('limit', String(maxPointsToRender));
 
-        // Persist filter state in URL
         const cleanParams = new URLSearchParams();
         Object.entries(filters).forEach(([key, value]) => {
             if (value && value !== 'all' && value !== '') {
@@ -658,9 +565,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateHotspotStats(points) {
-        if (!hotspotStats) {
-            return;
-        }
+        if (!hotspotStats) return;
         if (!Array.isArray(points) || !points.length) {
             hotspotStats.innerHTML = `
                 <li class="geo-stat-row">
@@ -689,50 +594,6 @@ document.addEventListener('DOMContentLoaded', function() {
         )).join('');
     }
 
-    function updateLocationLabels(points) {
-        locationLabelLayer.clearLayers();
-        if (!Array.isArray(points) || !points.length) {
-            return;
-        }
-
-        const areaGroups = new Map();
-        points.forEach((point) => {
-            const areaName = [point.city, point.district, point.state]
-                .filter((value) => value && value !== 'Unspecified')
-                .slice(0, 2)
-                .join(', ') || 'Tagged Area';
-            if (!areaGroups.has(areaName)) {
-                areaGroups.set(areaName, {
-                    label: areaName,
-                    count: 0,
-                    latTotal: 0,
-                    lngTotal: 0
-                });
-            }
-            const group = areaGroups.get(areaName);
-            group.count += 1;
-            group.latTotal += point.lat;
-            group.lngTotal += point.lng;
-        });
-
-        Array.from(areaGroups.values())
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 12)
-            .forEach((group) => {
-                const lat = group.latTotal / group.count;
-                const lng = group.lngTotal / group.count;
-                L.marker([lat, lng], {
-                    interactive: false,
-                    keyboard: false,
-                    icon: L.divIcon({
-                        className: 'geo-location-label',
-                        html: `<span>${escapeHtml(group.label)}</span><strong>${group.count}</strong>`,
-                        iconSize: null
-                    })
-                }).addTo(locationLabelLayer);
-            });
-    }
-
     function resetFilters() {
         statusFilter.value = 'all';
         priorityFilter.value = 'all';
@@ -745,7 +606,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (dateFromFilter) dateFromFilter.value = '';
         if (dateToFilter) dateToFilter.value = '';
-        layerModeFilter.value = hasHeatPlugin ? 'heat' : 'markers';
+        layerModeFilter.value = 'heat';
         stateFilter.value = 'all';
         syncDistrictAndCity();
         districtFilter.value = 'all';
@@ -753,18 +614,13 @@ document.addEventListener('DOMContentLoaded', function() {
         cityFilter.value = 'all';
         
         window.history.replaceState({ path: window.location.pathname }, '', window.location.pathname);
-        
         fetchHeatmapData();
     }
 
     function formatGeoDate(isoValue) {
-        if (!isoValue) {
-            return 'N/A';
-        }
+        if (!isoValue) return 'N/A';
         const parsed = new Date(isoValue);
-        if (Number.isNaN(parsed.getTime())) {
-            return isoValue;
-        }
+        if (Number.isNaN(parsed.getTime())) return isoValue;
         return parsed.toLocaleString('en-IN', {
             day: '2-digit',
             month: 'short',
@@ -777,156 +633,298 @@ document.addEventListener('DOMContentLoaded', function() {
     function matchesFilters(point) {
         const statusValue = statusFilter.value;
         const priorityValue = priorityFilter.value;
-        const deptValue = departmentFilter ? departmentFilter.value : 'all';
+        const depts = getSelectedDepartments();
         const stateValue = stateFilter.value;
         const districtValue = districtFilter.value;
         const cityValue = cityFilter.value;
 
-        if (statusValue !== 'all' && point.status !== statusValue) {
-            return false;
-        }
+        if (statusValue !== 'all' && point.status !== statusValue) return false;
         if (priorityValue !== 'all') {
             if (priorityValue === 'High') {
-                if (point.priority !== 'High' && point.priority !== 'Urgent') {
-                    return false;
-                }
+                if (point.priority !== 'High' && point.priority !== 'Urgent') return false;
             } else if (point.priority !== priorityValue) {
                 return false;
             }
         }
-        if (deptValue !== 'all' && String(point.department_id) !== String(deptValue)) {
-            return false;
+        if (depts !== 'all') {
+            const ids = depts.split(',');
+            if (!ids.includes(String(point.department_id))) return false;
         }
-        if (stateValue !== 'all' && point.state !== stateValue) {
-            return false;
-        }
-        if (districtValue !== 'all' && point.district !== districtValue) {
-            return false;
-        }
-        if (cityValue !== 'all' && point.city !== cityValue) {
-            return false;
-        }
+        if (stateValue !== 'all' && point.state !== stateValue) return false;
+        if (districtValue !== 'all' && point.district !== districtValue) return false;
+        if (cityValue !== 'all' && point.city !== cityValue) return false;
         return true;
     }
 
+    // Helper to format GeoJSON
+    function pointsToGeoJSON(points) {
+        return {
+            type: 'FeatureCollection',
+            features: points.map(p => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [p.lng, p.lat]
+                },
+                properties: {
+                    public_reference: p.public_reference,
+                    status: p.status,
+                    priority: p.priority,
+                    state: p.state,
+                    district: p.district,
+                    city: p.city,
+                    department_name: p.department_name,
+                    submitted_at: p.submitted_at
+                }
+            }))
+        };
+    }
+
     function renderMap() {
-        if (!allPoints.length) {
-            markerLayer.clearLayers();
-            locationLabelLayer.clearLayers();
-            if (heatLayer) {
-                map.removeLayer(heatLayer);
-            }
-            heatLayer = null;
-            statTotal.textContent = '0';
-            statHigh.textContent = '0';
-            statDelayed.textContent = '0';
-            statClosed.textContent = '0';
-            updateHotspotStats([]);
-            updateActiveFilterSummary(0);
-            setState('No geo-tagged complaints available yet.', false, true);
-            return;
-        }
-
         const filtered = allPoints.filter(matchesFilters);
-
-        markerLayer.clearLayers();
-        locationLabelLayer.clearLayers();
-        if (heatLayer) {
-            map.removeLayer(heatLayer);
-        }
-
-        const mode = hasHeatPlugin ? layerModeFilter.value : 'markers';
-        const bounds = [];
-        const heatData = [];
+        const geojson = pointsToGeoJSON(filtered);
 
         let highCount = 0;
         let delayedCount = 0;
         let closedCount = 0;
 
         filtered.forEach((point) => {
-            bounds.push([point.lat, point.lng]);
             const isHighPriority = point.priority === 'High' || point.priority === 'Urgent';
-            const intensity = isHighPriority ? 1.0 : 0.45;
-            heatData.push([point.lat, point.lng, intensity]);
-
-            if (isHighPriority) {
-                highCount += 1;
-            }
-            if (point.status === 'Delayed') {
-                delayedCount += 1;
-            }
-            if (point.status === 'Closed') {
-                closedCount += 1;
-            }
-
-            if (mode === 'markers' || mode === 'both') {
-                const color = statusColors[point.status] || '#64748b';
-                const marker = L.circleMarker([point.lat, point.lng], {
-                    radius: isHighPriority ? 8 : 6,
-                    color: color,
-                    fillColor: color,
-                    fillOpacity: isHighPriority ? 0.9 : 0.7,
-                    weight: 2,
-                    className: isHighPriority ? 'geo-marker-high-pulse' : 'geo-marker-normal'
-                });
-
-                marker.bindPopup(`
-                    <div class="small">
-                        <div><strong>Public Ref:</strong> ${escapeHtml(point.public_reference || 'Public record')}</div>
-                        <div><strong>Department:</strong> ${escapeHtml(point.department_name || 'Unassigned')}</div>
-                        <div><strong>Status:</strong> ${escapeHtml(point.status)}</div>
-                        <div><strong>Priority:</strong> ${escapeHtml(point.priority)}</div>
-                        <div><strong>Area:</strong> ${escapeHtml(point.city)}, ${escapeHtml(point.district)}, ${escapeHtml(point.state)}</div>
-                        <div><strong>Submitted:</strong> ${escapeHtml(formatGeoDate(point.submitted_at))}</div>
-                        <div><strong>Coordinates:</strong> ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}</div>
-                    </div>
-                `);
-                markerLayer.addLayer(marker);
-            }
+            if (isHighPriority) highCount += 1;
+            if (point.status === 'Delayed') delayedCount += 1;
+            if (point.status === 'Closed') closedCount += 1;
         });
-
-        if (mode === 'heat' || mode === 'both') {
-            heatLayer = L.heatLayer(heatData, {
-                radius: 30,
-                blur: 20,
-                maxZoom: 16,
-                minOpacity: 0.35,
-                gradient: {
-                    0.2: '#06b6d4',
-                    0.45: '#f59e0b',
-                    0.75: '#ef4444'
-                }
-            }).addTo(map);
-        } else {
-            heatLayer = null;
-        }
 
         statTotal.textContent = filtered.length;
         statHigh.textContent = highCount;
         statDelayed.textContent = delayedCount;
         statClosed.textContent = closedCount;
         updateHotspotStats(filtered);
-        updateLocationLabels(filtered);
         updateActiveFilterSummary(filtered.length);
 
-        if (!filtered.length) {
-            locationLabelLayer.clearLayers();
-            setState('No geo-tagged complaints in this area match the current filters.', false, true);
+        if (!map.isStyleLoaded()) {
+            map.once('idle', () => updateLayers(geojson));
             return;
         }
+        updateLayers(geojson);
+    }
 
-        if (!hasHeatPlugin && layerModeFilter.value !== 'markers') {
-            setState('Heatmap rendering is unavailable right now. Showing marker mode.', false, true);
-            layerModeFilter.value = 'markers';
+    function updateLayers(geojson) {
+        const source = map.getSource('complaints');
+        if (source) {
+            source.setData(geojson);
+        }
+
+        const mode = layerModeFilter.value;
+        
+        // Show/Hide Layers based on mode
+        if (map.getLayer('complaints-heat')) {
+            map.setLayoutProperty('complaints-heat', 'visibility', (mode === 'heat' || mode === 'both') ? 'visible' : 'none');
+        }
+        if (map.getLayer('clusters')) {
+            map.setLayoutProperty('clusters', 'visibility', (mode === 'markers' || mode === 'both') ? 'visible' : 'none');
+        }
+        if (map.getLayer('cluster-count')) {
+            map.setLayoutProperty('cluster-count', 'visibility', (mode === 'markers' || mode === 'both') ? 'visible' : 'none');
+        }
+        if (map.getLayer('unclustered-point')) {
+            map.setLayoutProperty('unclustered-point', 'visibility', (mode === 'markers' || mode === 'both') ? 'visible' : 'none');
         }
 
         setState('');
-        if (bounds.length === 1) {
-            map.setView(bounds[0], Math.max(map.getZoom(), 14));
-            return;
+
+        // Bounds adjustment
+        if (geojson.features.length > 0) {
+            const bounds = new maplibregl.LngLatBounds();
+            geojson.features.forEach(f => bounds.extend(f.geometry.coordinates));
+            map.fitBounds(bounds, { padding: 40, maxZoom: 13 });
+        } else {
+            setState('No geo-tagged complaints in this area match the current filters.', false, true);
         }
-        map.fitBounds(bounds, {padding: [25, 25], maxZoom: 14});
     }
+
+    map.on('load', () => {
+        // Setup MapLibre GL sources and layers
+        map.addSource('complaints', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] },
+            cluster: true,
+            clusterMaxZoom: 14,
+            clusterRadius: 50
+        });
+
+        // Heatmap layer
+        map.addLayer({
+            id: 'complaints-heat',
+            type: 'heatmap',
+            source: 'complaints',
+            maxzoom: 15,
+            paint: {
+                'heatmap-weight': [
+                    'interpolate',
+                    ['linear'],
+                    ['get', 'priority'],
+                    'Normal', 0.45,
+                    'High', 1.0,
+                    'Urgent', 1.0
+                ],
+                'heatmap-intensity': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    0, 1,
+                    15, 3
+                ],
+                'heatmap-color': [
+                    'interpolate',
+                    ['linear'],
+                    ['heatmap-density'],
+                    0, 'rgba(6,182,212,0)',
+                    0.2, '#06b6d4',
+                    0.45, '#f59e0b',
+                    0.75, '#ef4444'
+                ],
+                'heatmap-radius': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    0, 15,
+                    15, 30
+                ],
+                'heatmap-opacity': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    13, 0.95,
+                    15, 0
+                ]
+            }
+        });
+
+        // Clusters (Circle Layer)
+        map.addLayer({
+            id: 'clusters',
+            type: 'circle',
+            source: 'complaints',
+            filter: ['has', 'point_count'],
+            paint: {
+                'circle-color': [
+                    'step',
+                    ['get', 'point_count'],
+                    '#12b981', // green < 10
+                    10,
+                    '#f59e0b', // amber < 30
+                    30,
+                    '#ef4444'  // red >= 30
+                ],
+                'circle-radius': [
+                    'step',
+                    ['get', 'point_count'],
+                    18,
+                    10,
+                    22,
+                    30,
+                    26
+                ],
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#fff'
+            }
+        });
+
+        // Cluster labels
+        map.addLayer({
+            id: 'cluster-count',
+            type: 'symbol',
+            source: 'complaints',
+            filter: ['has', 'point_count'],
+            layout: {
+                'text-field': '{point_count}',
+                'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                'text-size': 12
+            },
+            paint: {
+                'text-color': '#fff'
+            }
+        });
+
+        // Unclustered individual points
+        map.addLayer({
+            id: 'unclustered-point',
+            type: 'circle',
+            source: 'complaints',
+            filter: ['!', ['has', 'point_count']],
+            paint: {
+                'circle-color': [
+                    'match',
+                    ['get', 'status'],
+                    'Pending', '#f59e0b',
+                    'Under Review', '#06b6d4',
+                    'Action Taken', '#0b5ed7',
+                    'Delayed', '#ef4444',
+                    'Reopened', '#64748b',
+                    'Closed', '#12b981',
+                    '#64748b'
+                ],
+                'circle-radius': [
+                    'match',
+                    ['get', 'priority'],
+                    'High', 8,
+                    'Urgent', 8,
+                    6
+                ],
+                'circle-stroke-width': 1.5,
+                'circle-stroke-color': '#fff'
+            }
+        });
+
+        // Zoom on cluster click
+        map.on('click', 'clusters', (e) => {
+            const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+            const clusterId = features[0].properties.cluster_id;
+            map.getSource('complaints').getClusterExpansionZoom(clusterId, (err, zoom) => {
+                if (err) return;
+                map.easeTo({
+                    center: features[0].geometry.coordinates,
+                    zoom: zoom + 0.5
+                });
+            });
+        });
+
+        // Click popup on unclustered point
+        map.on('click', 'unclustered-point', (e) => {
+            const coordinates = e.features[0].geometry.coordinates.slice();
+            const props = e.features[0].properties;
+
+            while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+            }
+
+            const html = `
+                <div class="small p-1" style="font-family: inherit;">
+                    <div class="mb-1"><strong>Public Ref:</strong> ${escapeHtml(props.public_reference || 'Public record')}</div>
+                    <div class="mb-1"><strong>Department:</strong> ${escapeHtml(props.department_name || 'Unassigned')}</div>
+                    <div class="mb-1"><strong>Status:</strong> <span class="badge" style="background-color: ${statusColors[props.status] || '#64748b'};">${escapeHtml(props.status)}</span></div>
+                    <div class="mb-1"><strong>Priority:</strong> ${escapeHtml(props.priority)}</div>
+                    <div class="mb-1"><strong>Area:</strong> ${escapeHtml(props.city)}, ${escapeHtml(props.district)}, ${escapeHtml(props.state)}</div>
+                    <div><strong>Submitted:</strong> ${escapeHtml(formatGeoDate(props.submitted_at))}</div>
+                </div>
+            `;
+
+            new maplibregl.Popup({ offset: 10 })
+                .setLngLat(coordinates)
+                .setHTML(html)
+                .addTo(map);
+        });
+
+        // Pointer styling
+        map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
+        map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'unclustered-point', () => { map.getCanvas().style.cursor = ''; });
+
+        // First rendering
+        renderMap();
+    });
 
     function fetchHeatmapData() {
         const requestId = ++heatmapFetchSeq;
@@ -948,9 +946,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then((data) => {
-                if (requestId !== heatmapFetchSeq) {
-                    return;
-                }
+                if (requestId !== heatmapFetchSeq) return;
                 allPoints = Array.isArray(data)
                     ? data.map((point) => ({
                         ...point,
@@ -963,12 +959,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 syncGeoFilterOptions();
 
                 if (!allPoints.length) {
-                    markerLayer.clearLayers();
-                    locationLabelLayer.clearLayers();
-                    if (heatLayer) {
-                        map.removeLayer(heatLayer);
-                    }
-                    heatLayer = null;
                     statTotal.textContent = '0';
                     statHigh.textContent = '0';
                     statDelayed.textContent = '0';
@@ -981,9 +971,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderMap();
             })
             .catch((error) => {
-                if (error?.name === 'AbortError' || requestId !== heatmapFetchSeq) {
-                    return;
-                }
+                if (error?.name === 'AbortError' || requestId !== heatmapFetchSeq) return;
                 setState('Unable to load heatmap data right now.', true);
             })
             .finally(() => {
@@ -993,19 +981,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    if (layerModeFilter && layerModeFilter.value === 'both' && !hasHeatPlugin) {
-        layerModeFilter.value = 'markers';
-    }
-
-
     statusFilter.addEventListener('change', renderMap);
     priorityFilter.addEventListener('change', renderMap);
+    
     function applyFiltersFromURL() {
         const params = new URLSearchParams(window.location.search);
         
         if (params.has('status')) statusFilter.value = params.get('status');
         if (params.has('priority')) priorityFilter.value = params.get('priority');
-        
         if (params.has('date_from') && dateFromFilter) dateFromFilter.value = params.get('date_from');
         if (params.has('date_to') && dateToFilter) dateToFilter.value = params.get('date_to');
         
@@ -1032,9 +1015,6 @@ document.addEventListener('DOMContentLoaded', function() {
             cityFilter.value = params.get('city');
         }
     }
-
-    statusFilter.addEventListener('change', renderMap);
-    priorityFilter.addEventListener('change', renderMap);
 
     if (departmentPillsContainer) {
         departmentPillsContainer.querySelectorAll('.filter-pill').forEach(pill => {
@@ -1090,15 +1070,9 @@ document.addEventListener('DOMContentLoaded', function() {
     refreshBtn.addEventListener('click', fetchHeatmapData);
     resetFiltersBtn.addEventListener('click', resetFilters);
 
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 120);
-    
-    // Apply filters from URL search params before first fetch
     applyFiltersFromURL();
     fetchHeatmapData();
 
-    // Pull latest geo points periodically for long-open dashboards.
     setInterval(() => {
         if (document.visibilityState === 'visible') {
             fetchHeatmapData();

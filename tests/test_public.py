@@ -91,8 +91,8 @@ class TestHomepage:
         """Geo heatmap should use online map tiles and support fallback."""
         response = client.get('/geo-heatmap')
         assert response.status_code == 200
-        assert b'cartoDbLayer' in response.data
-        assert b'stadiaLayer' in response.data
+        assert b'raster-tiles' in response.data
+        assert b'cartocdn.com' in response.data
 
     def test_how_it_works_page_loads(self, client):
         """Test how-it-works page loads successfully."""
