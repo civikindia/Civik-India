@@ -747,7 +747,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    map.on('load', () => {
+    map.on('style.load', () => {
         // Setup MapLibre GL sources and layers
         map.addSource('complaints', {
             type: 'geojson',
